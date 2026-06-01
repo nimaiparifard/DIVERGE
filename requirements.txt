@@ -1,0 +1,52 @@
+# DIVERGE — Python dependencies (from project imports)
+#
+# Install PyTorch first for your CUDA/CPU setup, then PyG wheels that match that torch build:
+#   https://pytorch.org/get-started/locally/
+#   https://pytorch-geometric.readthedocs.io/en/latest/install/installation.html
+#
+# Example (CUDA 12.1 — adjust index URL to your torch version):
+#   pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+#   pip install pyg_lib torch_scatter torch_sparse torch_cluster torch_spline_conv -f https://data.pyg.org/whl/torch-2.4.0+cu121.html
+#   pip install torch-geometric
+#   pip install -r requirements.txt
+
+# --- Core deep learning ---
+torch>=2.1.0
+torch-geometric>=2.4.0
+torch-sparse>=0.6.18
+
+# --- LLM fine-tuning (train_llm/, cache/) ---
+transformers>=4.40.0
+peft>=0.11.0
+accelerate>=0.28.0
+bitsandbytes>=0.43.0
+sentencepiece>=0.2.0
+
+# --- Numerics & ML ---
+numpy>=1.24.0
+scipy>=1.11.0
+scikit-learn>=1.3.0
+
+# --- Config & utilities ---
+yacs>=0.1.8
+tqdm>=4.66.0
+pytz>=2024.1
+
+# --- Plotting & visualization ---
+matplotlib>=3.8.0
+seaborn>=0.13.0
+
+# --- Text / graph embeddings ---
+sentence-transformers>=2.6.0
+node2vec>=0.4.6
+networkx>=3.2
+gensim>=4.3.0
+
+# --- Optional: hypothesis testing (experiments/hypothesis_testing_fintuned_unfinetuned.py) ---
+statsmodels>=0.14.0
+
+# --- Optional: LLM text enhancement (experiments/enahnce_textual_embeddings.py) ---
+pydantic>=2.0.0
+langchain-core>=0.2.0
+langchain-ollama>=0.1.0
+langchain-openai>=0.1.0

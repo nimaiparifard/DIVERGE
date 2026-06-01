@@ -1,0 +1,53 @@
+
+======================================================================
+                       Training Process Started                       
+======================================================================
+
+Dataset: cora
+Model: llama_3.2_1B
+PEFT Type: lora
+Seed: 40
+
+======================================================================
+                           Training Started                           
+======================================================================
+
+Number of training samples: 140
+Number of validation samples: 500
+Number of test samples: 2068
+Number of epochs: 3
+Learning rate: 0.0002
+
+======================================================================
+                          Training Completed                          
+======================================================================
+
+Test Accuracy: 0.6625
+Test Loss: 1.0540
+
+Model saved to: ./artifacts\llama_3.2_1B_cora_seqcls_lora_semi_supervised
+
+======================================================================
+                        Final Results Summary                         
+======================================================================
+
+Timestamp: 2026-02-16 10:58:17
+Model: llama_3.2_1B
+Dataset: cora
+PEFT Type: lora
+Number of Classes: 7
+Max Sequence Length: 512
+
+--- Train Set ---
+Loss: 0.5552
+Accuracy: 0.8143
+
+--- Validation Set ---
+Loss: 1.0092
+Accuracy: 0.6740
+
+--- Test Set ---
+Loss: 1.0540
+Accuracy: 0.6625
+
+Results CSV saved to: ./artifacts\llama_3.2_1B_cora_seqcls_lora_semi_supervised\training_results.csv

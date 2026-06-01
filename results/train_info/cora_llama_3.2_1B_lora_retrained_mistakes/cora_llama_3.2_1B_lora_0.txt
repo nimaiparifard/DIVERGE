@@ -1,0 +1,74 @@
+
+======================================================================
+                         GNN Mistake Analysis                         
+======================================================================
+
+Init Weight Approach: loftq
+Dataset: cora
+
+Top 3 Classes with Highest Mistake Rates:
+  Class 0: 0.1101 (12/109 mistakes)
+  Class 2: 0.0778 (14/180 mistakes)
+  Class 4: 0.0725 (14/193 mistakes)
+
+======================================================================
+                       Training Process Started                       
+======================================================================
+
+Dataset: cora
+Model: llama_3.2_1B
+PEFT Type: lora
+Seed: 42
+
+======================================================================
+                           Training Started                           
+======================================================================
+
+Number of training samples: 2588
+Number of validation samples: 542
+Number of test samples: 542
+Number of epochs: 3
+Learning rate: 0.0002
+
+======================================================================
+                         GNN Mistake Analysis                         
+======================================================================
+
+Init Weight Approach: loftq
+Dataset: cora
+
+Top 3 Classes with Highest Mistake Rates:
+  Class 0: 0.1101 (12/109 mistakes)
+  Class 2: 0.0778 (14/180 mistakes)
+  Class 4: 0.0725 (14/193 mistakes)
+
+======================================================================
+                       Training Process Started                       
+======================================================================
+
+Dataset: cora
+Model: llama_3.2_1B
+PEFT Type: lora
+Seed: 42
+
+======================================================================
+                           Training Started                           
+======================================================================
+
+Number of training samples: 2588
+Number of validation samples: 542
+Number of test samples: 542
+Number of epochs: 3
+Learning rate: 0.0002
+
+======================================================================
+                         GNN Mistake Analysis                         
+======================================================================
+
+Init Weight Approach: loftq
+Dataset: cora
+
+Top 3 Classes with Highest Mistake Rates:
+  Class 0: 0.1101 (12/109 mistakes)
+  Class 2: 0.0778 (14/180 mistakes)
+  Class 4: 0.0725 (14/193 mistakes)

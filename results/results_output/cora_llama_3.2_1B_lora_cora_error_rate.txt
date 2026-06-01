@@ -1,0 +1,1908 @@
+
+======================================================================
+                     GNN Training Results - PISSA                     
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 90.7700 (9077.00%)
+                        • Test F1 (Macro): 88.2500
+                        • Test F1 (Weighted): 90.4500
+                        • Validation Accuracy: 89.4800 (8948.00%)
+                        • Validation F1 (Macro): 87.7900
+                        • Validation F1 (Weighted): 89.4100
+                        
+
+======================================================================
+                     GNN Training Results - PISSA                     
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 90.7700 (9077.00%)
+                        • Test F1 (Macro): 88.2500
+                        • Test F1 (Weighted): 90.4500
+                        • Validation Accuracy: 89.4800 (8948.00%)
+                        • Validation F1 (Macro): 87.7900
+                        • Validation F1 (Weighted): 89.4100
+                        
+
+======================================================================
+                     GNN Training Results - PISSA                     
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 90.7700 (9077.00%)
+                        • Test F1 (Macro): 88.2500
+                        • Test F1 (Weighted): 90.4500
+                        • Validation Accuracy: 89.4800 (8948.00%)
+                        • Validation F1 (Macro): 87.7900
+                        • Validation F1 (Weighted): 89.4100
+                        
+
+======================================================================
+                     GNN Training Results - PISSA                     
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 90.7700 (9077.00%)
+                        • Test F1 (Macro): 88.2500
+                        • Test F1 (Weighted): 90.4500
+                        • Validation Accuracy: 89.4800 (8948.00%)
+                        • Validation F1 (Macro): 87.7900
+                        • Validation F1 (Weighted): 89.4100
+                        
+
+======================================================================
+                     GNN Training Results - PISSA                     
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 90.7700 (9077.00%)
+                        • Test F1 (Macro): 88.2500
+                        • Test F1 (Weighted): 90.4500
+                        • Validation Accuracy: 89.4800 (8948.00%)
+                        • Validation F1 (Macro): 87.7900
+                        • Validation F1 (Weighted): 89.4100
+                        
+
+======================================================================
+                     GNN Training Results - PISSA                     
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 90.7700 (9077.00%)
+                        • Test F1 (Macro): 88.2500
+                        • Test F1 (Weighted): 90.4500
+                        • Validation Accuracy: 89.4800 (8948.00%)
+                        • Validation F1 (Macro): 87.7900
+                        • Validation F1 (Weighted): 89.4100
+                        
+
+======================================================================
+                  GNN Training Results - ORTHOGONAL                   
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 89.4800 (8948.00%)
+                        • Test F1 (Macro): 87.2100
+                        • Test F1 (Weighted): 89.3800
+                        • Validation Accuracy: 91.8800 (9188.00%)
+                        • Validation F1 (Macro): 90.8200
+                        • Validation F1 (Weighted): 91.9400
+                        
+
+======================================================================
+                     GNN Training Results - PISSA                     
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 90.7700 (9077.00%)
+                        • Test F1 (Macro): 88.2500
+                        • Test F1 (Weighted): 90.4500
+                        • Validation Accuracy: 89.4800 (8948.00%)
+                        • Validation F1 (Macro): 87.7900
+                        • Validation F1 (Weighted): 89.4100
+                        
+
+======================================================================
+                  GNN Training Results - ORTHOGONAL                   
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 89.4800 (8948.00%)
+                        • Test F1 (Macro): 87.2100
+                        • Test F1 (Weighted): 89.3800
+                        • Validation Accuracy: 91.8800 (9188.00%)
+                        • Validation F1 (Macro): 90.8200
+                        • Validation F1 (Weighted): 91.9400
+                        
+
+======================================================================
+                     GNN Training Results - LOFTQ                     
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 90.9600 (9096.00%)
+                        • Test F1 (Macro): 89.0700
+                        • Test F1 (Weighted): 90.8600
+                        • Validation Accuracy: 91.1400 (9114.00%)
+                        • Validation F1 (Macro): 89.6500
+                        • Validation F1 (Weighted): 91.1300
+                        
+
+======================================================================
+                      GNN Training Results - EVA                      
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 92.0700 (9207.00%)
+                        • Test F1 (Macro): 90.5100
+                        • Test F1 (Weighted): 91.9800
+                        • Validation Accuracy: 91.1400 (9114.00%)
+                        • Validation F1 (Macro): 89.6700
+                        • Validation F1 (Weighted): 91.1000
+                        
+
+======================================================================
+                   GNN Training Results - GUASSIAN                    
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 91.1400 (9114.00%)
+                        • Test F1 (Macro): 89.2600
+                        • Test F1 (Weighted): 91.1700
+                        • Validation Accuracy: 92.4400 (9244.00%)
+                        • Validation F1 (Macro): 90.8800
+                        • Validation F1 (Weighted): 92.5000
+                        
+
+======================================================================
+                     GNN Training Results - PISSA                     
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 90.7700 (9077.00%)
+                        • Test F1 (Macro): 88.2500
+                        • Test F1 (Weighted): 90.4500
+                        • Validation Accuracy: 89.4800 (8948.00%)
+                        • Validation F1 (Macro): 87.7900
+                        • Validation F1 (Weighted): 89.4100
+                        
+
+======================================================================
+                  GNN Training Results - ORTHOGONAL                   
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 89.4800 (8948.00%)
+                        • Test F1 (Macro): 87.2100
+                        • Test F1 (Weighted): 89.3800
+                        • Validation Accuracy: 91.8800 (9188.00%)
+                        • Validation F1 (Macro): 90.8200
+                        • Validation F1 (Weighted): 91.9400
+                        
+
+======================================================================
+                     GNN Training Results - LOFTQ                     
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 90.9600 (9096.00%)
+                        • Test F1 (Macro): 89.0700
+                        • Test F1 (Weighted): 90.8600
+                        • Validation Accuracy: 91.1400 (9114.00%)
+                        • Validation F1 (Macro): 89.6500
+                        • Validation F1 (Weighted): 91.1300
+                        
+
+======================================================================
+                      GNN Training Results - EVA                      
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 92.0700 (9207.00%)
+                        • Test F1 (Macro): 90.5100
+                        • Test F1 (Weighted): 91.9800
+                        • Validation Accuracy: 91.1400 (9114.00%)
+                        • Validation F1 (Macro): 89.6700
+                        • Validation F1 (Weighted): 91.1000
+                        
+
+======================================================================
+                   GNN Training Results - GUASSIAN                    
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 91.1400 (9114.00%)
+                        • Test F1 (Macro): 89.2600
+                        • Test F1 (Weighted): 91.1700
+                        • Validation Accuracy: 92.4400 (9244.00%)
+                        • Validation F1 (Macro): 90.8800
+                        • Validation F1 (Weighted): 92.5000
+                        
+
+======================================================================
+                     GNN Training Results - PISSA                     
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 90.7700 (9077.00%)
+                        • Test F1 (Macro): 88.2500
+                        • Test F1 (Weighted): 90.4500
+                        • Validation Accuracy: 89.4800 (8948.00%)
+                        • Validation F1 (Macro): 87.7900
+                        • Validation F1 (Weighted): 89.4100
+                        
+
+======================================================================
+                  GNN Training Results - ORTHOGONAL                   
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 89.4800 (8948.00%)
+                        • Test F1 (Macro): 87.2100
+                        • Test F1 (Weighted): 89.3800
+                        • Validation Accuracy: 91.8800 (9188.00%)
+                        • Validation F1 (Macro): 90.8200
+                        • Validation F1 (Weighted): 91.9400
+                        
+
+======================================================================
+                     GNN Training Results - LOFTQ                     
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 90.9600 (9096.00%)
+                        • Test F1 (Macro): 89.0700
+                        • Test F1 (Weighted): 90.8600
+                        • Validation Accuracy: 91.1400 (9114.00%)
+                        • Validation F1 (Macro): 89.6500
+                        • Validation F1 (Weighted): 91.1300
+                        
+
+======================================================================
+                      GNN Training Results - EVA                      
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 92.0700 (9207.00%)
+                        • Test F1 (Macro): 90.5100
+                        • Test F1 (Weighted): 91.9800
+                        • Validation Accuracy: 91.1400 (9114.00%)
+                        • Validation F1 (Macro): 89.6700
+                        • Validation F1 (Weighted): 91.1000
+                        
+
+======================================================================
+                   GNN Training Results - GUASSIAN                    
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 91.1400 (9114.00%)
+                        • Test F1 (Macro): 89.2600
+                        • Test F1 (Weighted): 91.1700
+                        • Validation Accuracy: 92.4400 (9244.00%)
+                        • Validation F1 (Macro): 90.8800
+                        • Validation F1 (Weighted): 92.5000
+                        
+
+======================================================================
+                     GNN Training Results - PISSA                     
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 90.7700 (9077.00%)
+                        • Test F1 (Macro): 88.2500
+                        • Test F1 (Weighted): 90.4500
+                        • Validation Accuracy: 89.4800 (8948.00%)
+                        • Validation F1 (Macro): 87.7900
+                        • Validation F1 (Weighted): 89.4100
+                        
+
+======================================================================
+                  GNN Training Results - ORTHOGONAL                   
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 89.4800 (8948.00%)
+                        • Test F1 (Macro): 87.2100
+                        • Test F1 (Weighted): 89.3800
+                        • Validation Accuracy: 91.8800 (9188.00%)
+                        • Validation F1 (Macro): 90.8200
+                        • Validation F1 (Weighted): 91.9400
+                        
+
+======================================================================
+                     GNN Training Results - LOFTQ                     
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 90.9600 (9096.00%)
+                        • Test F1 (Macro): 89.0700
+                        • Test F1 (Weighted): 90.8600
+                        • Validation Accuracy: 91.1400 (9114.00%)
+                        • Validation F1 (Macro): 89.6500
+                        • Validation F1 (Weighted): 91.1300
+                        
+
+======================================================================
+                      GNN Training Results - EVA                      
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 92.0700 (9207.00%)
+                        • Test F1 (Macro): 90.5100
+                        • Test F1 (Weighted): 91.9800
+                        • Validation Accuracy: 91.1400 (9114.00%)
+                        • Validation F1 (Macro): 89.6700
+                        • Validation F1 (Weighted): 91.1000
+                        
+
+======================================================================
+                   GNN Training Results - GUASSIAN                    
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 91.1400 (9114.00%)
+                        • Test F1 (Macro): 89.2600
+                        • Test F1 (Weighted): 91.1700
+                        • Validation Accuracy: 92.4400 (9244.00%)
+                        • Validation F1 (Macro): 90.8800
+                        • Validation F1 (Weighted): 92.5000
+                        
+
+======================================================================
+                     GNN Training Results - PISSA                     
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 90.7700 (9077.00%)
+                        • Test F1 (Macro): 88.2500
+                        • Test F1 (Weighted): 90.4500
+                        • Validation Accuracy: 89.4800 (8948.00%)
+                        • Validation F1 (Macro): 87.7900
+                        • Validation F1 (Weighted): 89.4100
+                        
+
+======================================================================
+                  GNN Training Results - ORTHOGONAL                   
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 89.4800 (8948.00%)
+                        • Test F1 (Macro): 87.2100
+                        • Test F1 (Weighted): 89.3800
+                        • Validation Accuracy: 91.8800 (9188.00%)
+                        • Validation F1 (Macro): 90.8200
+                        • Validation F1 (Weighted): 91.9400
+                        
+
+======================================================================
+                     GNN Training Results - LOFTQ                     
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 90.9600 (9096.00%)
+                        • Test F1 (Macro): 89.0700
+                        • Test F1 (Weighted): 90.8600
+                        • Validation Accuracy: 91.1400 (9114.00%)
+                        • Validation F1 (Macro): 89.6500
+                        • Validation F1 (Weighted): 91.1300
+                        
+
+======================================================================
+                      GNN Training Results - EVA                      
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 92.0700 (9207.00%)
+                        • Test F1 (Macro): 90.5100
+                        • Test F1 (Weighted): 91.9800
+                        • Validation Accuracy: 91.1400 (9114.00%)
+                        • Validation F1 (Macro): 89.6700
+                        • Validation F1 (Weighted): 91.1000
+                        
+
+======================================================================
+                   GNN Training Results - GUASSIAN                    
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 91.1400 (9114.00%)
+                        • Test F1 (Macro): 89.2600
+                        • Test F1 (Weighted): 91.1700
+                        • Validation Accuracy: 92.4400 (9244.00%)
+                        • Validation F1 (Macro): 90.8800
+                        • Validation F1 (Weighted): 92.5000
+                        
+
+======================================================================
+                     GNN Training Results - PISSA                     
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 90.7700 (9077.00%)
+                        • Test F1 (Macro): 88.2500
+                        • Test F1 (Weighted): 90.4500
+                        • Validation Accuracy: 89.4800 (8948.00%)
+                        • Validation F1 (Macro): 87.7900
+                        • Validation F1 (Weighted): 89.4100
+                        
+
+======================================================================
+                  GNN Training Results - ORTHOGONAL                   
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 89.4800 (8948.00%)
+                        • Test F1 (Macro): 87.2100
+                        • Test F1 (Weighted): 89.3800
+                        • Validation Accuracy: 91.8800 (9188.00%)
+                        • Validation F1 (Macro): 90.8200
+                        • Validation F1 (Weighted): 91.9400
+                        
+
+======================================================================
+                     GNN Training Results - LOFTQ                     
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 90.9600 (9096.00%)
+                        • Test F1 (Macro): 89.0700
+                        • Test F1 (Weighted): 90.8600
+                        • Validation Accuracy: 91.1400 (9114.00%)
+                        • Validation F1 (Macro): 89.6500
+                        • Validation F1 (Weighted): 91.1300
+                        
+
+======================================================================
+                      GNN Training Results - EVA                      
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 92.0700 (9207.00%)
+                        • Test F1 (Macro): 90.5100
+                        • Test F1 (Weighted): 91.9800
+                        • Validation Accuracy: 91.1400 (9114.00%)
+                        • Validation F1 (Macro): 89.6700
+                        • Validation F1 (Weighted): 91.1000
+                        
+
+======================================================================
+                   GNN Training Results - GUASSIAN                    
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 91.1400 (9114.00%)
+                        • Test F1 (Macro): 89.2600
+                        • Test F1 (Weighted): 91.1700
+                        • Validation Accuracy: 92.4400 (9244.00%)
+                        • Validation F1 (Macro): 90.8800
+                        • Validation F1 (Weighted): 92.5000
+                        
+
+======================================================================
+                     GNN Training Results - PISSA                     
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 90.7700 (9077.00%)
+                        • Test F1 (Macro): 88.2500
+                        • Test F1 (Weighted): 90.4500
+                        • Validation Accuracy: 89.4800 (8948.00%)
+                        • Validation F1 (Macro): 87.7900
+                        • Validation F1 (Weighted): 89.4100
+                        
+
+======================================================================
+                  GNN Training Results - ORTHOGONAL                   
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 89.4800 (8948.00%)
+                        • Test F1 (Macro): 87.2100
+                        • Test F1 (Weighted): 89.3800
+                        • Validation Accuracy: 91.8800 (9188.00%)
+                        • Validation F1 (Macro): 90.8200
+                        • Validation F1 (Weighted): 91.9400
+                        
+
+======================================================================
+                     GNN Training Results - LOFTQ                     
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 90.9600 (9096.00%)
+                        • Test F1 (Macro): 89.0700
+                        • Test F1 (Weighted): 90.8600
+                        • Validation Accuracy: 91.1400 (9114.00%)
+                        • Validation F1 (Macro): 89.6500
+                        • Validation F1 (Weighted): 91.1300
+                        
+
+======================================================================
+                      GNN Training Results - EVA                      
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 92.0700 (9207.00%)
+                        • Test F1 (Macro): 90.5100
+                        • Test F1 (Weighted): 91.9800
+                        • Validation Accuracy: 91.1400 (9114.00%)
+                        • Validation F1 (Macro): 89.6700
+                        • Validation F1 (Weighted): 91.1000
+                        
+
+======================================================================
+                   GNN Training Results - GUASSIAN                    
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 91.1400 (9114.00%)
+                        • Test F1 (Macro): 89.2600
+                        • Test F1 (Weighted): 91.1700
+                        • Validation Accuracy: 92.4400 (9244.00%)
+                        • Validation F1 (Macro): 90.8800
+                        • Validation F1 (Weighted): 92.5000
+                        
+
+======================================================================
+                     GNN Training Results - PISSA                     
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 90.7700 (9077.00%)
+                        • Test F1 (Macro): 88.2500
+                        • Test F1 (Weighted): 90.4500
+                        • Validation Accuracy: 89.4800 (8948.00%)
+                        • Validation F1 (Macro): 87.7900
+                        • Validation F1 (Weighted): 89.4100
+                        
+
+======================================================================
+                  GNN Training Results - ORTHOGONAL                   
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 89.4800 (8948.00%)
+                        • Test F1 (Macro): 87.2100
+                        • Test F1 (Weighted): 89.3800
+                        • Validation Accuracy: 91.8800 (9188.00%)
+                        • Validation F1 (Macro): 90.8200
+                        • Validation F1 (Weighted): 91.9400
+                        
+
+======================================================================
+                     GNN Training Results - LOFTQ                     
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 90.9600 (9096.00%)
+                        • Test F1 (Macro): 89.0700
+                        • Test F1 (Weighted): 90.8600
+                        • Validation Accuracy: 91.1400 (9114.00%)
+                        • Validation F1 (Macro): 89.6500
+                        • Validation F1 (Weighted): 91.1300
+                        
+
+======================================================================
+                      GNN Training Results - EVA                      
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 92.0700 (9207.00%)
+                        • Test F1 (Macro): 90.5100
+                        • Test F1 (Weighted): 91.9800
+                        • Validation Accuracy: 91.1400 (9114.00%)
+                        • Validation F1 (Macro): 89.6700
+                        • Validation F1 (Weighted): 91.1000
+                        
+
+======================================================================
+                   GNN Training Results - GUASSIAN                    
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 91.1400 (9114.00%)
+                        • Test F1 (Macro): 89.2600
+                        • Test F1 (Weighted): 91.1700
+                        • Validation Accuracy: 92.4400 (9244.00%)
+                        • Validation F1 (Macro): 90.8800
+                        • Validation F1 (Weighted): 92.5000
+                        
+
+======================================================================
+                     GNN Training Results - PISSA                     
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 90.7700 (9077.00%)
+                        • Test F1 (Macro): 88.2500
+                        • Test F1 (Weighted): 90.4500
+                        • Validation Accuracy: 89.4800 (8948.00%)
+                        • Validation F1 (Macro): 87.7900
+                        • Validation F1 (Weighted): 89.4100
+                        
+
+======================================================================
+                  GNN Training Results - ORTHOGONAL                   
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 89.4800 (8948.00%)
+                        • Test F1 (Macro): 87.2100
+                        • Test F1 (Weighted): 89.3800
+                        • Validation Accuracy: 91.8800 (9188.00%)
+                        • Validation F1 (Macro): 90.8200
+                        • Validation F1 (Weighted): 91.9400
+                        
+
+======================================================================
+                     GNN Training Results - LOFTQ                     
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 90.9600 (9096.00%)
+                        • Test F1 (Macro): 89.0700
+                        • Test F1 (Weighted): 90.8600
+                        • Validation Accuracy: 91.1400 (9114.00%)
+                        • Validation F1 (Macro): 89.6500
+                        • Validation F1 (Weighted): 91.1300
+                        
+
+======================================================================
+                      GNN Training Results - EVA                      
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 92.0700 (9207.00%)
+                        • Test F1 (Macro): 90.5100
+                        • Test F1 (Weighted): 91.9800
+                        • Validation Accuracy: 91.1400 (9114.00%)
+                        • Validation F1 (Macro): 89.6700
+                        • Validation F1 (Weighted): 91.1000
+                        
+
+======================================================================
+                   GNN Training Results - GUASSIAN                    
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 91.1400 (9114.00%)
+                        • Test F1 (Macro): 89.2600
+                        • Test F1 (Weighted): 91.1700
+                        • Validation Accuracy: 92.4400 (9244.00%)
+                        • Validation F1 (Macro): 90.8800
+                        • Validation F1 (Weighted): 92.5000
+                        
+
+======================================================================
+                     GNN Training Results - PISSA                     
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 90.7700 (9077.00%)
+                        • Test F1 (Macro): 88.2500
+                        • Test F1 (Weighted): 90.4500
+                        • Validation Accuracy: 89.4800 (8948.00%)
+                        • Validation F1 (Macro): 87.7900
+                        • Validation F1 (Weighted): 89.4100
+                        
+
+======================================================================
+                  GNN Training Results - ORTHOGONAL                   
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 89.4800 (8948.00%)
+                        • Test F1 (Macro): 87.2100
+                        • Test F1 (Weighted): 89.3800
+                        • Validation Accuracy: 91.8800 (9188.00%)
+                        • Validation F1 (Macro): 90.8200
+                        • Validation F1 (Weighted): 91.9400
+                        
+
+======================================================================
+                     GNN Training Results - LOFTQ                     
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 90.9600 (9096.00%)
+                        • Test F1 (Macro): 89.0700
+                        • Test F1 (Weighted): 90.8600
+                        • Validation Accuracy: 91.1400 (9114.00%)
+                        • Validation F1 (Macro): 89.6500
+                        • Validation F1 (Weighted): 91.1300
+                        
+
+======================================================================
+                      GNN Training Results - EVA                      
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 92.0700 (9207.00%)
+                        • Test F1 (Macro): 90.5100
+                        • Test F1 (Weighted): 91.9800
+                        • Validation Accuracy: 91.1400 (9114.00%)
+                        • Validation F1 (Macro): 89.6700
+                        • Validation F1 (Weighted): 91.1000
+                        
+
+======================================================================
+                   GNN Training Results - GUASSIAN                    
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 91.1400 (9114.00%)
+                        • Test F1 (Macro): 89.2600
+                        • Test F1 (Weighted): 91.1700
+                        • Validation Accuracy: 92.4400 (9244.00%)
+                        • Validation F1 (Macro): 90.8800
+                        • Validation F1 (Weighted): 92.5000
+                        
+
+======================================================================
+                     GNN Training Results - PISSA                     
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 90.7700 (9077.00%)
+                        • Test F1 (Macro): 88.2500
+                        • Test F1 (Weighted): 90.4500
+                        • Validation Accuracy: 89.4800 (8948.00%)
+                        • Validation F1 (Macro): 87.7900
+                        • Validation F1 (Weighted): 89.4100
+                        
+
+======================================================================
+                  GNN Training Results - ORTHOGONAL                   
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 89.4800 (8948.00%)
+                        • Test F1 (Macro): 87.2100
+                        • Test F1 (Weighted): 89.3800
+                        • Validation Accuracy: 91.8800 (9188.00%)
+                        • Validation F1 (Macro): 90.8200
+                        • Validation F1 (Weighted): 91.9400
+                        
+
+======================================================================
+                     GNN Training Results - LOFTQ                     
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 90.9600 (9096.00%)
+                        • Test F1 (Macro): 89.0700
+                        • Test F1 (Weighted): 90.8600
+                        • Validation Accuracy: 91.1400 (9114.00%)
+                        • Validation F1 (Macro): 89.6500
+                        • Validation F1 (Weighted): 91.1300
+                        
+
+======================================================================
+                      GNN Training Results - EVA                      
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 92.0700 (9207.00%)
+                        • Test F1 (Macro): 90.5100
+                        • Test F1 (Weighted): 91.9800
+                        • Validation Accuracy: 91.1400 (9114.00%)
+                        • Validation F1 (Macro): 89.6700
+                        • Validation F1 (Weighted): 91.1000
+                        
+
+======================================================================
+                   GNN Training Results - GUASSIAN                    
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 91.1400 (9114.00%)
+                        • Test F1 (Macro): 89.2600
+                        • Test F1 (Weighted): 91.1700
+                        • Validation Accuracy: 92.4400 (9244.00%)
+                        • Validation F1 (Macro): 90.8800
+                        • Validation F1 (Weighted): 92.5000
+                        
+
+======================================================================
+                     GNN Training Results - PISSA                     
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 90.7700 (9077.00%)
+                        • Test F1 (Macro): 88.2500
+                        • Test F1 (Weighted): 90.4500
+                        • Validation Accuracy: 89.4800 (8948.00%)
+                        • Validation F1 (Macro): 87.7900
+                        • Validation F1 (Weighted): 89.4100
+                        
+
+======================================================================
+                  GNN Training Results - ORTHOGONAL                   
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 89.4800 (8948.00%)
+                        • Test F1 (Macro): 87.2100
+                        • Test F1 (Weighted): 89.3800
+                        • Validation Accuracy: 91.8800 (9188.00%)
+                        • Validation F1 (Macro): 90.8200
+                        • Validation F1 (Weighted): 91.9400
+                        
+
+======================================================================
+                     GNN Training Results - LOFTQ                     
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 90.9600 (9096.00%)
+                        • Test F1 (Macro): 89.0700
+                        • Test F1 (Weighted): 90.8600
+                        • Validation Accuracy: 91.1400 (9114.00%)
+                        • Validation F1 (Macro): 89.6500
+                        • Validation F1 (Weighted): 91.1300
+                        
+
+======================================================================
+                      GNN Training Results - EVA                      
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 92.0700 (9207.00%)
+                        • Test F1 (Macro): 90.5100
+                        • Test F1 (Weighted): 91.9800
+                        • Validation Accuracy: 91.1400 (9114.00%)
+                        • Validation F1 (Macro): 89.6700
+                        • Validation F1 (Weighted): 91.1000
+                        
+
+======================================================================
+                   GNN Training Results - GUASSIAN                    
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 91.1400 (9114.00%)
+                        • Test F1 (Macro): 89.2600
+                        • Test F1 (Weighted): 91.1700
+                        • Validation Accuracy: 92.4400 (9244.00%)
+                        • Validation F1 (Macro): 90.8800
+                        • Validation F1 (Weighted): 92.5000
+                        
+
+======================================================================
+                     GNN Training Results - PISSA                     
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 90.7700 (9077.00%)
+                        • Test F1 (Macro): 88.2500
+                        • Test F1 (Weighted): 90.4500
+                        • Validation Accuracy: 89.4800 (8948.00%)
+                        • Validation F1 (Macro): 87.7900
+                        • Validation F1 (Weighted): 89.4100
+                        
+
+======================================================================
+                  GNN Training Results - ORTHOGONAL                   
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 89.4800 (8948.00%)
+                        • Test F1 (Macro): 87.2100
+                        • Test F1 (Weighted): 89.3800
+                        • Validation Accuracy: 91.8800 (9188.00%)
+                        • Validation F1 (Macro): 90.8200
+                        • Validation F1 (Weighted): 91.9400
+                        
+
+======================================================================
+                     GNN Training Results - LOFTQ                     
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 90.9600 (9096.00%)
+                        • Test F1 (Macro): 89.0700
+                        • Test F1 (Weighted): 90.8600
+                        • Validation Accuracy: 91.1400 (9114.00%)
+                        • Validation F1 (Macro): 89.6500
+                        • Validation F1 (Weighted): 91.1300
+                        
+
+======================================================================
+                      GNN Training Results - EVA                      
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 92.0700 (9207.00%)
+                        • Test F1 (Macro): 90.5100
+                        • Test F1 (Weighted): 91.9800
+                        • Validation Accuracy: 91.1400 (9114.00%)
+                        • Validation F1 (Macro): 89.6700
+                        • Validation F1 (Weighted): 91.1000
+                        
+
+======================================================================
+                   GNN Training Results - GUASSIAN                    
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 91.1400 (9114.00%)
+                        • Test F1 (Macro): 89.2600
+                        • Test F1 (Weighted): 91.1700
+                        • Validation Accuracy: 92.4400 (9244.00%)
+                        • Validation F1 (Macro): 90.8800
+                        • Validation F1 (Weighted): 92.5000
+                        
+
+======================================================================
+                     GNN Training Results - PISSA                     
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 90.7700 (9077.00%)
+                        • Test F1 (Macro): 88.2500
+                        • Test F1 (Weighted): 90.4500
+                        • Validation Accuracy: 89.4800 (8948.00%)
+                        • Validation F1 (Macro): 87.7900
+                        • Validation F1 (Weighted): 89.4100
+                        
+
+======================================================================
+                  GNN Training Results - ORTHOGONAL                   
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 89.4800 (8948.00%)
+                        • Test F1 (Macro): 87.2100
+                        • Test F1 (Weighted): 89.3800
+                        • Validation Accuracy: 91.8800 (9188.00%)
+                        • Validation F1 (Macro): 90.8200
+                        • Validation F1 (Weighted): 91.9400
+                        
+
+======================================================================
+                     GNN Training Results - LOFTQ                     
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 90.9600 (9096.00%)
+                        • Test F1 (Macro): 89.0700
+                        • Test F1 (Weighted): 90.8600
+                        • Validation Accuracy: 91.1400 (9114.00%)
+                        • Validation F1 (Macro): 89.6500
+                        • Validation F1 (Weighted): 91.1300
+                        
+
+======================================================================
+                      GNN Training Results - EVA                      
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 92.0700 (9207.00%)
+                        • Test F1 (Macro): 90.5100
+                        • Test F1 (Weighted): 91.9800
+                        • Validation Accuracy: 91.1400 (9114.00%)
+                        • Validation F1 (Macro): 89.6700
+                        • Validation F1 (Weighted): 91.1000
+                        
+
+======================================================================
+                   GNN Training Results - GUASSIAN                    
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 91.1400 (9114.00%)
+                        • Test F1 (Macro): 89.2600
+                        • Test F1 (Weighted): 91.1700
+                        • Validation Accuracy: 92.4400 (9244.00%)
+                        • Validation F1 (Macro): 90.8800
+                        • Validation F1 (Weighted): 92.5000
+                        
+
+======================================================================
+                      Threshold Analysis - PISSA                      
+======================================================================
+
+Threshold Analysis - PISSA Embeddings
+
+Best Threshold (by validation accuracy): 0.5200
+Best Validation Accuracy: 89.8500 (8985.00%)
+Corresponding Test Accuracy: 90.4100 (9041.00%)
+
+======================================================================
+                     GNN Training Results - PISSA                     
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 90.7700 (9077.00%)
+                        • Test F1 (Macro): 88.2500
+                        • Test F1 (Weighted): 90.4500
+                        • Validation Accuracy: 89.4800 (8948.00%)
+                        • Validation F1 (Macro): 87.7900
+                        • Validation F1 (Weighted): 89.4100
+                        
+
+======================================================================
+                  GNN Training Results - ORTHOGONAL                   
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 89.4800 (8948.00%)
+                        • Test F1 (Macro): 87.2100
+                        • Test F1 (Weighted): 89.3800
+                        • Validation Accuracy: 91.8800 (9188.00%)
+                        • Validation F1 (Macro): 90.8200
+                        • Validation F1 (Weighted): 91.9400
+                        
+
+======================================================================
+                     GNN Training Results - LOFTQ                     
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 90.9600 (9096.00%)
+                        • Test F1 (Macro): 89.0700
+                        • Test F1 (Weighted): 90.8600
+                        • Validation Accuracy: 91.1400 (9114.00%)
+                        • Validation F1 (Macro): 89.6500
+                        • Validation F1 (Weighted): 91.1300
+                        
+
+======================================================================
+                      GNN Training Results - EVA                      
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 92.0700 (9207.00%)
+                        • Test F1 (Macro): 90.5100
+                        • Test F1 (Weighted): 91.9800
+                        • Validation Accuracy: 91.1400 (9114.00%)
+                        • Validation F1 (Macro): 89.6700
+                        • Validation F1 (Weighted): 91.1000
+                        
+
+======================================================================
+                   GNN Training Results - GUASSIAN                    
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 91.1400 (9114.00%)
+                        • Test F1 (Macro): 89.2600
+                        • Test F1 (Weighted): 91.1700
+                        • Validation Accuracy: 92.4400 (9244.00%)
+                        • Validation F1 (Macro): 90.8800
+                        • Validation F1 (Weighted): 92.5000
+                        
+
+======================================================================
+                      Threshold Analysis - PISSA                      
+======================================================================
+
+Threshold Analysis - PISSA Embeddings
+
+Best Threshold (by validation accuracy): 0.5200
+Best Validation Accuracy: 89.8500 (8985.00%)
+Corresponding Test Accuracy: 90.4100 (9041.00%)
+
+======================================================================
+                     GNN Training Results - PISSA                     
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 90.7700 (9077.00%)
+                        • Test F1 (Macro): 88.2500
+                        • Test F1 (Weighted): 90.4500
+                        • Validation Accuracy: 89.4800 (8948.00%)
+                        • Validation F1 (Macro): 87.7900
+                        • Validation F1 (Weighted): 89.4100
+                        
+
+======================================================================
+                  GNN Training Results - ORTHOGONAL                   
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 89.4800 (8948.00%)
+                        • Test F1 (Macro): 87.2100
+                        • Test F1 (Weighted): 89.3800
+                        • Validation Accuracy: 91.8800 (9188.00%)
+                        • Validation F1 (Macro): 90.8200
+                        • Validation F1 (Weighted): 91.9400
+                        
+
+======================================================================
+                     GNN Training Results - LOFTQ                     
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 90.9600 (9096.00%)
+                        • Test F1 (Macro): 89.0700
+                        • Test F1 (Weighted): 90.8600
+                        • Validation Accuracy: 91.1400 (9114.00%)
+                        • Validation F1 (Macro): 89.6500
+                        • Validation F1 (Weighted): 91.1300
+                        
+
+======================================================================
+                      GNN Training Results - EVA                      
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 92.0700 (9207.00%)
+                        • Test F1 (Macro): 90.5100
+                        • Test F1 (Weighted): 91.9800
+                        • Validation Accuracy: 91.1400 (9114.00%)
+                        • Validation F1 (Macro): 89.6700
+                        • Validation F1 (Weighted): 91.1000
+                        
+
+======================================================================
+                   GNN Training Results - GUASSIAN                    
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 91.1400 (9114.00%)
+                        • Test F1 (Macro): 89.2600
+                        • Test F1 (Weighted): 91.1700
+                        • Validation Accuracy: 92.4400 (9244.00%)
+                        • Validation F1 (Macro): 90.8800
+                        • Validation F1 (Weighted): 92.5000
+                        
+
+======================================================================
+                       Threshold Analysis - EVA                       
+======================================================================
+
+Threshold Analysis - EVA Embeddings
+
+Best Threshold (by validation accuracy): 0.9400
+Best Validation Accuracy: 92.8000 (9280.00%)
+Corresponding Test Accuracy: 93.5400 (9354.00%)
+
+======================================================================
+                     GNN Training Results - PISSA                     
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 90.7700 (9077.00%)
+                        • Test F1 (Macro): 88.2500
+                        • Test F1 (Weighted): 90.4500
+                        • Validation Accuracy: 89.4800 (8948.00%)
+                        • Validation F1 (Macro): 87.7900
+                        • Validation F1 (Weighted): 89.4100
+                        
+
+======================================================================
+                  GNN Training Results - ORTHOGONAL                   
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 89.4800 (8948.00%)
+                        • Test F1 (Macro): 87.2100
+                        • Test F1 (Weighted): 89.3800
+                        • Validation Accuracy: 91.8800 (9188.00%)
+                        • Validation F1 (Macro): 90.8200
+                        • Validation F1 (Weighted): 91.9400
+                        
+
+======================================================================
+                     GNN Training Results - LOFTQ                     
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 90.9600 (9096.00%)
+                        • Test F1 (Macro): 89.0700
+                        • Test F1 (Weighted): 90.8600
+                        • Validation Accuracy: 91.1400 (9114.00%)
+                        • Validation F1 (Macro): 89.6500
+                        • Validation F1 (Weighted): 91.1300
+                        
+
+======================================================================
+                      GNN Training Results - EVA                      
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 92.0700 (9207.00%)
+                        • Test F1 (Macro): 90.5100
+                        • Test F1 (Weighted): 91.9800
+                        • Validation Accuracy: 91.1400 (9114.00%)
+                        • Validation F1 (Macro): 89.6700
+                        • Validation F1 (Weighted): 91.1000
+                        
+
+======================================================================
+                   GNN Training Results - GUASSIAN                    
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 91.1400 (9114.00%)
+                        • Test F1 (Macro): 89.2600
+                        • Test F1 (Weighted): 91.1700
+                        • Validation Accuracy: 92.4400 (9244.00%)
+                        • Validation F1 (Macro): 90.8800
+                        • Validation F1 (Weighted): 92.5000
+                        
+
+======================================================================
+                   Threshold Analysis - Orthogonal                    
+======================================================================
+
+Threshold Analysis - Orthogonal Embeddings
+
+Best Threshold (by validation accuracy): 0.8400
+Best Validation Accuracy: 92.6200 (9262.00%)
+Corresponding Test Accuracy: 90.9600 (9096.00%)
+
+======================================================================
+                     GNN Training Results - PISSA                     
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 90.7700 (9077.00%)
+                        • Test F1 (Macro): 88.2500
+                        • Test F1 (Weighted): 90.4500
+                        • Validation Accuracy: 89.4800 (8948.00%)
+                        • Validation F1 (Macro): 87.7900
+                        • Validation F1 (Weighted): 89.4100
+                        
+
+======================================================================
+                  GNN Training Results - ORTHOGONAL                   
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 89.4800 (8948.00%)
+                        • Test F1 (Macro): 87.2100
+                        • Test F1 (Weighted): 89.3800
+                        • Validation Accuracy: 91.8800 (9188.00%)
+                        • Validation F1 (Macro): 90.8200
+                        • Validation F1 (Weighted): 91.9400
+                        
+
+======================================================================
+                     GNN Training Results - LOFTQ                     
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 90.9600 (9096.00%)
+                        • Test F1 (Macro): 89.0700
+                        • Test F1 (Weighted): 90.8600
+                        • Validation Accuracy: 91.1400 (9114.00%)
+                        • Validation F1 (Macro): 89.6500
+                        • Validation F1 (Weighted): 91.1300
+                        
+
+======================================================================
+                      GNN Training Results - EVA                      
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 92.0700 (9207.00%)
+                        • Test F1 (Macro): 90.5100
+                        • Test F1 (Weighted): 91.9800
+                        • Validation Accuracy: 91.1400 (9114.00%)
+                        • Validation F1 (Macro): 89.6700
+                        • Validation F1 (Weighted): 91.1000
+                        
+
+======================================================================
+                   GNN Training Results - GUASSIAN                    
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 91.1400 (9114.00%)
+                        • Test F1 (Macro): 89.2600
+                        • Test F1 (Weighted): 91.1700
+                        • Validation Accuracy: 92.4400 (9244.00%)
+                        • Validation F1 (Macro): 90.8800
+                        • Validation F1 (Weighted): 92.5000
+                        
+
+======================================================================
+                      Threshold Analysis - LOFTQ                      
+======================================================================
+
+Threshold Analysis - LOFTQ Embeddings
+
+Best Threshold (by validation accuracy): 0.7800
+Best Validation Accuracy: 91.8800 (9188.00%)
+Corresponding Test Accuracy: 91.8800 (9188.00%)
+
+======================================================================
+                     GNN Training Results - PISSA                     
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 90.7700 (9077.00%)
+                        • Test F1 (Macro): 88.2500
+                        • Test F1 (Weighted): 90.4500
+                        • Validation Accuracy: 89.4800 (8948.00%)
+                        • Validation F1 (Macro): 87.7900
+                        • Validation F1 (Weighted): 89.4100
+                        
+
+======================================================================
+                  GNN Training Results - ORTHOGONAL                   
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 89.4800 (8948.00%)
+                        • Test F1 (Macro): 87.2100
+                        • Test F1 (Weighted): 89.3800
+                        • Validation Accuracy: 91.8800 (9188.00%)
+                        • Validation F1 (Macro): 90.8200
+                        • Validation F1 (Weighted): 91.9400
+                        
+
+======================================================================
+                     GNN Training Results - LOFTQ                     
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 90.9600 (9096.00%)
+                        • Test F1 (Macro): 89.0700
+                        • Test F1 (Weighted): 90.8600
+                        • Validation Accuracy: 91.1400 (9114.00%)
+                        • Validation F1 (Macro): 89.6500
+                        • Validation F1 (Weighted): 91.1300
+                        
+
+======================================================================
+                      GNN Training Results - EVA                      
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 92.0700 (9207.00%)
+                        • Test F1 (Macro): 90.5100
+                        • Test F1 (Weighted): 91.9800
+                        • Validation Accuracy: 91.1400 (9114.00%)
+                        • Validation F1 (Macro): 89.6700
+                        • Validation F1 (Weighted): 91.1000
+                        
+
+======================================================================
+                   GNN Training Results - GUASSIAN                    
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 91.1400 (9114.00%)
+                        • Test F1 (Macro): 89.2600
+                        • Test F1 (Weighted): 91.1700
+                        • Validation Accuracy: 92.4400 (9244.00%)
+                        • Validation F1 (Macro): 90.8800
+                        • Validation F1 (Weighted): 92.5000
+                        
+
+======================================================================
+                    Threshold Analysis - Gaussian                     
+======================================================================
+
+Threshold Analysis - Gaussian Embeddings
+
+Best Threshold (by validation accuracy): 0.1000
+Best Validation Accuracy: 92.4400 (9244.00%)
+Corresponding Test Accuracy: 91.1400 (9114.00%)
+
+======================================================================
+                     GNN Training Results - PISSA                     
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 90.7700 (9077.00%)
+                        • Test F1 (Macro): 88.2500
+                        • Test F1 (Weighted): 90.4500
+                        • Validation Accuracy: 89.4800 (8948.00%)
+                        • Validation F1 (Macro): 87.7900
+                        • Validation F1 (Weighted): 89.4100
+                        
+
+======================================================================
+                  GNN Training Results - ORTHOGONAL                   
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 89.4800 (8948.00%)
+                        • Test F1 (Macro): 87.2100
+                        • Test F1 (Weighted): 89.3800
+                        • Validation Accuracy: 91.8800 (9188.00%)
+                        • Validation F1 (Macro): 90.8200
+                        • Validation F1 (Weighted): 91.9400
+                        
+
+======================================================================
+                     GNN Training Results - LOFTQ                     
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 90.9600 (9096.00%)
+                        • Test F1 (Macro): 89.0700
+                        • Test F1 (Weighted): 90.8600
+                        • Validation Accuracy: 91.1400 (9114.00%)
+                        • Validation F1 (Macro): 89.6500
+                        • Validation F1 (Weighted): 91.1300
+                        
+
+======================================================================
+                      GNN Training Results - EVA                      
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 92.0700 (9207.00%)
+                        • Test F1 (Macro): 90.5100
+                        • Test F1 (Weighted): 91.9800
+                        • Validation Accuracy: 91.1400 (9114.00%)
+                        • Validation F1 (Macro): 89.6700
+                        • Validation F1 (Weighted): 91.1000
+                        
+
+======================================================================
+                   GNN Training Results - GUASSIAN                    
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 91.1400 (9114.00%)
+                        • Test F1 (Macro): 89.2600
+                        • Test F1 (Weighted): 91.1700
+                        • Validation Accuracy: 92.4400 (9244.00%)
+                        • Validation F1 (Macro): 90.8800
+                        • Validation F1 (Weighted): 92.5000
+                        
+
+======================================================================
+                     GNN Training Results - PISSA                     
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 86.3500 (8635.00%)
+                        • Test F1 (Macro): 84.0100
+                        • Test F1 (Weighted): 86.4800
+                        • Validation Accuracy: 86.5300 (8653.00%)
+                        • Validation F1 (Macro): 84.1700
+                        • Validation F1 (Weighted): 86.4500
+                        
+
+======================================================================
+                     GNN Training Results - PISSA                     
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 90.7700 (9077.00%)
+                        • Test F1 (Macro): 88.2500
+                        • Test F1 (Weighted): 90.4500
+                        • Validation Accuracy: 89.4800 (8948.00%)
+                        • Validation F1 (Macro): 87.7900
+                        • Validation F1 (Weighted): 89.4100
+                        
+
+======================================================================
+                  GNN Training Results - ORTHOGONAL                   
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 89.4800 (8948.00%)
+                        • Test F1 (Macro): 87.2100
+                        • Test F1 (Weighted): 89.3800
+                        • Validation Accuracy: 91.8800 (9188.00%)
+                        • Validation F1 (Macro): 90.8200
+                        • Validation F1 (Weighted): 91.9400
+                        
+
+======================================================================
+                     GNN Training Results - LOFTQ                     
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 90.9600 (9096.00%)
+                        • Test F1 (Macro): 89.0700
+                        • Test F1 (Weighted): 90.8600
+                        • Validation Accuracy: 91.1400 (9114.00%)
+                        • Validation F1 (Macro): 89.6500
+                        • Validation F1 (Weighted): 91.1300
+                        
+
+======================================================================
+                      GNN Training Results - EVA                      
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 92.0700 (9207.00%)
+                        • Test F1 (Macro): 90.5100
+                        • Test F1 (Weighted): 91.9800
+                        • Validation Accuracy: 91.1400 (9114.00%)
+                        • Validation F1 (Macro): 89.6700
+                        • Validation F1 (Weighted): 91.1000
+                        
+
+======================================================================
+                   GNN Training Results - GUASSIAN                    
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 91.1400 (9114.00%)
+                        • Test F1 (Macro): 89.2600
+                        • Test F1 (Weighted): 91.1700
+                        • Validation Accuracy: 92.4400 (9244.00%)
+                        • Validation F1 (Macro): 90.8800
+                        • Validation F1 (Weighted): 92.5000
+                        
+
+======================================================================
+                  GNN Training Results - BASED MODEL                  
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 86.3500 (8635.00%)
+                        • Test F1 (Macro): 84.0100
+                        • Test F1 (Weighted): 86.4800
+                        • Validation Accuracy: 86.5300 (8653.00%)
+                        • Validation F1 (Macro): 84.1700
+                        • Validation F1 (Weighted): 86.4500
+                        
+
+======================================================================
+                     GNN Training Results - PISSA                     
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 88.9300 (8893.00%)
+                        • Test F1 (Macro): 86.2000
+                        • Test F1 (Weighted): 88.9000
+                        • Validation Accuracy: 89.1100 (8911.00%)
+                        • Validation F1 (Macro): 87.6000
+                        • Validation F1 (Weighted): 89.1500
+                        
+
+======================================================================
+                  GNN Training Results - ORTHOGONAL                   
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 89.4800 (8948.00%)
+                        • Test F1 (Macro): 87.2100
+                        • Test F1 (Weighted): 89.3800
+                        • Validation Accuracy: 91.8800 (9188.00%)
+                        • Validation F1 (Macro): 90.8200
+                        • Validation F1 (Weighted): 91.9400
+                        
+
+======================================================================
+                     GNN Training Results - LOFTQ                     
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 91.1400 (9114.00%)
+                        • Test F1 (Macro): 89.2600
+                        • Test F1 (Weighted): 91.1700
+                        • Validation Accuracy: 92.4400 (9244.00%)
+                        • Validation F1 (Macro): 90.8800
+                        • Validation F1 (Weighted): 92.5000
+                        
+
+======================================================================
+                      GNN Training Results - EVA                      
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 90.9600 (9096.00%)
+                        • Test F1 (Macro): 89.0700
+                        • Test F1 (Weighted): 90.8600
+                        • Validation Accuracy: 91.1400 (9114.00%)
+                        • Validation F1 (Macro): 89.6500
+                        • Validation F1 (Weighted): 91.1300
+                        
+
+======================================================================
+                   GNN Training Results - GUASSIAN                    
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 92.0700 (9207.00%)
+                        • Test F1 (Macro): 90.5100
+                        • Test F1 (Weighted): 91.9800
+                        • Validation Accuracy: 91.1400 (9114.00%)
+                        • Validation F1 (Macro): 89.6700
+                        • Validation F1 (Weighted): 91.1000
+                        
+
+======================================================================
+                  GNN Training Results - BASED MODEL                  
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 86.3500 (8635.00%)
+                        • Test F1 (Macro): 84.0100
+                        • Test F1 (Weighted): 86.4800
+                        • Validation Accuracy: 86.5300 (8653.00%)
+                        • Validation F1 (Macro): 84.1700
+                        • Validation F1 (Weighted): 86.4500
+                        
+
+======================================================================
+                     GNN Training Results - PISSA                     
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 88.9300 (8893.00%)
+                        • Test F1 (Macro): 86.2000
+                        • Test F1 (Weighted): 88.9000
+                        • Validation Accuracy: 89.3000 (8930.00%)
+                        • Validation F1 (Macro): 87.8900
+                        • Validation F1 (Weighted): 89.3300
+                        
+
+======================================================================
+                  GNN Training Results - ORTHOGONAL                   
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 89.4800 (8948.00%)
+                        • Test F1 (Macro): 87.2100
+                        • Test F1 (Weighted): 89.3800
+                        • Validation Accuracy: 91.8800 (9188.00%)
+                        • Validation F1 (Macro): 90.8200
+                        • Validation F1 (Weighted): 91.9400
+                        
+
+======================================================================
+                     GNN Training Results - LOFTQ                     
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 91.1400 (9114.00%)
+                        • Test F1 (Macro): 89.2600
+                        • Test F1 (Weighted): 91.1700
+                        • Validation Accuracy: 92.4400 (9244.00%)
+                        • Validation F1 (Macro): 90.8800
+                        • Validation F1 (Weighted): 92.5000
+                        
+
+======================================================================
+                      GNN Training Results - EVA                      
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 90.9600 (9096.00%)
+                        • Test F1 (Macro): 89.0700
+                        • Test F1 (Weighted): 90.8600
+                        • Validation Accuracy: 91.1400 (9114.00%)
+                        • Validation F1 (Macro): 89.6500
+                        • Validation F1 (Weighted): 91.1300
+                        
+
+======================================================================
+                   GNN Training Results - GUASSIAN                    
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 92.0700 (9207.00%)
+                        • Test F1 (Macro): 90.5100
+                        • Test F1 (Weighted): 91.9800
+                        • Validation Accuracy: 91.1400 (9114.00%)
+                        • Validation F1 (Macro): 89.6700
+                        • Validation F1 (Weighted): 91.1000
+                        
+
+======================================================================
+                  GNN Training Results - BASED MODEL                  
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 86.3500 (8635.00%)
+                        • Test F1 (Macro): 84.0100
+                        • Test F1 (Weighted): 86.4800
+                        • Validation Accuracy: 86.5300 (8653.00%)
+                        • Validation F1 (Macro): 84.1700
+                        • Validation F1 (Weighted): 86.4500
+                        
+
+======================================================================
+                     GNN Training Results - PISSA                     
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 88.9300 (8893.00%)
+                        • Test F1 (Macro): 86.2000
+                        • Test F1 (Weighted): 88.9000
+                        • Validation Accuracy: 89.3000 (8930.00%)
+                        • Validation F1 (Macro): 87.8900
+                        • Validation F1 (Weighted): 89.3300
+                        
+
+======================================================================
+                  GNN Training Results - ORTHOGONAL                   
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 89.4800 (8948.00%)
+                        • Test F1 (Macro): 87.2100
+                        • Test F1 (Weighted): 89.3800
+                        • Validation Accuracy: 91.8800 (9188.00%)
+                        • Validation F1 (Macro): 90.8200
+                        • Validation F1 (Weighted): 91.9400
+                        
+
+======================================================================
+                     GNN Training Results - LOFTQ                     
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 91.1400 (9114.00%)
+                        • Test F1 (Macro): 89.2600
+                        • Test F1 (Weighted): 91.1700
+                        • Validation Accuracy: 92.4400 (9244.00%)
+                        • Validation F1 (Macro): 90.8800
+                        • Validation F1 (Weighted): 92.5000
+                        
+
+======================================================================
+                      GNN Training Results - EVA                      
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 90.9600 (9096.00%)
+                        • Test F1 (Macro): 89.0700
+                        • Test F1 (Weighted): 90.8600
+                        • Validation Accuracy: 91.1400 (9114.00%)
+                        • Validation F1 (Macro): 89.6500
+                        • Validation F1 (Weighted): 91.1300
+                        
+
+======================================================================
+                   GNN Training Results - GUASSIAN                    
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 92.0700 (9207.00%)
+                        • Test F1 (Macro): 90.5100
+                        • Test F1 (Weighted): 91.9800
+                        • Validation Accuracy: 91.1400 (9114.00%)
+                        • Validation F1 (Macro): 89.6700
+                        • Validation F1 (Weighted): 91.1000
+                        
+
+======================================================================
+                  GNN Training Results - BASED MODEL                  
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 86.3500 (8635.00%)
+                        • Test F1 (Macro): 84.0100
+                        • Test F1 (Weighted): 86.4800
+                        • Validation Accuracy: 86.5300 (8653.00%)
+                        • Validation F1 (Macro): 84.1700
+                        • Validation F1 (Weighted): 86.4500
+                        

@@ -1,0 +1,824 @@
+
+======================================================================
+                   Edge Similarity Analysis - PISSA                   
+======================================================================
+
+
+                            Overall Statistics:
+                            • Total Edges: 5429
+                            • Mean Similarity: 0.6568
+                            • Median Similarity: 0.6775
+                            • Std Deviation: 0.1966
+                            • Min Similarity: 0.0817
+                            • Max Similarity: 1.0000
+
+                            Same Label Edges:
+                            • Count: 3596
+                            • Mean Similarity: 0.7457
+                            • Std Deviation: 0.1452
+
+                            Different Label Edges:
+                            • Count: 1833
+                            • Mean Similarity: 0.4823
+                            • Std Deviation: 0.1646
+
+                            Quartiles:
+                            • Q1 (25%): 0.5092
+                            • Q2 (50%): 0.6775
+                            • Q3 (75%): 0.8246
+                            
+
+======================================================================
+                Edge Similarity Analysis - ORTHOGONAL                 
+======================================================================
+
+
+                            Overall Statistics:
+                            • Total Edges: 5429
+                            • Mean Similarity: 0.8845
+                            • Median Similarity: 0.9161
+                            • Std Deviation: 0.0965
+                            • Min Similarity: 0.2764
+                            • Max Similarity: 1.0000
+
+                            Same Label Edges:
+                            • Count: 3596
+                            • Mean Similarity: 0.9269
+                            • Std Deviation: 0.0560
+
+                            Different Label Edges:
+                            • Count: 1833
+                            • Mean Similarity: 0.8012
+                            • Std Deviation: 0.1047
+
+                            Quartiles:
+                            • Q1 (25%): 0.8362
+                            • Q2 (50%): 0.9161
+                            • Q3 (75%): 0.9582
+                            
+
+======================================================================
+                   Edge Similarity Analysis - LOFTQ                   
+======================================================================
+
+
+                            Overall Statistics:
+                            • Total Edges: 5429
+                            • Mean Similarity: 0.6732
+                            • Median Similarity: 0.6948
+                            • Std Deviation: 0.1915
+                            • Min Similarity: 0.1147
+                            • Max Similarity: 1.0000
+
+                            Same Label Edges:
+                            • Count: 3596
+                            • Mean Similarity: 0.7616
+                            • Std Deviation: 0.1385
+
+                            Different Label Edges:
+                            • Count: 1833
+                            • Mean Similarity: 0.4996
+                            • Std Deviation: 0.1597
+
+                            Quartiles:
+                            • Q1 (25%): 0.5324
+                            • Q2 (50%): 0.6948
+                            • Q3 (75%): 0.8388
+                            
+
+======================================================================
+                    Edge Similarity Analysis - EVA                    
+======================================================================
+
+
+                            Overall Statistics:
+                            • Total Edges: 5429
+                            • Mean Similarity: 0.6705
+                            • Median Similarity: 0.6913
+                            • Std Deviation: 0.1949
+                            • Min Similarity: 0.1328
+                            • Max Similarity: 1.0000
+
+                            Same Label Edges:
+                            • Count: 3596
+                            • Mean Similarity: 0.7610
+                            • Std Deviation: 0.1425
+
+                            Different Label Edges:
+                            • Count: 1833
+                            • Mean Similarity: 0.4930
+                            • Std Deviation: 0.1584
+
+                            Quartiles:
+                            • Q1 (25%): 0.5257
+                            • Q2 (50%): 0.6913
+                            • Q3 (75%): 0.8415
+                            
+
+======================================================================
+                 Edge Similarity Analysis - GUASSIAN                  
+======================================================================
+
+
+                            Overall Statistics:
+                            • Total Edges: 5429
+                            • Mean Similarity: 0.8768
+                            • Median Similarity: 0.8986
+                            • Std Deviation: 0.0906
+                            • Min Similarity: 0.3921
+                            • Max Similarity: 1.0000
+
+                            Same Label Edges:
+                            • Count: 3596
+                            • Mean Similarity: 0.9141
+                            • Std Deviation: 0.0632
+
+                            Different Label Edges:
+                            • Count: 1833
+                            • Mean Similarity: 0.8037
+                            • Std Deviation: 0.0917
+
+                            Quartiles:
+                            • Q1 (25%): 0.8236
+                            • Q2 (50%): 0.8986
+                            • Q3 (75%): 0.9500
+                            
+
+======================================================================
+                    Classification Metrics - PISSA                    
+======================================================================
+
+
+                        Classification Metrics:
+                        • KNN Accuracy (k=5): 0.9094 (90.94%)
+                        • Logistic Regression Accuracy: 0.9057 (90.57%)
+                        • Embedding Dimension: 2048
+                        • Training Samples: 8190
+                        • Test Samples: 3511
+                        • Number of Classes: 10
+                        
+
+======================================================================
+                 Classification Metrics - ORTHOGONAL                  
+======================================================================
+
+
+                        Classification Metrics:
+                        • KNN Accuracy (k=5): 0.8804 (88.04%)
+                        • Logistic Regression Accuracy: 0.8670 (86.70%)
+                        • Embedding Dimension: 2048
+                        • Training Samples: 8190
+                        • Test Samples: 3511
+                        • Number of Classes: 10
+                        
+
+======================================================================
+                    Classification Metrics - LOFTQ                    
+======================================================================
+
+
+                        Classification Metrics:
+                        • KNN Accuracy (k=5): 0.9154 (91.54%)
+                        • Logistic Regression Accuracy: 0.9069 (90.69%)
+                        • Embedding Dimension: 2048
+                        • Training Samples: 8190
+                        • Test Samples: 3511
+                        • Number of Classes: 10
+                        
+
+======================================================================
+                     Classification Metrics - EVA                     
+======================================================================
+
+
+                        Classification Metrics:
+                        • KNN Accuracy (k=5): 0.9128 (91.28%)
+                        • Logistic Regression Accuracy: 0.9046 (90.46%)
+                        • Embedding Dimension: 2048
+                        • Training Samples: 8190
+                        • Test Samples: 3511
+                        • Number of Classes: 10
+                        
+
+======================================================================
+                  Classification Metrics - GUASSIAN                   
+======================================================================
+
+
+                        Classification Metrics:
+                        • KNN Accuracy (k=5): 0.8949 (89.49%)
+                        • Logistic Regression Accuracy: 0.8866 (88.66%)
+                        • Embedding Dimension: 2048
+                        • Training Samples: 8190
+                        • Test Samples: 3511
+                        • Number of Classes: 10
+                        
+
+======================================================================
+                      Clustering Metrics - PISSA                      
+======================================================================
+
+
+                    Clustering Metrics:
+                    • Silhouette Score: 0.1294 (Higher is better, range: -1 to 1)
+                    • Davies-Bouldin Score: 2.3797 (Lower is better)
+                    • Calinski-Harabasz Score: 551.37 (Higher is better)
+                    • Embedding Dimension: 2048
+                    • Number of Samples: 11701
+                    • Number of Classes: 10
+                    
+
+======================================================================
+                   Clustering Metrics - ORTHOGONAL                    
+======================================================================
+
+
+                    Clustering Metrics:
+                    • Silhouette Score: 0.2050 (Higher is better, range: -1 to 1)
+                    • Davies-Bouldin Score: 1.5868 (Lower is better)
+                    • Calinski-Harabasz Score: 1273.92 (Higher is better)
+                    • Embedding Dimension: 2048
+                    • Number of Samples: 11701
+                    • Number of Classes: 10
+                    
+
+======================================================================
+                      Clustering Metrics - LOFTQ                      
+======================================================================
+
+
+                    Clustering Metrics:
+                    • Silhouette Score: 0.1233 (Higher is better, range: -1 to 1)
+                    • Davies-Bouldin Score: 2.5181 (Lower is better)
+                    • Calinski-Harabasz Score: 535.64 (Higher is better)
+                    • Embedding Dimension: 2048
+                    • Number of Samples: 11701
+                    • Number of Classes: 10
+                    
+
+======================================================================
+                       Clustering Metrics - EVA                       
+======================================================================
+
+
+                    Clustering Metrics:
+                    • Silhouette Score: 0.1241 (Higher is better, range: -1 to 1)
+                    • Davies-Bouldin Score: 2.5427 (Lower is better)
+                    • Calinski-Harabasz Score: 508.48 (Higher is better)
+                    • Embedding Dimension: 2048
+                    • Number of Samples: 11701
+                    • Number of Classes: 10
+                    
+
+======================================================================
+                    Clustering Metrics - GUASSIAN                     
+======================================================================
+
+
+                    Clustering Metrics:
+                    • Silhouette Score: 0.1656 (Higher is better, range: -1 to 1)
+                    • Davies-Bouldin Score: 2.0066 (Lower is better)
+                    • Calinski-Harabasz Score: 787.10 (Higher is better)
+                    • Embedding Dimension: 2048
+                    • Number of Samples: 11701
+                    • Number of Classes: 10
+                    
+
+======================================================================
+                     GNN Training Results - PISSA                     
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 87.1400 (8714.00%)
+                        • Test F1 (Macro): 85.5600
+                        • Test F1 (Weighted): 87.1400
+                        • Validation Accuracy: 89.5300 (8953.00%)
+                        • Validation F1 (Macro): 88.1300
+                        • Validation F1 (Weighted): 89.5400
+                        
+
+======================================================================
+                  GNN Training Results - ORTHOGONAL                   
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 85.3500 (8535.00%)
+                        • Test F1 (Macro): 83.9400
+                        • Test F1 (Weighted): 85.3900
+                        • Validation Accuracy: 87.3100 (8731.00%)
+                        • Validation F1 (Macro): 85.5000
+                        • Validation F1 (Weighted): 87.2900
+                        
+
+======================================================================
+                     GNN Training Results - LOFTQ                     
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 87.7400 (8774.00%)
+                        • Test F1 (Macro): 86.2400
+                        • Test F1 (Weighted): 87.7500
+                        • Validation Accuracy: 89.7000 (8970.00%)
+                        • Validation F1 (Macro): 88.4100
+                        • Validation F1 (Weighted): 89.6800
+                        
+
+======================================================================
+                      GNN Training Results - EVA                      
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 87.2700 (8727.00%)
+                        • Test F1 (Macro): 85.8900
+                        • Test F1 (Weighted): 87.2900
+                        • Validation Accuracy: 89.1900 (8919.00%)
+                        • Validation F1 (Macro): 87.5900
+                        • Validation F1 (Weighted): 89.1800
+                        
+
+======================================================================
+                   GNN Training Results - GUASSIAN                    
+======================================================================
+
+
+                        Final Results:
+                        • Test Accuracy: 86.8000 (8680.00%)
+                        • Test F1 (Macro): 85.3600
+                        • Test F1 (Weighted): 86.8300
+                        • Validation Accuracy: 88.3300 (8833.00%)
+                        • Validation F1 (Macro): 86.6900
+                        • Validation F1 (Weighted): 88.3200
+                        
+
+======================================================================
+             Comprehensive GNN Mistakes Analysis - PISSA              
+======================================================================
+
+
+Mistake Analysis:
+  • Total Mistakes: 397
+  • Test Accuracy: 93.21%
+  • Test Nodes: 5847
+  
+Mistakes by Split:
+  • Train: 0
+  • Validation: 0
+  • Test: 397
+
+Mistakes by Class:
+  • Class 0: 13/147 (8.84%)
+  • Class 1: 21/333 (6.31%)
+  • Class 2: 69/1076 (6.41%)
+  • Class 3: 88/966 (9.11%)
+  • Class 4: 49/1339 (3.66%)
+  • Class 5: 42/390 (10.77%)
+  • Class 6: 15/206 (7.28%)
+  • Class 7: 49/432 (11.34%)
+  • Class 8: 24/246 (9.76%)
+  • Class 9: 27/712 (3.79%)
+
+
+======================================================================
+           Comprehensive GNN Mistakes Analysis - ORTHOGONAL           
+======================================================================
+
+
+Mistake Analysis:
+  • Total Mistakes: 621
+  • Test Accuracy: 89.38%
+  • Test Nodes: 5847
+  
+Mistakes by Split:
+  • Train: 0
+  • Validation: 0
+  • Test: 621
+
+Mistakes by Class:
+  • Class 0: 17/147 (11.56%)
+  • Class 1: 23/333 (6.91%)
+  • Class 2: 99/1076 (9.20%)
+  • Class 3: 129/966 (13.35%)
+  • Class 4: 90/1339 (6.72%)
+  • Class 5: 64/390 (16.41%)
+  • Class 6: 31/206 (15.05%)
+  • Class 7: 80/432 (18.52%)
+  • Class 8: 43/246 (17.48%)
+  • Class 9: 45/712 (6.32%)
+
+
+======================================================================
+             Comprehensive GNN Mistakes Analysis - LOFTQ              
+======================================================================
+
+
+Mistake Analysis:
+  • Total Mistakes: 365
+  • Test Accuracy: 93.76%
+  • Test Nodes: 5847
+  
+Mistakes by Split:
+  • Train: 0
+  • Validation: 0
+  • Test: 365
+
+Mistakes by Class:
+  • Class 0: 13/147 (8.84%)
+  • Class 1: 18/333 (5.41%)
+  • Class 2: 74/1076 (6.88%)
+  • Class 3: 82/966 (8.49%)
+  • Class 4: 38/1339 (2.84%)
+  • Class 5: 44/390 (11.28%)
+  • Class 6: 14/206 (6.80%)
+  • Class 7: 39/432 (9.03%)
+  • Class 8: 22/246 (8.94%)
+  • Class 9: 21/712 (2.95%)
+
+
+======================================================================
+              Comprehensive GNN Mistakes Analysis - EVA               
+======================================================================
+
+
+Mistake Analysis:
+  • Total Mistakes: 410
+  • Test Accuracy: 92.99%
+  • Test Nodes: 5847
+  
+Mistakes by Split:
+  • Train: 0
+  • Validation: 0
+  • Test: 410
+
+Mistakes by Class:
+  • Class 0: 13/147 (8.84%)
+  • Class 1: 17/333 (5.11%)
+  • Class 2: 78/1076 (7.25%)
+  • Class 3: 91/966 (9.42%)
+  • Class 4: 53/1339 (3.96%)
+  • Class 5: 49/390 (12.56%)
+  • Class 6: 17/206 (8.25%)
+  • Class 7: 43/432 (9.95%)
+  • Class 8: 22/246 (8.94%)
+  • Class 9: 27/712 (3.79%)
+
+
+======================================================================
+            Comprehensive GNN Mistakes Analysis - GUASSIAN            
+======================================================================
+
+
+Mistake Analysis:
+  • Total Mistakes: 505
+  • Test Accuracy: 91.36%
+  • Test Nodes: 5847
+  
+Mistakes by Split:
+  • Train: 0
+  • Validation: 0
+  • Test: 505
+
+Mistakes by Class:
+  • Class 0: 12/147 (8.16%)
+  • Class 1: 24/333 (7.21%)
+  • Class 2: 98/1076 (9.11%)
+  • Class 3: 103/966 (10.66%)
+  • Class 4: 63/1339 (4.71%)
+  • Class 5: 56/390 (14.36%)
+  • Class 6: 21/206 (10.19%)
+  • Class 7: 63/432 (14.58%)
+  • Class 8: 29/246 (11.79%)
+  • Class 9: 36/712 (5.06%)
+
+
+======================================================================
+               Best Similarity Threshold Search - PISSA               
+======================================================================
+
+
+Best Similarity Threshold Search Results:
+  • Best Threshold: 0.7800
+  • Best Test Accuracy: 87.6500 (8765.00%)
+  • Best Validation Accuracy: 89.5700 (8957.00%)
+  • Best Test F1 (Macro): 86.0900
+  • Best Test F1 (Weighted): 87.6600
+  • Best Validation F1 (Macro): 88.1500
+  • Best Validation F1 (Weighted): 89.5800
+
+Edge Removal Statistics:
+  • Total Edges Checked: 26320
+  • Edges Removed: 21422
+  • Edges Kept: 4898
+  • Original Edges: 431726
+  • Modified Edges: 410304
+  • Edge Reduction: 4.96%
+
+
+======================================================================
+            Best Similarity Threshold Search - ORTHOGONAL             
+======================================================================
+
+
+Best Similarity Threshold Search Results:
+  • Best Threshold: 0.7800
+  • Best Test Accuracy: 85.4800 (8548.00%)
+  • Best Validation Accuracy: 87.4400 (8744.00%)
+  • Best Test F1 (Macro): 84.2500
+  • Best Test F1 (Weighted): 85.5200
+  • Best Validation F1 (Macro): 85.7300
+  • Best Validation F1 (Weighted): 87.4200
+
+Edge Removal Statistics:
+  • Total Edges Checked: 40819
+  • Edges Removed: 6184
+  • Edges Kept: 34635
+  • Original Edges: 431726
+  • Modified Edges: 425542
+  • Edge Reduction: 1.43%
+
+
+======================================================================
+               Best Similarity Threshold Search - LOFTQ               
+======================================================================
+
+
+Best Similarity Threshold Search Results:
+  • Best Threshold: 0.7800
+  • Best Test Accuracy: 88.4200 (8842.00%)
+  • Best Validation Accuracy: 90.3000 (9030.00%)
+  • Best Test F1 (Macro): 86.8100
+  • Best Test F1 (Weighted): 88.4300
+  • Best Validation F1 (Macro): 89.1600
+  • Best Validation F1 (Weighted): 90.2800
+
+Edge Removal Statistics:
+  • Total Edges Checked: 25656
+  • Edges Removed: 20474
+  • Edges Kept: 5182
+  • Original Edges: 431726
+  • Modified Edges: 411252
+  • Edge Reduction: 4.74%
+
+
+======================================================================
+                Best Similarity Threshold Search - EVA                
+======================================================================
+
+
+Best Similarity Threshold Search Results:
+  • Best Threshold: 0.7800
+  • Best Test Accuracy: 88.0800 (8808.00%)
+  • Best Validation Accuracy: 89.7400 (8974.00%)
+  • Best Test F1 (Macro): 87.0600
+  • Best Test F1 (Weighted): 88.0700
+  • Best Validation F1 (Macro): 88.3200
+  • Best Validation F1 (Weighted): 89.7500
+
+Edge Removal Statistics:
+  • Total Edges Checked: 27307
+  • Edges Removed: 21966
+  • Edges Kept: 5341
+  • Original Edges: 431726
+  • Modified Edges: 409760
+  • Edge Reduction: 5.09%
+
+
+======================================================================
+             Best Similarity Threshold Search - GUASSIAN              
+======================================================================
+
+
+Best Similarity Threshold Search Results:
+  • Best Threshold: 0.7800
+  • Best Test Accuracy: 86.8400 (8684.00%)
+  • Best Validation Accuracy: 88.4200 (8842.00%)
+  • Best Test F1 (Macro): 85.4700
+  • Best Test F1 (Weighted): 86.8800
+  • Best Validation F1 (Macro): 86.8600
+  • Best Validation F1 (Weighted): 88.4100
+
+Edge Removal Statistics:
+  • Total Edges Checked: 32572
+  • Edges Removed: 4788
+  • Edges Kept: 27784
+  • Original Edges: 431726
+  • Modified Edges: 426938
+  • Edge Reduction: 1.11%
+
+
+======================================================================
+                     Edge Editing Results - PISSA                     
+======================================================================
+
+
+Edge Editing Results Comparison:
+
+Before Edge Editing:
+  • Test Accuracy: 87.1400 (8714.00%)
+  • Test F1 (Macro): 85.5600
+  • Test F1 (Weighted): 87.1400
+  • Validation Accuracy: 89.5300 (8953.00%)
+  • Validation F1 (Macro): 88.1300
+  • Validation F1 (Weighted): 89.5400
+
+After Edge Editing:
+  • Test Accuracy: 87.6500 (8765.00%)
+  • Test F1 (Macro): 86.0900
+  • Test F1 (Weighted): 87.6600
+  • Validation Accuracy: 89.5700 (8957.00%)
+  • Validation F1 (Macro): 88.1500
+  • Validation F1 (Weighted): 89.5800
+
+Improvements:
+  • Test Accuracy Improvement: +0.5100 (+51.00%)
+  • Test F1 Improvement: +0.5300
+  • Validation Accuracy Improvement: +0.0400 (+4.00%)
+  • Validation F1 Improvement: +0.0200
+
+
+======================================================================
+                  Edge Editing Results - ORTHOGONAL                   
+======================================================================
+
+
+Edge Editing Results Comparison:
+
+Before Edge Editing:
+  • Test Accuracy: 85.3500 (8535.00%)
+  • Test F1 (Macro): 83.9400
+  • Test F1 (Weighted): 85.3900
+  • Validation Accuracy: 87.3100 (8731.00%)
+  • Validation F1 (Macro): 85.5000
+  • Validation F1 (Weighted): 87.2900
+
+After Edge Editing:
+  • Test Accuracy: 85.4800 (8548.00%)
+  • Test F1 (Macro): 84.2500
+  • Test F1 (Weighted): 85.5200
+  • Validation Accuracy: 87.4400 (8744.00%)
+  • Validation F1 (Macro): 85.7300
+  • Validation F1 (Weighted): 87.4200
+
+Improvements:
+  • Test Accuracy Improvement: +0.1300 (+13.00%)
+  • Test F1 Improvement: +0.3100
+  • Validation Accuracy Improvement: +0.1300 (+13.00%)
+  • Validation F1 Improvement: +0.2300
+
+
+======================================================================
+                     Edge Editing Results - LOFTQ                     
+======================================================================
+
+
+Edge Editing Results Comparison:
+
+Before Edge Editing:
+  • Test Accuracy: 87.7400 (8774.00%)
+  • Test F1 (Macro): 86.2400
+  • Test F1 (Weighted): 87.7500
+  • Validation Accuracy: 89.7000 (8970.00%)
+  • Validation F1 (Macro): 88.4100
+  • Validation F1 (Weighted): 89.6800
+
+After Edge Editing:
+  • Test Accuracy: 88.4200 (8842.00%)
+  • Test F1 (Macro): 86.8100
+  • Test F1 (Weighted): 88.4300
+  • Validation Accuracy: 90.3000 (9030.00%)
+  • Validation F1 (Macro): 89.1600
+  • Validation F1 (Weighted): 90.2800
+
+Improvements:
+  • Test Accuracy Improvement: +0.6800 (+68.00%)
+  • Test F1 Improvement: +0.5700
+  • Validation Accuracy Improvement: +0.6000 (+60.00%)
+  • Validation F1 Improvement: +0.7500
+
+
+======================================================================
+                      Edge Editing Results - EVA                      
+======================================================================
+
+
+Edge Editing Results Comparison:
+
+Before Edge Editing:
+  • Test Accuracy: 87.2700 (8727.00%)
+  • Test F1 (Macro): 85.8900
+  • Test F1 (Weighted): 87.2900
+  • Validation Accuracy: 89.1900 (8919.00%)
+  • Validation F1 (Macro): 87.5900
+  • Validation F1 (Weighted): 89.1800
+
+After Edge Editing:
+  • Test Accuracy: 88.0800 (8808.00%)
+  • Test F1 (Macro): 87.0600
+  • Test F1 (Weighted): 88.0700
+  • Validation Accuracy: 89.7400 (8974.00%)
+  • Validation F1 (Macro): 88.3200
+  • Validation F1 (Weighted): 89.7500
+
+Improvements:
+  • Test Accuracy Improvement: +0.8100 (+81.00%)
+  • Test F1 Improvement: +1.1700
+  • Validation Accuracy Improvement: +0.5500 (+55.00%)
+  • Validation F1 Improvement: +0.7300
+
+
+======================================================================
+                   Edge Editing Results - GUASSIAN                    
+======================================================================
+
+
+Edge Editing Results Comparison:
+
+Before Edge Editing:
+  • Test Accuracy: 86.8000 (8680.00%)
+  • Test F1 (Macro): 85.3600
+  • Test F1 (Weighted): 86.8300
+  • Validation Accuracy: 88.3300 (8833.00%)
+  • Validation F1 (Macro): 86.6900
+  • Validation F1 (Weighted): 88.3200
+
+After Edge Editing:
+  • Test Accuracy: 86.8400 (8684.00%)
+  • Test F1 (Macro): 85.4700
+  • Test F1 (Weighted): 86.8800
+  • Validation Accuracy: 88.4200 (8842.00%)
+  • Validation F1 (Macro): 86.8600
+  • Validation F1 (Weighted): 88.4100
+
+Improvements:
+  • Test Accuracy Improvement: +0.0400 (+4.00%)
+  • Test F1 Improvement: +0.1100
+  • Validation Accuracy Improvement: +0.0900 (+9.00%)
+  • Validation F1 Improvement: +0.1700
+
+
+======================================================================
+         Ensemble Hyperparameter Tuning - Before Edge Editing         
+======================================================================
+
+
+Ensemble Hyperparameter Tuning Results:
+
+Best Hyperparameters:
+  • Number of Layers: 2
+  • Hidden Dimension: 512
+  • Dropout: 0.0
+  • Learning Rate: 0.01
+
+Best Performance Metrics:
+  • Test Accuracy: 88.3400 (8834.00%)
+  • Test Macro-F1: 86.9600
+  • Test Weighted-F1: 88.3500
+  • Validation Accuracy: 89.8700 (8987.00%)
+  • Validation Macro-F1: 88.4100
+  • Validation Weighted-F1: 89.8800
+  • Train Accuracy: 97.3600 (9736.00%)
+  • Train Macro-F1: 97.3200
+  • Train Weighted-F1: 97.3600
+
+Hyperparameter Search Space:
+  • Number of Layers: [2, 3, 4, 5]
+  • Hidden Dimensions: [16, 32, 64, 128, 256, 512]
+  • Dropout Options: [0.0, 0.3, 0.5, 0.7]
+  • Learning Rates: [0.001, 0.01, 0.1, 0.0001, 0.0001]
+  • Total Combinations Tested: 480
+
+
+======================================================================
+         Ensemble Hyperparameter Tuning - After Edge Editing          
+======================================================================
+
+
+Ensemble Hyperparameter Tuning Results:
+
+Best Hyperparameters:
+  • Number of Layers: 5
+  • Hidden Dimension: 64
+  • Dropout: 0.7
+  • Learning Rate: 0.01
+
+Best Performance Metrics:
+  • Test Accuracy: 88.7200 (8872.00%)
+  • Test Macro-F1: 87.4900
+  • Test Weighted-F1: 88.7400
+  • Validation Accuracy: 89.7400 (8974.00%)
+  • Validation Macro-F1: 88.4300
+  • Validation Weighted-F1: 89.7300
+  • Train Accuracy: 97.6800 (9768.00%)
+  • Train Macro-F1: 97.6100
+  • Train Weighted-F1: 97.6800
+
+Hyperparameter Search Space:
+  • Number of Layers: [2, 3, 4, 5]
+  • Hidden Dimensions: [16, 32, 64, 128, 256, 512]
+  • Dropout Options: [0.0, 0.3, 0.5, 0.7]
+  • Learning Rates: [0.001, 0.01, 0.1, 0.0001, 0.0001]
+  • Total Combinations Tested: 480
+

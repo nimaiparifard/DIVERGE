@@ -1,0 +1,462 @@
+
+======================================================================
+                         GNN Mistake Analysis                         
+======================================================================
+
+Init Weight Approach: pissa
+Dataset: cora
+
+Top 3 Classes with Highest Mistake Rates:
+  Class 4: 0.1399 (27/193 mistakes)
+  Class 0: 0.0917 (10/109 mistakes)
+  Class 5: 0.0889 (12/135 mistakes)
+
+======================================================================
+                       Training Process Started                       
+======================================================================
+
+Dataset: cora
+Model: llama_3.2_1B
+PEFT Type: lora
+Seed: 42
+
+======================================================================
+                           Training Started                           
+======================================================================
+
+Number of training samples: 1624
+Number of validation samples: 542
+Number of test samples: 542
+Number of epochs: 2
+Learning rate: 0.0002
+
+======================================================================
+                          Training Completed                          
+======================================================================
+
+Test Accuracy: 0.6642
+Test Loss: 1.9419
+
+Model saved to: ./artifacts\llama_3.2_1B_cora_seqcls_lora_init_pissa_retrained_mistakes
+
+======================================================================
+                        Final Results Summary                         
+======================================================================
+
+Timestamp: 2025-11-11 12:15:14
+Model: llama_3.2_1B
+Dataset: cora
+PEFT Type: lora
+Used LLM Responses: False
+Number of Classes: 7
+Max Sequence Length: 512
+
+--- Train Set ---
+Loss: 0.0893
+Accuracy: 0.9667
+
+--- Validation Set ---
+Loss: 2.2066
+Accuracy: 0.6384
+
+--- Test Set ---
+Loss: 1.9419
+Accuracy: 0.6642
+
+Results CSV saved to: ./artifacts\llama_3.2_1B_cora_seqcls_lora_init_pissa_retrained_mistakes\training_results.csv
+
+======================================================================
+                         GNN Mistake Analysis                         
+======================================================================
+
+Init Weight Approach: eva
+Dataset: cora
+
+Top 3 Classes with Highest Mistake Rates:
+  Class 0: 0.1009 (11/109 mistakes)
+  Class 2: 0.1000 (18/180 mistakes)
+  Class 6: 0.0711 (18/253 mistakes)
+
+======================================================================
+                       Training Process Started                       
+======================================================================
+
+Dataset: cora
+Model: llama_3.2_1B
+PEFT Type: lora
+Seed: 42
+
+======================================================================
+                           Training Started                           
+======================================================================
+
+Number of training samples: 1624
+Number of validation samples: 542
+Number of test samples: 542
+Number of epochs: 2
+Learning rate: 0.0002
+
+======================================================================
+                          Training Completed                          
+======================================================================
+
+Test Accuracy: 0.5996
+Test Loss: 2.7345
+
+Model saved to: ./artifacts\llama_3.2_1B_cora_seqcls_lora_init_eva_retrained_mistakes
+
+======================================================================
+                        Final Results Summary                         
+======================================================================
+
+Timestamp: 2025-11-11 12:23:48
+Model: llama_3.2_1B
+Dataset: cora
+PEFT Type: lora
+Used LLM Responses: False
+Number of Classes: 7
+Max Sequence Length: 512
+
+--- Train Set ---
+Loss: 0.1250
+Accuracy: 0.9514
+
+--- Validation Set ---
+Loss: 2.7202
+Accuracy: 0.5978
+
+--- Test Set ---
+Loss: 2.7345
+Accuracy: 0.5996
+
+Results CSV saved to: ./artifacts\llama_3.2_1B_cora_seqcls_lora_init_eva_retrained_mistakes\training_results.csv
+
+======================================================================
+                         GNN Mistake Analysis                         
+======================================================================
+
+Init Weight Approach: eva
+Dataset: cora
+
+Top 3 Classes with Highest Mistake Rates:
+  Class 0: 0.1009 (11/109 mistakes)
+  Class 2: 0.1000 (18/180 mistakes)
+  Class 6: 0.0711 (18/253 mistakes)
+
+======================================================================
+                       Training Process Started                       
+======================================================================
+
+Dataset: cora
+Model: llama_3.2_1B
+PEFT Type: lora
+Seed: 42
+
+======================================================================
+                           Training Started                           
+======================================================================
+
+Number of training samples: 2708
+Number of validation samples: 542
+Number of test samples: 542
+Number of epochs: 2
+Learning rate: 0.0002
+
+======================================================================
+                          Training Completed                          
+======================================================================
+
+Test Accuracy: 0.8284
+Test Loss: 0.5987
+
+Model saved to: ./artifacts\llama_3.2_1B_cora_seqcls_lora_init_eva_retrained_mistakes
+
+======================================================================
+                        Final Results Summary                         
+======================================================================
+
+Timestamp: 2025-11-11 12:38:45
+Model: llama_3.2_1B
+Dataset: cora
+PEFT Type: lora
+Used LLM Responses: False
+Number of Classes: 7
+Max Sequence Length: 512
+
+--- Train Set ---
+Loss: 0.0928
+Accuracy: 0.9697
+
+--- Validation Set ---
+Loss: 0.5896
+Accuracy: 0.8247
+
+--- Test Set ---
+Loss: 0.5987
+Accuracy: 0.8284
+
+Results CSV saved to: ./artifacts\llama_3.2_1B_cora_seqcls_lora_init_eva_retrained_mistakes\training_results.csv
+
+======================================================================
+                         GNN Mistake Analysis                         
+======================================================================
+
+Init Weight Approach: pissa
+Dataset: cora
+
+Top 3 Classes with Highest Mistake Rates:
+  Class 4: 0.1399 (27/193 mistakes)
+  Class 0: 0.0917 (10/109 mistakes)
+  Class 5: 0.0889 (12/135 mistakes)
+
+======================================================================
+                       Training Process Started                       
+======================================================================
+
+Dataset: cora
+Model: llama_3.2_1B
+PEFT Type: lora
+Seed: 42
+
+======================================================================
+                           Training Started                           
+======================================================================
+
+Number of training samples: 2498
+Number of validation samples: 542
+Number of test samples: 542
+Number of epochs: 3
+Learning rate: 0.0002
+
+======================================================================
+                          Training Completed                          
+======================================================================
+
+Test Accuracy: 0.8432
+Test Loss: 0.7311
+
+Model saved to: ./artifacts\llama_3.2_1B_cora_seqcls_lora_init_pissa_retrained_mistakes
+
+======================================================================
+                        Final Results Summary                         
+======================================================================
+
+Timestamp: 2025-11-11 12:54:22
+Model: llama_3.2_1B
+Dataset: cora
+PEFT Type: lora
+Used LLM Responses: False
+Number of Classes: 7
+Max Sequence Length: 512
+
+--- Train Set ---
+Loss: 0.0256
+Accuracy: 0.9936
+
+--- Validation Set ---
+Loss: 0.7236
+Accuracy: 0.8395
+
+--- Test Set ---
+Loss: 0.7311
+Accuracy: 0.8432
+
+Results CSV saved to: ./artifacts\llama_3.2_1B_cora_seqcls_lora_init_pissa_retrained_mistakes\training_results.csv
+
+======================================================================
+                         GNN Mistake Analysis                         
+======================================================================
+
+Init Weight Approach: orthogonal
+Dataset: cora
+
+Top 3 Classes with Highest Mistake Rates:
+  Class 2: 0.2667 (48/180 mistakes)
+  Class 5: 0.1185 (16/135 mistakes)
+  Class 1: 0.0918 (46/501 mistakes)
+
+======================================================================
+                       Training Process Started                       
+======================================================================
+
+Dataset: cora
+Model: llama_3.2_1B
+PEFT Type: lora
+Seed: 42
+
+======================================================================
+                           Training Started                           
+======================================================================
+
+Number of training samples: 3256
+Number of validation samples: 542
+Number of test samples: 542
+Number of epochs: 3
+Learning rate: 0.0002
+
+======================================================================
+                          Training Completed                          
+======================================================================
+
+Test Accuracy: 0.8469
+Test Loss: 0.8171
+
+Model saved to: ./artifacts\llama_3.2_1B_cora_seqcls_lora_init_orthogonal_retrained_mistakes
+
+======================================================================
+                        Final Results Summary                         
+======================================================================
+
+Timestamp: 2025-11-11 13:18:21
+Model: llama_3.2_1B
+Dataset: cora
+PEFT Type: lora
+Used LLM Responses: False
+Number of Classes: 7
+Max Sequence Length: 512
+
+--- Train Set ---
+Loss: 0.0144
+Accuracy: 0.9957
+
+--- Validation Set ---
+Loss: 0.7861
+Accuracy: 0.8450
+
+--- Test Set ---
+Loss: 0.8171
+Accuracy: 0.8469
+
+Results CSV saved to: ./artifacts\llama_3.2_1B_cora_seqcls_lora_init_orthogonal_retrained_mistakes\training_results.csv
+
+======================================================================
+                         GNN Mistake Analysis                         
+======================================================================
+
+Init Weight Approach: gaussian
+Dataset: cora
+
+Top 3 Classes with Highest Mistake Rates:
+  Class 4: 0.1606 (31/193 mistakes)
+  Class 2: 0.1222 (22/180 mistakes)
+  Class 5: 0.0593 (8/135 mistakes)
+
+======================================================================
+                       Training Process Started                       
+======================================================================
+
+Dataset: cora
+Model: llama_3.2_1B
+PEFT Type: lora
+Seed: 42
+
+======================================================================
+                           Training Started                           
+======================================================================
+
+Number of training samples: 2640
+Number of validation samples: 542
+Number of test samples: 542
+Number of epochs: 3
+Learning rate: 0.0002
+
+======================================================================
+                          Training Completed                          
+======================================================================
+
+Test Accuracy: 0.8413
+Test Loss: 0.6913
+
+Model saved to: ./artifacts\llama_3.2_1B_cora_seqcls_lora_init_gaussian_retrained_mistakes
+
+======================================================================
+                        Final Results Summary                         
+======================================================================
+
+Timestamp: 2025-11-11 13:36:46
+Model: llama_3.2_1B
+Dataset: cora
+PEFT Type: lora
+Used LLM Responses: False
+Number of Classes: 7
+Max Sequence Length: 512
+
+--- Train Set ---
+Loss: 0.0215
+Accuracy: 0.9947
+
+--- Validation Set ---
+Loss: 0.6547
+Accuracy: 0.8542
+
+--- Test Set ---
+Loss: 0.6913
+Accuracy: 0.8413
+
+Results CSV saved to: ./artifacts\llama_3.2_1B_cora_seqcls_lora_init_gaussian_retrained_mistakes\training_results.csv
+
+======================================================================
+                         GNN Mistake Analysis                         
+======================================================================
+
+Init Weight Approach: loftq
+Dataset: cora
+
+Top 3 Classes with Highest Mistake Rates:
+  Class 0: 0.1101 (12/109 mistakes)
+  Class 2: 0.0778 (14/180 mistakes)
+  Class 4: 0.0725 (14/193 mistakes)
+
+======================================================================
+                       Training Process Started                       
+======================================================================
+
+Dataset: cora
+Model: llama_3.2_1B
+PEFT Type: lora
+Seed: 42
+
+======================================================================
+                           Training Started                           
+======================================================================
+
+Number of training samples: 2588
+Number of validation samples: 542
+Number of test samples: 542
+Number of epochs: 3
+Learning rate: 0.0002
+
+======================================================================
+                          Training Completed                          
+======================================================================
+
+Test Accuracy: 0.8561
+Test Loss: 0.7485
+
+Model saved to: ./artifacts\llama_3.2_1B_cora_seqcls_lora_init_loftq_retrained_mistakes
+
+======================================================================
+                        Final Results Summary                         
+======================================================================
+
+Timestamp: 2025-11-11 13:53:53
+Model: llama_3.2_1B
+Dataset: cora
+PEFT Type: lora
+Used LLM Responses: False
+Number of Classes: 7
+Max Sequence Length: 512
+
+--- Train Set ---
+Loss: 0.0278
+Accuracy: 0.9938
+
+--- Validation Set ---
+Loss: 0.7700
+Accuracy: 0.8542
+
+--- Test Set ---
+Loss: 0.7485
+Accuracy: 0.8561
+
+Results CSV saved to: ./artifacts\llama_3.2_1B_cora_seqcls_lora_init_loftq_retrained_mistakes\training_results.csv
