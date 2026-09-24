@@ -20,16 +20,19 @@ torch-geometric>=2.4.0
 torch-sparse>=0.6.18
 
 # --- LLM fine-tuning (train_llm/, cache/) ---
-# peft>=0.17: "orthogonal" LoRA init + EVA/LoftQ APIs used by train_llm/peft_model.py
-# transformers>=4.46: Gemma-2 / SmolLM2 / Llama-3.2 sequence classification
-transformers>=4.46.0
-peft>=0.17.0
-accelerate>=1.0.0
-bitsandbytes>=0.45.0
+# PINNED to the versions verified on the dev machine. Colab ships newer ones that break the code:
+#   transformers 5.x removed TrainingArguments(overwrite_output_dir=...),
+#   peft >=0.18 rejects Colab's preinstalled torchao 0.10.
+# Same versions everywhere also keeps seed runs comparable across machines.
+transformers==4.55.0
+tokenizers==0.21.4
+peft==0.17.0
+accelerate==1.10.0
+bitsandbytes==0.47.0
 sentencepiece>=0.2.0
 protobuf>=4.25.0
 safetensors>=0.4.3
-huggingface_hub>=0.34.0
+huggingface_hub>=0.34.0,<1.0
 
 # --- Numerics & ML ---
 numpy>=1.26.0

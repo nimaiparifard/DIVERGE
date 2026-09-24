@@ -67,6 +67,8 @@ fi
 
 # ---- 3) project requirements ------------------------------------------------
 "$PYTHON" -m pip install -r requirements.txt
+# Colab preinstalls torchao; peft imports it when present and fails on version mismatch. Not used here.
+"$PYTHON" -m pip uninstall -y -q torchao 2>/dev/null || true
 if [[ "$INSTALL_OPTIONAL" == "1" ]]; then
     "$PYTHON" -m pip install umap-learn statsmodels
 fi
@@ -83,5 +85,15 @@ print(f"transformers {transformers.__version__} | peft {peft.__version__} | acce
       f"bitsandbytes {bitsandbytes.__version__} | numpy {numpy.__version__}")
 import common, config, train_llm.peft_model  # project imports resolve
 print("[OK] project imports")
+import re
+pins = dict(re.findall(r"^([A-Za-z0-9_.-]+)==([^\s#]+)", open("requirements.txt").read(), re.M))
+got = {"transformers": transformers.__version__, "peft": peft.__version__,
+       "accelerate": accelerate.__version__, "bitsandbytes": bitsandbytes.__version__}
+bad = {k: (v, pins[k]) for k, v in got.items() if k in pins and v != pins[k]}
+if bad:
+    raise SystemExit(f"[FAIL] version mismatch (installed, pinned): {bad} -> rerun this script")
+print("[OK] pinned LLM stack versions")
+if torch.cuda.is_available() and not torch.cuda.is_bf16_supported():
+    print("[WARN] this GPU has no bfloat16 (e.g. Tesla T4): configs use bfloat16 -> slow/unstable. Prefer L4/A100.")
 PY
 log "Setup done. Next: bash sh_scripts/download_models.sh && bash sh_scripts/download_datasets.sh"
