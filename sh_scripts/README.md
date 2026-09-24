@@ -27,7 +27,7 @@ import os; os.environ['HF_TOKEN'] = userdata.get('HF_TOKEN')
 ```
 ```bash
 # cell 2: code (either git clone after pushing, or the tarball from pack_code.sh)
-!git clone https://github.com/nimaiparifard/DIVERGE.git /content/DIVERGE
+!git clone -b master https://github.com/nimaiparifard/DIVERGE.git /content/DIVERGE   # work is on master
 # !mkdir -p /content/DIVERGE && tar -xzf /content/drive/MyDrive/diverge_code.tar.gz -C /content/DIVERGE
 %cd /content/DIVERGE
 !RESTORE_FROM=/content/drive/MyDrive/DIVERGE_sync bash sh_scripts/bootstrap_cloud.sh   # RESTORE_FROM optional
