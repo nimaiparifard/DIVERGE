@@ -16,7 +16,7 @@ def get_init_dataset_for_gnn_specific_init_type(cfg, init_type_approaches='pissa
         cfg: Configuration object with dataset and model settings
 
     Returns:
-        tuple: (data_pissa, data_orthogonal, data_loftq, data_eva, data_guassian)
+        tuple: (data_pissa, data_orthogonal, data_guassian, data_loftq, data_eva)
     """
     from gnns.gnn_mtrainer import get_datasets_path
 

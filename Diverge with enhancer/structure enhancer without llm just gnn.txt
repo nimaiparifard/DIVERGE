@@ -1,0 +1,248 @@
+GNN-Only Graph Structure Enhancement (No LLM)
+==============================================
+For Related Work in template.tex — papers that refine/rewire/denoise graph topology
+using GNNs or classical node features, WITHOUT LLMs as enhancers.
+
+Your DIVERGE extensions (Methods II & III) sit at this intersection:
+  • Method II: remove edges with low cosine similarity between LLM node embeddings
+    → post-hoc, feature-similarity pruning to increase homophily
+  • Method III: GNN edge predictor with uncertainty to identify noisy edges
+    → learned, task-driven edge removal
+
+Use these papers to position DIVERGE as building on GSL tradition but using
+rich LLM semantics (not raw BoW/PLM features) for structure refinement.
+
+──────────────────────────────────────────────────────────────────────────────
+SECTION A — FOR \subsection{Edge Rewiring or Denoising in Graph Learning}
+──────────────────────────────────────────────────────────────────────────────
+(Tier 1 = cite first; all published at major venues unless noted)
+
+── TIER 1: Foundational & closest to your cosine-similarity pruning ──
+
+1. IDGL — Iterative Deep Graph Learning for Graph Neural Networks
+   Full title: Iterative Deep Graph Learning for Graph Neural Networks: Better and Robust Node Embeddings
+   Venue: NeurIPS 2020 (published)
+   Authors: Chen et al.
+   What it does: Iteratively learns graph structure as weighted COSINE SIMILARITY of
+     node embeddings and refines embeddings on the updated graph until convergence.
+   Why relevant: Closest classical analogue to your Method II — both use feature
+     similarity to revise edges, but IDGL is end-to-end iterative GSL on raw features,
+     while DIVERGE applies a thresholded pruning step on LLM embeddings post-hoc.
+   Enhancement type: Joint iterative structure + representation learning
+
+2. ProGNN — Graph Structure Learning for Robust Graph Neural Networks
+   Venue: KDD 2020 (published)
+   Authors: Jin et al.
+   What it does: Jointly learns a clean adjacency matrix and GNN weights using
+     sparsity, low-rank, and feature-smoothness regularizers to defend noisy/adversarial edges.
+   Why relevant: Canonical GSL denoising paper; motivates that real graphs violate
+     homophily/smoothness and benefit from structure correction before message passing.
+   Enhancement type: Learned adjacency denoising (regularization-based)
+
+3. GPS — Towards Understanding and Reducing Graph Structural Noise for GNNs
+   Venue: ICML 2023 (published)
+   Authors: Dong & Kluger
+   What it does: Proposes ESNR metric for measuring structural noise; rewires graphs
+     via Graph Propensity Score (GPS) from self-supervised link prediction using node features.
+   Why relevant: Explicitly frames feature-aware edge removal; supports your claim that
+     noisy edges hurt GNNs and that feature similarity/propensity can guide rewiring.
+   Enhancement type: Feature-aware graph rewiring (pre-processing)
+
+4. PTDNet — Learning to Drop: Robust Graph Neural Network via Topological Denoising
+   Venue: WSDM 2021 (published)
+   Authors: Luo et al.
+   What it does: Learns a parameterized network to DROP task-irrelevant edges end-to-end
+     with the downstream GNN; uses nuclear-norm sparsity on the pruned graph.
+   Why relevant: Direct "learning to remove edges" counterpart to your threshold-based
+     pruning; task-driven rather than fixed cosine threshold.
+   Enhancement type: Learned edge dropping (end-to-end denoising)
+
+── TIER 2: Joint structure learning & edge prediction ──
+
+5. LDS — Learning Discrete Structures for Graph Neural Networks
+   Venue: ICML 2019 (published)
+   Authors: Franceschi et al.
+   What it does: Bilevel optimization that learns a discrete edge distribution jointly
+     with GCN parameters; handles missing, incomplete, or noisy graphs.
+   Why relevant: Foundational GSL work cited by nearly all follow-ups; good one-line
+     anchor for the "jointly learn structure + GNN" paradigm.
+   Enhancement type: Discrete structure learning
+
+6. GRCN — Graph-Revised Convolutional Network
+   Venue: ECML-PKDD 2020 (published)
+   Authors: Yu et al.
+   What it does: Two coupled GNN modules — one revises edges (add/reweight) from node
+     embeddings, one classifies on the revised graph — optimized jointly.
+   Why relevant: Parallel to your Method III (encoder–decoder edge predictor + GNN);
+     GRCN revises structure inside training, DIVERGE uses uncertainty as a separate stage.
+   Enhancement type: Graph revision module + classification module
+
+7. GAug — Data Augmentation for Graph Neural Networks
+   Venue: AAAI 2021 (published)
+   Authors: Zhao et al.
+   What it does: Graph autoencoder predicts edge existence; adds likely edges and drops
+     unlikely ones to augment structure for downstream GNN training.
+   Why relevant: Edge-prediction-based structure modification; complements your
+     uncertainty-based edge existence scoring in Method III.
+   Enhancement type: Edge prediction for augmentation/pruning
+
+── TIER 3: Self-supervised / robust structure refinement ──
+
+8. STABLE — Reliable Representations Make A Stronger Defender: Unsupervised Structure Refinement for Robust GNN
+   Venue: KDD 2022 (published)
+   Authors: Li et al.
+   What it does: Self-supervised contrastive learning to obtain reliable node embeddings,
+     then modifies graph structure by embedding similarity before downstream GNN.
+   Why relevant: Unsupervised structure refinement pipeline; similarity-based rewiring
+     without labels — analogous spirit to cosine pruning on unlabeled edges.
+   Enhancement type: Self-supervised embedding → similarity rewiring
+
+9. CoGSL — Compact Graph Structure Learning via Mutual Information Compression
+   Venue: WWW 2022 (published)
+   Authors: Fatemi et al.
+   What it does: Learns a minimal sufficient graph structure by compressing mutual
+     information between multiple graph views while preserving task performance.
+   Why relevant: Theoretical framing for "what is a good refined graph" — task-relevant
+     edges only, noise compressed away.
+   Enhancement type: Multi-view MI compression
+
+10. SUBLIME — Towards Unsupervised Deep Graph Structure Learning
+    Venue: WWW 2022 (published)
+    Authors: Liu et al.
+    What it does: Unsupervised GSL via structure bootstrapping contrastive learning
+      between a learned graph and an anchor graph.
+    Why relevant: Shows structure can be improved without label supervision on edges.
+    Enhancement type: Unsupervised contrastive GSL
+
+── TIER 4: Homophily / heterophily rewiring (supporting motivation) ──
+
+11. ES-GNN — Generalizing Graph Neural Networks Beyond Homophily With Edge Splitting
+    Venue: IEEE TPAMI 2024 (published)
+    Authors: Li et al.
+    What it does: Splits edges into homophilic vs. heterophilic subgraphs and propagates
+      separately to disentangle task-relevant from harmful connections.
+    Why relevant: Formalizes that not all edges help GNNs; some should be treated as noise
+      — supports your noisy-edge removal motivation.
+    Enhancement type: Edge splitting (not pure deletion)
+
+12. DIGL — Predict then Propagate: Graph Neural Networks meet Personalized PageRank
+    Venue: ICLR 2019 (published)
+    Authors: Klicpera et al.
+    What it does: Diffusion-based graph denoising (personalized PageRank) before GNN;
+      smooths/sparsifies adjacency to reduce noise propagation.
+    Why relevant: Classic pre-GSL denoising baseline; often compared against in GSL papers.
+    Enhancement type: Diffusion-based structure smoothing
+
+── SURVEY / BENCHMARK (optional, for framing) ──
+
+13. Zhu et al. — A Survey on Graph Structure Learning: Progress and Opportunities
+    Venue: arXiv 2021 (widely cited survey; no journal version confirmed)
+    Use for: One citation to define GSL and its taxonomy in your intro to this subsection.
+
+14. OpenGSL — A Comprehensive Benchmark for Graph Structure Learning
+    Venue: NeurIPS 2023 Datasets & Benchmarks Track (published)
+    Use for: Mention that ProGNN, IDGL, GRCN, GAug, CoGSL, SUBLIME, STABLE are standard
+      GSL baselines evaluated on Cora/Citeseer/PubMed (early TAG benchmarks).
+
+──────────────────────────────────────────────────────────────────────────────
+SECTION B — FOR \subsection{Edge Denoising for Text-Attributed Graph}
+──────────────────────────────────────────────────────────────────────────────
+(Pure GNN / classical text features — NO LLM enhancer for structure)
+
+Note: Few papers target TAG structure denoising without LLMs. Most GSL work evaluates
+on citation networks (Cora, Citeseer, PubMed) using BoW or shallow text features — these
+ARE text-attributed graphs, just without modern LLM augmentation. Cite accordingly.
+
+15. VHE — Improving Textual Network Learning with Variational Homophilic Embeddings
+    Venue: NeurIPS 2019 (published)
+    Authors: Yang et al.
+    What it does: Generative VAE for textual networks with an explicit homophilic prior:
+      connected nodes should have correlated latent embeddings; joint text + topology modeling.
+    Why relevant: Early TAG work linking homophily assumption to text+graph joint learning;
+      no LLM, no external graph rewriting — but same homophily motivation as DIVERGE Method II.
+    Enhancement type: Homophilic generative modeling (structure fixed)
+
+16. GLCN — Semi-Supervised Learning With Graph Learning-Convolutional Networks
+    Venue: CVPR 2019 (published)
+    Authors: Jiang et al.
+    What it does: Jointly learns graph adjacency and GCN on data with feature similarity;
+      evaluated on citation/text networks.
+    Why relevant: Early joint text-feature + structure learning on citation graphs.
+    Enhancement type: Joint adjacency + GCN learning
+
+17. GEN — Graph Structure Estimation Neural Networks
+    Venue: WWW 2021 (published)
+    Authors: Wang et al.
+    What it does: Estimates graph structure from node features via metric learning,
+      then trains GNN on estimated graph; strong on homophilic citation networks.
+    Why relevant: Feature→structure pipeline on standard TAG benchmarks (Cora etc.).
+    Enhancement type: Metric-based structure estimation
+
+18. KEdge — Learnt Sparsification for Interpretable Graph Neural Networks
+    Venue: arXiv 2021 (no major venue confirmed)
+    Authors: Schlichtkrull et al.
+    What it does: Learns differentiable edge masks (Hard Kumaraswamy) to sparsify graphs;
+      drops ~80% of PubMed edges with minimal accuracy loss.
+    Why relevant: Empirical evidence that citation graphs contain many dispensable edges —
+      directly supports pruning-based enhancers like your Method II.
+    Enhancement type: Learned edge mask sparsification
+
+──────────────────────────────────────────────────────────────────────────────
+HOW TO CONTRAST WITH YOUR DIVERGE STRUCTURAL ENHANCER (for Research Gap)
+──────────────────────────────────────────────────────────────────────────────
+
+  GNN-only GSL (ProGNN, IDGL, PTDNet, …):
+    • Revise structure from raw/shallow node features (BoW, bag-of-words, PLM frozen embeddings)
+    • Often joint end-to-end optimization — entangles structure learning with a single GNN
+    • No access to diverse semantic views from multiple fine-tuned LLMs
+
+  LLM enhancers (TAPE, RoSE, GraphEdit, …):
+    • Use LLMs to rewrite text OR structure before GNN training
+    • API cost, hallucination risk, multi-stage pipelines
+
+  DIVERGE + Semantic Structure Enhancer (your contribution):
+    • Native text only (no LLM rewriting); diverse LLM encodings provide multiple semantic views
+    • Post-hoc structure refinement: cosine similarity pruning (Method II) or GNN uncertainty (Method III)
+    • Combines multi-view LLM semantics with GSL-inspired homophily enhancement — a middle path
+
+──────────────────────────────────────────────────────────────────────────────
+SUGGESTED LaTeX SNIPPET (adapt for template.tex)
+──────────────────────────────────────────────────────────────────────────────
+
+\subsection{Edge Rewiring or Denoising in Graph Learning}
+Graph Structure Learning (GSL) aims to recover a task-favorable topology when the
+observed graph is noisy, incomplete, or misaligned with node features
+\citep{zhu2021survey}. Representative methods jointly optimize the adjacency and GNN
+parameters: \textbf{LDS} \citep{franceschi2019lds} learns a discrete edge distribution
+via bilevel optimization; \textbf{ProGNN} \citep{jin2020prognn} regularizes a learned
+graph toward sparsity, low rank, and feature smoothness; and \textbf{IDGL}
+\citep{chen2020idgl} iteratively refines structure through cosine similarity of node
+embeddings. Closer to explicit denoising, \textbf{PTDNet} \citep{luo2021ptdnet} learns
+to drop task-irrelevant edges, \textbf{GPS} \citep{dong2023gps} rewires graphs using
+feature-based link propensity scores, and \textbf{GRCN}/\textbf{GAug}
+\citep{yu2020grcn,zhao2021gaug} revise or augment edges via learned edge predictors.
+Self-supervised refiners such as \textbf{STABLE} \citep{li2022stable},
+\textbf{CoGSL} \citep{fatemi2022cogsl}, and \textbf{SUBLIME} \citep{liu2022sublime}
+further improve robustness without relying on LLMs. These methods establish that
+pruning or rewiring noisy edges can substantially improve message passing, but they
+typically operate on shallow node features rather than semantically rich LLM embeddings.
+
+\subsection{Edge Denoising for Text-Attributed Graphs}
+On text-attributed graphs, early work such as \textbf{VHE} \citep{yang2019vhe} modeled
+homophily between linked documents in a generative framework, while standard GSL methods
+(\textbf{GEN}, \textbf{GLCN}) have been evaluated on citation networks with bag-of-words
+features \citep{wang2021gen,jiang2019glcn}. More recently, LLM-based enhancers modify
+node text or topology before GNN training (Section~\ref{sec:llm-enhancers}). In contrast,
+our structural enhancer keeps native text unchanged and uses diverse LLM \emph{encodings}
+only to score edge reliability—combining GSL-style homophily enhancement with the
+multi-view semantic diversity of DIVERGE.
+
+──────────────────────────────────────────────────────────────────────────────
+RECOMMENDED MINIMUM SET (if space is limited — cite these 6)
+──────────────────────────────────────────────────────────────────────────────
+  1. IDGL (NeurIPS'20)     — cosine-similarity structure learning
+  2. ProGNN (KDD'20)       — canonical denoising GSL
+  3. PTDNet (WSDM'21)      — learning to drop edges
+  4. GPS (ICML'23)         — feature-aware rewiring + noise metric
+  5. GRCN (ECML-PKDD'20)   — edge revision module (Method III parallel)
+  6. VHE (NeurIPS'19)      — TAG homophily without LLM

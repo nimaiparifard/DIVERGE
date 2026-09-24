@@ -153,7 +153,7 @@ if __name__ == "__main__":
         path_prefix = '../..'
     dataset, _, _ = load_graph_dataset_for_tape(dataset_name, 'cuda:0', re_split=1, path_prefix=path_prefix,
                                                 seed=cfg.dataset.seed)
-    data_pissa, data_orthogonal, data_loftq, data_eva, data_guassian = get_init_dataset_for_gnn(cfg)
+    data_pissa, data_orthogonal, data_guassian, data_loftq, data_eva = get_init_dataset_for_gnn(cfg)
     emb_pissa, emb_orthogonal, emb_loftq, emb_eva, emb_guassian = get_embedding_from_data(
         data_pissa), get_embedding_from_data(data_orthogonal), get_embedding_from_data(
         data_loftq), get_embedding_from_data(data_eva), get_embedding_from_data(data_guassian)

@@ -1,0 +1,328 @@
+INNOVATION & ADVANCED APPROACHES FOR Q1 JOURNAL UPGRADE
+=========================================================
+DIVERGE + Semantic Structure Enhancer (cosine + uncertainty edge pruning)
+Goal: Elevate from incremental extension → Q1-worthy contribution
+Last updated: based on template.tex, GSL paper list, LLM enhancer paper list,
+              and proposed experiments notes.
+
+
+══════════════════════════════════════════════════════════════════════════════
+1. CURRENT STATUS — HONEST ASSESSMENT
+══════════════════════════════════════════════════════════════════════════════
+
+STRENGTHS (keep and emphasize)
+─────────────────────────────
+• Clear problem: noisy edges hurt GNNs even when LLM embeddings are strong.
+• Strong positioning: middle path between GNN-only GSL and LLM enhancers.
+• Preliminary evidence: homophily analysis, threshold sensitivity, random-deletion
+  contrast, ensemble gains on Cora/WikiCS.
+• Competitive numbers vs TAPE/GCN on Cora (~94.1%), PubMed (~97.1%), WikiCS (~89.3%).
+• Two complementary criteria (cosine vs uncertainty) with different dataset behavior.
+• Efficiency story: no extra LLM API calls at enhancement time vs TAPE/Locle/GraphEdit.
+
+WEAKNESSES (must address for Q1)
+────────────────────────────────
+• Method II ≈ IDGL-style cosine pruning on LLM embeddings (incremental).
+• Method III ≈ GRCN/GAug edge prediction + bootstrap uncertainty (known pattern).
+• Gains often modest (+0.5% to +1% ensemble) and inconsistent across views/datasets.
+• Some results negative (e.g., Gaussian on Cora −1.10%, CiteSeer cosine −0.32%).
+• Only 4 small/medium graphs; no ogbn-arxiv or large-scale TAG benchmark.
+• No statistical significance (single runs, no mean ± std).
+• No GSL baselines (ProGNN, IDGL, PTDNet, GPS) on the SAME LLM embeddings.
+• Uncertainty method evaluated mostly on Cora only.
+• Abstract, Introduction, Related Work still empty in template.tex.
+• Competing work: LLM4GraphTopology (DASFAA 2026), Locle (SIGIR 2025), TAPE (ICLR 2024).
+
+REALISTIC TIER TARGETS
+──────────────────────
+  Q1 journal (TKDE, TNNLS, KBS, Neural Networks, Information Fusion)
+    → NOT ready now; needs new algorithmic angle + full experiment package.
+
+  Q2 journal / strong applied AI journal
+    → Possible after intro, related work, stats, ablations, minimum 6 experiments.
+
+  Top conference extension (if DIVERGE was conference paper)
+    → Reasonable with polish; focus on integration story + homophily analysis.
+
+
+══════════════════════════════════════════════════════════════════════════════
+2. CORE RESEARCH GAP (your unique angle)
+══════════════════════════════════════════════════════════════════════════════
+
+  GNN-only GSL (ProGNN, IDGL, PTDNet, GPS, GRCN, GAug):
+    • Revise structure from raw/shallow features (BoW, frozen PLM embeddings).
+    • Often joint end-to-end — single adjacency, single feature space.
+    • No access to diverse semantic views from multiple fine-tuned LLMs.
+
+  LLM enhancers (TAPE, RoSE, GraphEdit, LLM4GraphTopology, Locle, GAGA):
+    • Use LLMs to rewrite text, decompose relations, or edit topology.
+    • API cost, hallucination risk, multi-stage pipelines.
+
+  YOUR CONTRIBUTION (DIVERGE + Semantic Structure Enhancer):
+    • Native text only — no LLM rewriting at enhancement time.
+    • Diverse LLM encodings (multi-view LoRA) provide multiple semantic views.
+    • Post-hoc structure refinement per view: cosine pruning OR uncertainty pruning.
+    • Three-way diversity: semantic (M LLM views) + structural (M refined graphs)
+      + predictive (adaptive ensemble weights).
+
+  STRONGEST ONE-SENTENCE CLAIM:
+    "DIVERGE's multi-view LLM encodings provide a free semantic signal for per-view
+     graph denoising, yielding three-way diversity that outperforms classical GSL on
+     LLM features and LLM rewriting enhancers at lower cost."
+
+
+══════════════════════════════════════════════════════════════════════════════
+3. TIER A — HIGHEST IMPACT INNOVATIONS (turn extension into contribution)
+══════════════════════════════════════════════════════════════════════════════
+
+These go BEYOND "apply IDGL cosine threshold to DIVERGE embeddings."
+Pick at least ONE as a formal new method (Method IV or unified framework).
+
+──────────────────────────────────────────────────────────────────────────────
+A1. LEARNED HYBRID EDGE SCORER (recommended — highest novelty)
+──────────────────────────────────────────────────────────────────────────────
+Problem: Method II and III are separate heuristics with manual thresholds.
+         Reviewers will say "just two known tricks combined."
+
+Idea: Learn a per-edge reliability score on validation data:
+      score(e) = α · cos(z_i, z_j) + β · U(e) + optional view-specific bias
+
+Variants to implement and compare:
+  • Intersection (conservative): remove e iff cos < T AND U in top-k%
+  • Union (aggressive): remove e iff cos < T OR U > T_u
+  • Sequential: cosine prune first, then uncertainty on remaining edges
+  • Learned α, β via small MLP or logistic regression on validation edges
+    (label = whether edge connects same-class nodes, or proxy from GNN val acc)
+
+Why Q1-worthy: Becomes a NEW hybrid enhancer, not two separate post-hoc steps.
+Paper name: "Adaptive Hybrid Semantic Structure Enhancement"
+
+──────────────────────────────────────────────────────────────────────────────
+A2. MULTI-VIEW STRUCTURE–SEMANTIC CO-ENSEMBLE
+──────────────────────────────────────────────────────────────────────────────
+Problem: "Structural diversity" claim is intuitive but not proven separate from
+         semantic diversity.
+
+Idea: Formalize third diversity axis explicitly:
+  • Train GNN on each (view i, refined graph Ḡ_i) pair → M models.
+  • Ablation: same M views but ONE shared refined graph vs M per-view graphs.
+  • Ensemble weights conditioned on BOTH view index and graph sparsity/homophily.
+  • Report: Δacc from structural diversity ALONE (fix embeddings, vary graphs).
+
+Deliverable: Table proving structural diversity adds gain beyond semantic diversity.
+
+──────────────────────────────────────────────────────────────────────────────
+A3. ESNR-GUIDED ADAPTIVE THRESHOLD (GPS-inspired)
+──────────────────────────────────────────────────────────────────────────────
+Reference: GPS — Towards Understanding and Reducing Graph Structural Noise (ICML 2023)
+          Dong & Kluger; proposes ESNR metric for structural noise.
+
+Idea: Instead of manual cosine threshold T per dataset/view:
+  • Compute ESNR (or simplified homophily-noise ratio) before/after pruning.
+  • Auto-select T on validation to maximize ESNR or validation accuracy.
+  • Report T selection curve; show method is less hyperparameter-sensitive.
+
+Why Q1-worthy: Connects to top-venue theory; addresses "hyperparameter sensitivity"
+               limitation honestly.
+
+──────────────────────────────────────────────────────────────────────────────
+A4. HETEROPHILY-AWARE REFINEMENT (ES-GNN-inspired)
+──────────────────────────────────────────────────────────────────────────────
+Reference: ES-GNN — Edge Splitting beyond homophily (IEEE TPAMI 2024)
+
+Problem: Both enhancers assume deleting low-similarity edges helps.
+          On heterophilic graphs (Texas, Wisconsin, Cornell, Actor), this hurts.
+
+Idea: Do NOT delete — SPLIT edges into homophilic vs heterophilic subgraphs;
+      route message passing separately (or down-weight heterophilic edges).
+  • On homophilic benchmarks (Cora, PubMed): prune (current Method II).
+  • On heterophilic benchmarks: split or soft-weight instead of hard delete.
+  • Report honest negative result if cosine prune fails on heterophilic data.
+
+Why Q1-worthy: Shows boundary awareness + principled fix; journals reward this.
+
+──────────────────────────────────────────────────────────────────────────────
+A5. MINIMAL SUFFICIENT STRUCTURE PER SEMANTIC VIEW (CoGSL-inspired)
+──────────────────────────────────────────────────────────────────────────────
+Reference: CoGSL — Compact Graph Structure Learning via MI Compression (WWW 2022)
+
+Idea: Each LoRA view i induces a compressed graph Ḡ_i that is "minimally sufficient"
+      for view-i GNN performance. Frame pruning as MI compression:
+      keep edges that preserve task-relevant information per view.
+  • Report % edges removed vs Δacc per view.
+  • Show different views retain different edge subsets (structural disagreement).
+
+Theoretical paragraph: connect to "what is a good refined graph" literature.
+
+──────────────────────────────────────────────────────────────────────────────
+A6. EDGE ADDITION FOR MISSING HOMOPHILIC LINKS (GAug-inspired)
+──────────────────────────────────────────────────────────────────────────────
+Reference: GAug — Data Augmentation for GNNs (AAAI 2021)
+
+Problem: Current methods only DELETE edges; cannot recover missing useful links.
+
+Idea: After pruning, add k-nearest neighbor edges in LLM embedding space
+      (same-class or high cosine) that are absent from original graph.
+  • Prune + add pipeline: delete low-cos, add top-k same-label neighbors.
+  • Compare prune-only vs prune+add on WikiCS (dense, noisy).
+
+Why Q1-worthy: Symmetric to LLM4GraphTopology (add/delete) without LLM calls.
+
+
+══════════════════════════════════════════════════════════════════════════════
+4. TIER B — REQUIRED EXPERIMENTS (journal bar; from proposed experiments file)
+══════════════════════════════════════════════════════════════════════════════
+
+MINIMUM "JOURNAL UPGRADE" PACKAGE (do these 6 first)
+─────────────────────────────────────────────────────
+  1. Multiple seeds (≥5) + mean ± std + significance tests on main table
+  2. Ablation: M=1 vs M>1, with/without cosine enhancer, with/without ensemble
+  3. Homophily before/after + % edges removed (validate core claim)
+  4. GSL baselines (IDGL + ProGNN) on SAME DIVERGE LLM embeddings Z^(i)
+  5. ogbn-arxiv subset or full (large-scale TAG benchmark)
+  6. Synthetic edge-noise robustness (10/20/30% random edges added)
+
+HIGH PRIORITY (reviewers will ask)
+──────────────────────────────────
+  • Fair comparison with ≥2 LLM enhancer baselines (TAPE ✓, + Locle or LLM4GraphTopology)
+  • Uncertainty experiments on ALL 4 datasets (not only Cora)
+  • GNN backbone sensitivity (GCN, SAGE, GAT with same refined graphs)
+  • Cost / efficiency table: GPU hours, LLM API calls, wall-clock vs TAPE/Locle
+
+MEDIUM VALUE (differentiates conference sketch → journal)
+───────────────────────────────────────────────────────────
+  • Hybrid enhancer (cosine AND uncertainty) — see A1
+  • Label efficiency: {1%, 5%, 10%, 20%, 60%} training labels
+  • LLM backbone sensitivity (2 different LLMs)
+  • Heterophilic graph evaluation — see A4
+  • Correlation: Δaccuracy vs Δhomophily across datasets (Pearson r)
+
+SUGGESTED NEW TABLES / FIGURES
+──────────────────────────────
+  Table A  Main results (5 seeds, mean±std, significance vs DIVERGE)
+  Table B  Ablation (M views × enhancer × ensemble)
+  Table C  GSL baselines on same LLM features
+  Table D  Homophily & % edges removed before/after
+  Table E  ogbn-arxiv results
+  Table F  Cost comparison (time, API calls, memory)
+  Figure   Homophily before/after bar chart
+  Figure   Robustness to injected edge noise
+  Figure   Runtime–accuracy Pareto (DIVERGE vs TAPE vs enhancers)
+
+
+══════════════════════════════════════════════════════════════════════════════
+5. TIER C — POSITIONING VS PRIOR WORK (for Related Work & Discussion)
+══════════════════════════════════════════════════════════════════════════════
+
+vs GNN-only GSL (cite from structure enhancer without llm just gnn.txt)
+────────────────────────────────────────────────────────────────────────
+  MUST cite: IDGL, ProGNN, PTDNet, GPS, GRCN, GAug, STABLE, VHE
+  MUST show: ProGNN/IDGL/PTDNet on identical DIVERGE embeddings
+  Your contrast:
+    "We use rich multi-view LLM embeddings, not BoW/PLM; refinement is modular
+     post-hoc per view, not single end-to-end adjacency learning."
+
+vs LLM enhancers (cite from list enhancer paper.txt)
+────────────────────────────────────────────────────
+  MUST cite: TAPE, LLM4GraphTopology, Locle, GraphEdit, RoSE, TAGA, UltraTAG
+  MUST compare or cost-analyze vs: LLM4GraphTopology, Locle (structure-aware)
+  Your contrast:
+    "We preserve native text, add no LLM API at refinement, and use
+     embedding-derived + GNN uncertainty signals instead of generative edge editing."
+
+RECOMMENDED MINIMUM CITATION SET (if space limited — 6 GSL + 4 LLM enhancer)
+────────────────────────────────────────────────────────────────────────────
+  GSL:      IDGL, ProGNN, PTDNet, GPS, GRCN, VHE
+  Enhancer: TAPE, LLM4GraphTopology, Locle, GraphEdit
+
+
+══════════════════════════════════════════════════════════════════════════════
+6. RECOMMENDED PAPER NARRATIVE FOR Q1 SUBMISSION
+══════════════════════════════════════════════════════════════════════════════
+
+TITLE (recommended):
+  DIVERGE with Semantic Structure Enhancement: Pruning Noisy Edges for
+  Text-Attributed Graph Learning
+
+ALTERNATIVES:
+  • Enhancing DIVERGE via Semantic Edge Pruning on Text-Attributed Graphs
+  • Aligning Graph Structure with LLM Semantics: Post-hoc Edge Denoising for TAGs
+  • Prune, Don't Prompt: Lightweight Structure Enhancement for DIVERGE
+
+CONTRIBUTION BULLETS (rewrite for Introduction):
+  1. We identify a structural bottleneck in LLM-on-TAG pipelines: diverse semantic
+     embeddings cannot fully compensate for noisy edges that violate homophily.
+  2. We propose a semantic structure enhancer that prunes edges per LLM view using
+     cosine similarity or GNN predictive uncertainty — no LLM rewriting, no extra API.
+  3. We introduce [HYBRID METHOD NAME — pick from Tier A] that adaptively combines
+     semantic and relational edge scores, outperforming fixed-threshold pruning.
+  4. Extensive experiments on [4 graphs + ogbn-arxiv] with GSL and\nobreakdash-same\nobreakdash-features
+     baselines and statistical significance show consistent gains over DIVERGE,
+     TAPE, and classical structure learning.
+
+WHAT REVIEWERS WILL REJECT WITHOUT:
+  ✗ Claiming SOTA on 4 small graphs only, no variance, no large-graph result
+  ✗ Comparing only to GCN/TAPE without GSL on same features
+  ✗ Presenting Method II and III as two unrelated heuristics with no unified framework
+  ✗ Ignoring LLM4GraphTopology / Locle as structure-aware enhancer competitors
+
+
+══════════════════════════════════════════════════════════════════════════════
+7. PRACTICAL GUIDANCE — WHEN TO USE WHICH ENHANCER
+══════════════════════════════════════════════════════════════════════════════
+
+  Cosine similarity (Method II):
+    → LLM embeddings show clear same-label vs different-label separation
+    → Homophily is reasonable for the task
+    → Strongest on Cora, WikiCS in current results
+
+  Uncertainty + std (Method III):
+    → Large, already homophilic graphs (PubMed)
+    → Stable incremental improvement desired
+    → Less sensitive to embedding scale than fixed cosine threshold
+
+  Uncertainty + entropy (Method III):
+    → Noisy / heterophilic edge patterns (CiteSeer)
+    → More hyperparameter tuning acceptable
+
+  Hybrid (proposed Method IV — implement this):
+    → Default recommendation for deployment
+    → Intersection on homophilic graphs; split/soft-weight on heterophilic
+
+
+══════════════════════════════════════════════════════════════════════════════
+8. IMPLEMENTATION RESOURCES
+══════════════════════════════════════════════════════════════════════════════
+
+  OpenGSL baselines:     https://github.com/OpenGSL/OpenGSL
+  OGB arxiv:             https://ogb.stanford.edu/docs/nodeprop/#ogbn-arxiv
+  Homophily metric:      h = (1/|E|) Σ 1[y_u = y_v] for undirected edges
+  TAPE / LLMNodeBed:     HuggingFace LLMNodeBed for fair TAG comparisons
+  Report in paper:       GPU model, hours, LLM params, LoRA rank r, M views, GNN type
+
+
+══════════════════════════════════════════════════════════════════════════════
+    9. ACTION PLAN — PRIORITIZED ORDER
+══════════════════════════════════════════════════════════════════════════════
+
+PHASE 1 (2–4 weeks) — Make paper defensible
+  [ ] Run 6 minimum journal experiments (seeds, ablation, homophily, GSL, arxiv, noise)
+  [ ] Fill Introduction, Abstract, Related Work using two paper list files
+  [ ] Fix negative/inconsistent results in discussion (honest limitations)
+
+PHASE 2 (2–3 weeks) — Add one Tier A innovation
+  [ ] Implement A1 (Hybrid edge scorer) OR A3 (ESNR-guided threshold)
+  [ ] Add as Method IV in template.tex with ablation vs Methods II & III alone
+
+PHASE 3 (1–2 weeks) — Q1 polish
+  [ ] Cost comparison vs TAPE + LLM4GraphTopology
+  [ ] Theoretical paragraph (homophily → Δacc correlation; CoGSL/GPS framing)
+  [ ] Reproducibility: config YAML, fixed seeds, hardware spec
+
+BOTTOM LINE
+───────────
+  Publishable idea:     YES
+  Q1-ready now:         NO
+  Can become Q1:        YES — with hybrid learned enhancer + GSL baselines +
+                           ogbn-arxiv + ablations + significance testing
+  Best next step:       Run minimum 6 experiments, then implement A1 (Hybrid Scorer)

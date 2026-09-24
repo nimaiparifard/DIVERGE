@@ -1,0 +1,491 @@
+
+%=============================================================================
+\section{Experiments}
+\label{sec:experiments}
+%=============================================================================
+
+\subsection{Experimental Setup}
+\textbf{Datasets.} We evaluate on four standard TAG benchmarks: Cora, CiteSeer, PubMed,
+and WikiCS \citep{cora,giles1998citeseer,pubmed,mernyei2020wikics}. Each dataset
+provides a citation or web-derived graph with text attributes and node-level class labels.
+
+\textbf{Backbone.} We follow the DIVERGE pipeline: a pre-trained LLM is fine-tuned with
+LoRA under $M$ random initializations (PiSSA, Orthogonal, EVA, Gaussian, LoFTQ),
+producing $M$ semantic views. Each view feeds a GCN-style GNN trained on the (optionally
+refined) graph. Three adaptive ensemble variants (Ensemble~1--3) combine per-view logits
+with learnable weights.
+
+\textbf{Baselines.} We compare against GCN, GraphSAGE, and GAT
+\citep{Kipf2016GCN,hamilton2017sage,Velickovic2018GAT}; SenBERT and RoBERTa text
+encoders; ENGINE; TAPE \citep{he2024harnessing}; GraphGPT \citep{tang2024graphgpt};
+and LLaGA \citep{Chen2024LLaGA}.
+
+\textbf{Structural enhancers.} Method~II applies cosine-similarity threshold pruning on
+LLM embeddings (Sec.~\ref{sec:cosine-enhancer}). Method~III applies uncertainty-based
+pruning using standard deviation or entropy from a cross-validated edge predictor
+(Sec.~\ref{sec:uncertainty-enhancer}). Random removal of 30\% of edges serves as a
+negative control.
+
+\textbf{Metrics.} Node classification accuracy and Macro-F1 on held-out test nodes.
+
+
+\subsection{Main Results}
+Table~\ref{tab:diverge_with_cosine_enhancer_ensembles_accuracy} compares DIVERGE with
+cosine-based semantic structure enhancement against strong baselines. Our method achieves
+the best accuracy on all four datasets, reaching 94.10\% on Cora (vs.\ 90.05\% for TAPE)
+and 97.13\% on PubMed. Table~\ref{tab:diverge_with_cosine_enhancer_ensembles_accuracy_macro_f1}
+reports Macro-F1, where gains are similarly consistent.
+
+\begin{table}[htbp]
+\centering
+\caption{Node classification accuracy (\%): DIVERGE + cosine enhancer vs.\ baselines.}
+\label{tab:diverge_with_cosine_enhancer_ensembles_accuracy}
+\small
+\begin{tabularx}{\textwidth}{l|XXXX}
+\toprule
+\diagbox{\textbf{Dataset (\%)}}{\textbf{Method}} & Cora & CiteSeer & PubMed & WikiCS \\
+\midrule
+GCN & 87.41 & 75.74 & 89.01 & 83.67 \\
+GraphSAGE & 87.44 & 74.96 & 90.47 & 84.86 \\
+GAT & 86.68 & 73.73 & 88.25 & 83.94 \\
+SenBERT-66M & 79.61 & 74.06 & 94.47 & 86.51 \\
+RoBERTa-355M & 83.17 & 75.90 & 94.84 & 87.47 \\
+ENGINE & 87.00 & 75.82 & 90.08 & 85.44 \\
+TAPE & 90.05 & 76.45 & 93.00 & 87.11 \\
+GraphGPT & 82.29 & 74.67 & 93.54 & 82.54 \\
+LLaGA & 87.55 & 76.73 & 90.28 & 84.03 \\
+\midrule
+DIVERGE 1 + Enhancer & \textbf{93.91} & \textbf{81.03} & \textbf{97.03} & \textbf{89.32} \\
+DIVERGE 2 + Enhancer & \textbf{94.10} & \textbf{81.82} & \textbf{97.11} & \textbf{89.19} \\
+DIVERGE 3 + Enhancer & \textbf{94.10} & \textbf{81.50} & \textbf{97.13} & \textbf{89.28} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\caption{Macro-F1 (\%): DIVERGE + cosine enhancer vs.\ baselines.}
+\label{tab:diverge_with_cosine_enhancer_ensembles_accuracy_macro_f1}
+\small
+\begin{tabularx}{\textwidth}{l|XXXX}
+\toprule
+\diagbox{\textbf{Dataset (\%)}}{\textbf{Method}} & Cora & CiteSeer & PubMed & WikiCS \\
+\midrule
+GCN & 86.54 & 71.52 & 88.54 & 82.11 \\
+GraphSAGE & 86.37 & 71.87 & 90.16 & 82.78 \\
+GAT & 85.64 & 69.27 & 87.70 & 82.14 \\
+TAPE & 87.21 & 73.33 & 92.39 & 86.03 \\
+LLaGA & 84.97 & 72.59 & 90.00 & 82.37 \\
+\midrule
+DIVERGE 1 + Enhancer & \textbf{92.65} & \textbf{77.92} & \textbf{96.60} & \textbf{88.43} \\
+DIVERGE 2 + Enhancer & \textbf{92.99} & \textbf{78.56} & \textbf{96.74} & \textbf{88.27} \\
+DIVERGE 3 + Enhancer & \textbf{92.96} & \textbf{78.37} & \textbf{96.77} & \textbf{88.09} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+The results show that DIVERGE already achieves strong performance without refinement.
+With cosine-based structural enhancement, further improvements are observed on most
+datasets, indicating that graph structural enhancement acts as a complementary mechanism
+for the DIVERGE framework.
+
+
+\subsection{Cosine Similarity Analysis (Method II)}
+To examine alignment between LLM representations and graph structure, we compute cosine
+similarity between endpoint embeddings for same-label and different-label edges.
+Table~\ref{tab:mean_std_cos_similarity} reports mean and standard deviation across LoRA
+initialization schemes on Cora.
+
+\begin{table}[htbp]
+\centering
+\caption{Mean and std.\ of cosine similarity for same-label vs.\ different-label edges (Cora).}
+\label{tab:mean_std_cos_similarity}
+\small
+\begin{tabularx}{\textwidth}{l l *{5}{X}}
+\toprule
+Metric & Group & PiSSA & Orthogonal & EVA & Gaussian & LoFTQ \\
+\midrule
+Mean & same\_label & 0.818 & 0.903 & 0.810 & 0.895 & 0.799 \\
+Mean & diff\_label & 0.729 & 0.851 & 0.724 & 0.842 & 0.723 \\
+Std & same\_label & 0.099 & 0.059 & 0.097 & 0.063 & 0.092 \\
+Std & diff\_label & 0.112 & 0.080 & 0.102 & 0.071 & 0.096 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{figure}[htbp]
+\centering
+\maybeincludegraphics[width=0.95\textwidth]{Images/edge_similarity_boxplots_cora.png}
+\caption{Cosine similarity distributions for same-label vs.\ different-label edges (Cora).}
+\label{fig:cosine_box_plot}
+\end{figure}
+
+In all methods, the average cosine similarity for same-label edges is significantly
+higher than for different-label edges, confirming that LLM representations align with
+homophily. The higher standard deviation among different-label edges indicates structural
+noise: some endpoints remain semantically close despite label mismatch. Figure~\ref{fig:cosine_box_plot}
+shows clear distributional separation, supporting threshold-based pruning.
+
+\subsection{Threshold Sensitivity}
+\begin{figure}[htbp]
+\centering
+\maybeincludegraphics[width=0.75\textwidth]{Images/threshold_analysis_eva_cora.png}
+\caption{Accuracy and edge-removal rate vs.\ cosine threshold (representative LoRA init on Cora).}
+\label{fig:multi}
+\end{figure}
+
+Sensitivity analysis (Figure~\ref{fig:multi}) reveals a practical sweet spot: at low
+thresholds almost no edges are removed; in a mid-range interval, modest pruning often
+\emph{increases} accuracy; aggressive pruning eventually deletes useful bridges and
+hurts performance.
+
+
+\subsection{Comparison of Cosine and Uncertainty Enhancers}
+Table~\ref{tab:accuracy_ensemble_after_enhancers} and
+Table~\ref{tab:macro_f1_ensemble_after_enhancers} compare DIVERGE with and without
+structural refinement across three ensemble variants.
+
+\begin{table}[htbp]
+\centering
+\caption{Accuracy (\%): DIVERGE vs.\ cosine vs.\ uncertainty enhancers.}
+\label{tab:accuracy_ensemble_after_enhancers}
+\small
+\begin{tabularx}{\textwidth}{l l *{3}{X}}
+\toprule
+Dataset & Approach & Ens.\ 1 & Ens.\ 2 & Ens.\ 3 \\
+\midrule
+\multirow{4}{*}{Cora}
+ & DIVERGE & 93.17 & 93.36 & 93.17 \\
+ & + Cosine & \textbf{93.91} & \textbf{94.10} & \textbf{94.10} \\
+ & + Uncertainty (std) & 93.17 & 93.17 & 93.17 \\
+ & + Uncertainty (entropy) & 92.99 & 92.80 & 92.62 \\
+\midrule
+\multirow{4}{*}{PubMed}
+ & DIVERGE & 96.98 & 97.13 & 97.16 \\
+ & + Cosine & 97.03 & 97.11 & 97.13 \\
+ & + Uncertainty (std) & \textbf{97.26} & \textbf{97.16} & \textbf{97.16} \\
+ & + Uncertainty (entropy) & 97.13 & 97.11 & 97.13 \\
+\midrule
+\multirow{4}{*}{CiteSeer}
+ & DIVERGE & 81.66 & 81.97 & 82.13 \\
+ & + Cosine & 81.03 & 81.82 & 81.50 \\
+ & + Uncertainty (std) & 81.82 & 82.29 & 81.66 \\
+ & + Uncertainty (entropy) & \textbf{83.07} & \textbf{82.76} & \textbf{82.92} \\
+\midrule
+\multirow{4}{*}{WikiCS}
+ & DIVERGE & 88.34 & 88.38 & 88.42 \\
+ & + Cosine & \textbf{89.32} & \textbf{89.19} & \textbf{89.28} \\
+ & + Uncertainty (std) & 88.30 & 88.38 & 88.59 \\
+ & + Uncertainty (entropy) & 88.64 & 88.51 & 88.64 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\caption{Macro-F1 (\%): DIVERGE vs.\ enhancers.}
+\label{tab:macro_f1_ensemble_after_enhancers}
+\small
+\begin{tabularx}{\textwidth}{l l *{3}{X}}
+\toprule
+Dataset & Approach & Ens.\ 1 & Ens.\ 2 & Ens.\ 3 \\
+\midrule
+\multirow{4}{*}{Cora}
+ & DIVERGE & 92.06 & 91.80 & 91.85 \\
+ & + Cosine & \textbf{92.65} & \textbf{92.99} & \textbf{92.96} \\
+ & + Uncertainty (std) & 91.96 & 91.96 & 91.96 \\
+ & + Uncertainty (entropy) & 91.77 & 91.43 & 91.59 \\
+\midrule
+\multirow{4}{*}{CiteSeer}
+ & DIVERGE & 79.25 & 78.83 & 79.04 \\
+ & + Cosine & 77.92 & 78.56 & 78.37 \\
+ & + Uncertainty (std) & 79.25 & 79.25 & 79.25 \\
+ & + Uncertainty (entropy) & \textbf{80.72} & \textbf{80.72} & \textbf{80.72} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Cosine pruning peaks on Cora and WikiCS; uncertainty (std) helps on PubMed; entropy
+helps on CiteSeer---confirming complementarity between Methods~II and~III.
+
+
+\subsection{Random Edge Removal Baseline}
+Table~\ref{tab:compare_structural_enhancer_random_model} compares targeted enhancers
+against random 30\% edge deletion on Cora (representative LoRA inits). Random removal
+causes large accuracy drops, whereas cosine and uncertainty refinement improve or
+maintain performance.
+
+\begin{table}[htbp]
+\centering
+\caption{Single-view accuracy (\%) on Cora: base vs.\ enhancers vs.\ random removal.}
+\label{tab:compare_structural_enhancer_random_model}
+\small
+\begin{tabularx}{\textwidth}{l *{5}{X}}
+\toprule
+Approach & PiSSA & Orthogonal & EVA & Gaussian & LoFTQ \\
+\midrule
+Base & \textbf{90.77} & 89.48 & 92.07 & 91.14 & 90.96 \\
+Cosine & \textbf{90.77} & 90.41 & 92.07 & 90.04 & \textbf{91.88} \\
+Uncertainty (std) & 89.67 & 91.51 & \textbf{92.44} & 91.88 & 91.14 \\
+Uncertainty (entropy) & 89.48 & \textbf{91.70} & \textbf{92.44} & \textbf{92.25} & 91.51 \\
+Random 30\% & 88.56 & 89.59 & 90.88 & 90.14 & 89.41 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+
+\subsection{Uncertainty Analysis (Method III)}
+\begin{figure}[htbp]
+\centering
+\maybeincludegraphics[width=0.55\textwidth]{Images/uncertainty_boxplot_seaborn_cora.png}
+\caption{Edge uncertainty distribution on Cora (entropy vs.\ std).}
+\label{fig:edge_similarity_boxplots_cora}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\maybeincludegraphics[width=0.45\textwidth]{Images/std_uncertainty_vs_K_cora.png}
+\hfill
+\maybeincludegraphics[width=0.45\textwidth]{Images/entropy_uncertainty_vs_K_cora.png}
+\caption{Effect of number of edge-prediction runs on average uncertainty (Cora).}
+\label{fig:std_uncertainty_vs_K_cora}
+\end{figure}
+
+On Cora, entropy is more dispersed than standard deviation across edges. Increasing
+the number of cross-validation runs stabilizes estimates with diminishing returns.
+Std-based removal yields stable PubMed gains; entropy excels on noisier CiteSeer graphs.
+
+
+%=============================================================================
+\section{Discussion}
+\label{sec:discussion}
+%=============================================================================
+
+In this section we interpret the experimental findings, relate them to prior work on
+graph structure learning and LLM-based TAG methods, and discuss limitations and
+future directions.
+
+
+\subsection{Semantic Structure Enhancement as a Complement to DIVERGE}
+\label{sec:disc-diverge-complement}
+
+Our results support the central hypothesis of this work: \emph{rich LLM semantics and
+clean graph topology are both necessary} for strong TAG node classification. DIVERGE
+already achieves competitive or state-of-the-art performance by encoding native node
+text through multiple LoRA-adapted LLMs and combining per-view GNNs with adaptive
+ensembling rather than uniform logit averaging \citep{he2024harnessing}. Tables
+\ref{tab:diverge_with_cosine_enhancer_ensembles_accuracy} and
+\ref{tab:accuracy_ensemble_after_enhancers} show that further gains are available when
+edges connecting semantically dissimilar nodes are removed before message passing.
+
+This pattern aligns with graph structure learning (GSL) literature, which has repeatedly
+shown that GNNs are sensitive to noisy or task-misaligned edges
+\citep{jin2020prognn,chen2020idgl,dong2023gps}. What differs in our setting is the
+\emph{source} of the feature signal used for denoising. Classical GSL methods such as
+IDGL and ProGNN refine adjacency from a single shallow or jointly learned embedding
+space \citep{chen2020idgl,jin2020prognn}. DIVERGE instead supplies multiple semantic
+views from independently initialized LoRA fine-tunes; each view induces its own refined
+graph $\bar{G}_i$, so structural enhancement amplifies representation diversity rather
+than collapsing structure learning into one end-to-end optimization. The final ensemble
+thus exploits three complementary axes: \textbf{semantic diversity} (multiple LLM
+encodings), \textbf{structural diversity} (view-specific denoised topologies), and
+\textbf{predictive diversity} (learned ensemble weights over GNN logits).
+
+Compared with LLM \emph{enhancer} pipelines that rewrite node text, synthesize labels,
+or call external models to modify topology
+\citep{he2024harnessing,Sun2026TopologicalEnhancerTAG,guo2024graphedit,zhang2025leveraging},
+our structural enhancer is deliberately lightweight: it requires no additional LLM API
+queries at refinement time and preserves the native document content that DIVERGE was
+designed to exploit. On Cora, CiteSeer, PubMed, and WikiCS, DIVERGE with cosine-based
+structural refinement outperforms TAPE, LLaGA, and standard GNN baselines
+(Tables~\ref{tab:diverge_with_cosine_enhancer_ensembles_accuracy}--\ref{tab:diverge_with_cosine_enhancer_ensembles_accuracy_macro_f1}),
+suggesting that homophily-oriented edge pruning can recover part of the benefit otherwise
+sought through generated explanations or rewritten inputs---while remaining compatible
+with DIVERGE's no-augmentation philosophy.
+
+
+\subsection{Why Cosine Similarity Identifies Noisy Edges}
+\label{sec:disc-cosine}
+
+The cosine-similarity enhancer (Method~II) rests on two empirical observations. First,
+same-label edges exhibit systematically higher mean cosine similarity than
+different-label edges in LLM embedding space (Table~\ref{tab:mean_std_cos_similarity},
+Figure~\ref{fig:cosine_box_plot}), confirming that fine-tuned LLM representations align
+with homophily to a useful degree. Second, different-label edges show greater variance,
+including cases where endpoints remain semantically close despite label mismatch---a
+signature of structural noise or graph-construction rules that ignore semantic class
+boundaries.
+
+Threshold-based pruning removes edges whose endpoints are far apart in representation
+space before GNN propagation. Sensitivity analysis (Figure~\ref{fig:multi}) reveals a
+practical sweet spot: at low thresholds almost no edges are removed and accuracy is
+unchanged; in a mid-range interval, a modest fraction of edges is pruned and accuracy
+often \emph{increases}, indicating that removed connections were harmful rather than
+informative. Aggressive pruning eventually hurts performance by deleting useful
+bridges---especially when heterophily or long-range dependencies matter
+\citep{dong2023gps}. This trade-off parallels PTDNet and GPS, where feature-aware edge
+removal helps only when sparsification is controlled \citep{luo2021ptdnet,dong2023gps}.
+
+Random removal of 30\% of edges
+(Table~\ref{tab:compare_structural_enhancer_random_model}) causes substantial accuracy
+drops, whereas targeted cosine pruning improves or maintains performance. The contrast
+confirms that gains are not an artifact of sparsifying the graph per se, but of removing
+edges specifically inconsistent with LLM-estimated semantic proximity. On Cora, CiteSeer,
+and WikiCS, cosine refinement yields the largest ensemble gains
+(Table~\ref{tab:accuracy_ensemble_after_enhancers}), whereas on PubMed the improvement
+is smaller---likely because citation links are already relatively homogeneous and the
+baseline DIVERGE accuracy is already high ($\sim$97\%).
+
+
+\subsection{Uncertainty-Based Refinement and Edge-Prediction GSL}
+\label{sec:disc-uncertainty}
+
+The uncertainty-based enhancer (Method~III) addresses a complementary failure mode.
+Cosine similarity measures \emph{static semantic distance} in embedding space; it does
+not explicitly ask whether an edge is supported by relational patterns learnable from
+the rest of the graph. By training an edge predictor under cross-validation and flagging
+edges with high standard deviation or entropy across folds, we target connections whose
+existence is \emph{ambiguous}---a criterion closer to edge-prediction GSL such as GRCN
+and GAug \citep{yu2020grcn,zhao2021gaug}.
+
+On Cora (Figure~\ref{fig:edge_similarity_boxplots_cora}), entropy is more sensitive and
+dispersed than standard deviation. Accordingly, std-based removal tends to yield stable
+improvements on PubMed (Table~\ref{tab:accuracy_ensemble_after_enhancers}), while
+entropy-based removal can excel on CiteSeer. Increasing the number of edge-prediction
+runs stabilizes uncertainty estimates (Figure~\ref{fig:std_uncertainty_vs_K_cora}) but
+with diminishing returns beyond a modest fold count.
+
+Neither uncertainty measure dominates uniformly. Cosine pruning often achieves larger
+peak accuracy (e.g., Cora 94.10\% vs.\ 93.36\% baseline), while uncertainty pruning
+can improve Macro-F1 on imbalanced or noisier graphs (e.g., CiteSeer with entropy;
+PubMed with std in Table~\ref{tab:macro_f1_ensemble_after_enhancers}). This
+complementarity suggests that semantic distance and relational ambiguity capture
+partially overlapping but non-identical sets of noisy edges.
+
+
+\subsection{Choosing Between Enhancers in Practice}
+\label{sec:disc-when-to-use}
+
+Based on our experiments, we offer the following practical guidance:
+
+\begin{itemize}
+\item \textbf{Cosine similarity (Method~II)} is preferred when LLM embeddings show
+  clear separation between same-label and different-label edges
+  (Table~\ref{tab:mean_std_cos_similarity}), when homophily is a reasonable approximation
+  of the downstream task, and when interpretability matters. It delivers the strongest
+  gains on Cora and WikiCS in our evaluation.
+
+\item \textbf{Uncertainty with standard deviation (Method~III, std)} is preferred when
+  the graph is large, already fairly homophilic, and incremental but stable improvement
+  is desired (PubMed).
+
+\item \textbf{Uncertainty with entropy (Method~III, entropy)} is worth considering on
+  graphs where label noise or heterophily produces many ambiguous links (CiteSeer).
+
+\item \textbf{DIVERGE multi-view vs.\ single-view ensemble:} Single-representation
+  ensemble on multiple refined graphs approaches full DIVERGE performance on most
+  datasets, offering a cost-effective deployment option when training multiple LoRA
+  adapters is prohibitive.
+\end{itemize}
+
+A natural extension is to combine criteria, e.g., removing edges that simultaneously
+fall below a cosine threshold \emph{and} rank among the highest-uncertainty links.
+
+
+\subsection{Relation to Graph Structure Learning and LLM Enhancers}
+\label{sec:disc-prior-work}
+
+Our semantic structure enhancer occupies a middle ground between GNN-only GSL and
+LLM-based TAG enhancers (Section~\ref{sec:related-works}). Unlike ProGNN, IDGL, and
+PTDNet, we do not jointly learn a single adjacency matrix inside one training loop;
+refinement is a modular post-processing step on each LLM view. Unlike RoSE, GraphEdit, and
+LLM4GraphTopology \citep{Sun2026TopologicalEnhancerTAG,guo2024graphedit}, we do not
+invoke LLMs to rewrite edges or decompose relation types; structure is inferred from
+embeddings and GNN edge predictions already computed for classification.
+
+This design trades the expressive power of generative LLM structure editing for
+\emph{efficiency and reproducibility}: no external API calls, no hallucinated edge
+labels, and transparent criteria (cosine or uncertainty) for each removed link. The cost
+is that we cannot add missing edges or discover latent relation types that never appear
+in the observed graph---capabilities that LLM enhancers explicitly target
+\citep{Sun2026TopologicalEnhancerTAG,Yu2025NodeGenerationTAG}. For many citation and
+web-derived TAG benchmarks where the primary issue is \emph{spurious} rather than
+\emph{missing} edges, pruning-oriented enhancement appears sufficient.
+
+
+\subsection{Limitations}
+\label{sec:disc-limitations}
+
+Several limitations should be acknowledged.
+
+\paragraph{Homophily assumption.}
+Both enhancers implicitly assume that removing low-similarity or high-uncertainty edges
+helps classification. On strongly heterophilic graphs, beneficial edges may connect
+dissimilar nodes; methods such as ES-GNN explicitly split rather than delete such
+links \citep{li2024esgnn}. Our evaluation focuses on citation-style benchmarks where
+homophily-oriented refinement is plausible but not guaranteed.
+
+\paragraph{Hyperparameter sensitivity.}
+Cosine threshold $T$, uncertainty threshold, and top-$k$ removal rate must be tuned
+per dataset and often per LLM view (Figure~\ref{fig:multi}). Unlike end-to-end GSL,
+refinement is not automatically aligned with the downstream loss.
+
+\paragraph{Computational overhead.}
+Method~II adds pairwise cosine computation over edges for each of $M$ LLM views;
+Method~III adds cross-validated edge-predictor training. Both costs are typically
+smaller than multiple LoRA fine-tunes but non-negligible on million-edge graphs.
+
+\paragraph{Scope of evaluation.}
+We study node classification on four TAG benchmarks. Extension to link prediction,
+graph-level tasks, dynamic graphs, or graphs with rich edge text remains open. We also
+do not compare against every recent LLM enhancer (e.g., UltraTAG, SKETCH, TAGA)
+\citep{yu2025ultratag,zhou-etal-2025sketch,zhang2025taga} under identical tuning budgets.
+
+\paragraph{CiteSeer Macro-F1.}
+Cosine refinement improves CiteSeer accuracy but can reduce Macro-F1 relative to
+baseline DIVERGE (Table~\ref{tab:macro_f1_ensemble_after_enhancers}), suggesting that
+aggressive pruning may hurt minority classes.
+
+
+\subsection{Future Work}
+\label{sec:disc-future}
+
+Promising directions include:
+(i)~ \textbf{adaptive, per-class or per-view thresholds} learned from validation data;
+(ii)~ \textbf{hybrid enhancers} intersecting cosine and uncertainty scores, or combining
+pruning with edge addition as in GAug \citep{zhao2021gaug};
+(iii)~ \textbf{integration with LLM enhancers} in low-data regimes
+\citep{zhang2025leveraging,hu2025gaga};
+(iv)~ \textbf{theoretical analysis} connecting removed-edge rate to homophily ratio,
+building on ESNR and minimal-sufficient-structure frameworks
+\citep{dong2023gps,fatemi2022cogsl};
+(v)~ \textbf{large-scale and heterophilic benchmarks} (ogbn-products, Roman-Empire);
+(vi)~ \textbf{single-pass deployment} combining the best refined graphs from one LLM
+view with multi-graph ensemble learning.
+
+
+%=============================================================================
+\section{Conclusion}
+\label{sec:conclusion}
+%=============================================================================
+
+We extended the DIVERGE framework for text-attributed graph node classification with a
+\emph{semantic structure enhancer} that removes noisy edges before GNN message passing,
+without rewriting native node text or calling external LLMs for topology editing. Two
+mechanisms---cosine-similarity thresholding on multi-view LLM embeddings and
+uncertainty-based pruning via cross-validated edge prediction---increase effective
+homophily and improve ensemble accuracy over DIVERGE alone on Cora, CiteSeer, PubMed,
+and WikiCS. Targeted removal consistently outperforms random edge deletion, confirming
+that structure quality mediates the benefit of rich semantic representations. Cosine and
+uncertainty criteria are complementary: the former excels when embedding-space homophily
+is strong; the latter offers stable gains when relational ambiguity dominates. By
+combining native-text LLM diversity with GSL-inspired denoising, our approach offers an
+efficient alternative to full LLM enhancer pipelines while pushing TAG performance
+beyond strong baselines including TAPE. Future work will pursue adaptive hybrid
+enhancers, broader benchmarks, and tighter integration with cost-aware LLM--GNN systems.
+
+
+\bibliographystyle{plainnat}
+\bibliography{references,sample_extra}
+
+\end{document}

@@ -1,0 +1,134 @@
+================================================================================
+PROPOSED INTRODUCTION — paste into template.tex (\section{Introduction})
+Paper: Improving DIVERGE Performance via Noisy-Edge Removal / Semantic Structure Enhancement
+================================================================================
+
+\section{Introduction}
+\label{sec:introduction}
+
+Text-attributed graphs (TAGs) are ubiquitous in real-world systems: citation networks
+link scholarly documents, e-commerce graphs connect products through co-purchase or
+review relations, and social platforms relate user-generated content through follow or
+interaction edges \citep{Zhang2024TAGSurvey}. In a TAG, each node is associated with a
+natural-language description and each edge encodes a relational tie. Node classification
+---predicting the category of each node from its text and neighborhood---is a fundamental
+task that requires jointly exploiting \emph{semantic content} and \emph{graph structure}.
+Graph neural networks (GNNs) excel at relational reasoning through message passing, but
+their effectiveness depends critically on the quality of node features and on whether
+the observed topology aligns with the homophily assumption that connected nodes tend to
+be similar \citep{Kipf2016GCN,Velickovic2018GAT,jin2020prognn}.
+
+Recent progress has shifted TAG pipelines from shallow text encoders toward large
+language models (LLMs), which capture richer semantics from node documents
+\citep{Chen2024LLaGA,Huang2024GNNAdapters,he2024harnessing}. A parallel research line
+treats LLMs as \emph{enhancers}: they rewrite node text, relabel nodes, synthesize new
+vertices, or modify graph structure before GNN training \citep{he2024harnessing,
+Sun2026TopologicalEnhancerTAG,zhang2025leveraging,Yu2025NodeGenerationTAG}. Although
+powerful, enhancer methods often incur API cost, hallucination risk, or multi-stage
+complexity, and they alter the native textual content of the graph. An alternative
+strategy asks whether strong performance can arise from \emph{diverse encodings of
+unchanged node text} rather than from generative augmentation.
+
+\textbf{DIVERGE} addresses this question by fine-tuning a pre-trained LLM with
+parameter-efficient adaptation (LoRA) under multiple random initializations. Each run
+produces a distinct semantic view of the same native documents; a separate GNN is
+trained on each view, and an adaptive ensemble combines their logits---assigning
+learnable weights at the model or class level rather than uniformly averaging predictions
+as in TAPE \citep{he2024harnessing}. DIVERGE thus pursues diversity in \emph{how} text
+is encoded, not in \emph{what} text is provided to the model.
+
+Despite strong semantic representations, a second challenge remains largely unaddressed
+in this setting: \textbf{the observed graph structure may be noisy or misaligned with
+semantics}. Citation links, hyperlinks, and co-occurrence edges are constructed by
+rules that do not guarantee semantic similarity between endpoints. When dissimilar nodes
+are connected, message passing propagates irrelevant information, lowers effective
+homophily, and limits GNN performance even if node embeddings are high quality
+\citep{zhu2021survey,chen2020idgl,dong2023gps}. Classical graph structure learning (GSL)
+methods such as ProGNN, IDGL, and PTDNet refine topology using node features
+\citep{jin2020prognn,chen2020idgl,luo2021ptdnet}, but they typically operate on a single
+shallow feature space in a joint end-to-end pipeline. LLM-based structural enhancers,
+meanwhile, rewrite edges or relation types through external model calls
+\citep{Sun2026TopologicalEnhancerTAG,guo2024graphedit,zhang2025leveraging}. We argue
+that DIVERGE's multi-view LLM embeddings offer a natural signal for \emph{lightweight,
+post-hoc} structure refinement---without generating new text or invoking additional LLM
+queries at enhancement time.
+
+\paragraph{Our approach.}
+We extend DIVERGE with a \textbf{semantic structure enhancer} that prunes noisy edges
+before per-view GNN training and ensemble aggregation. The key insight is that nodes
+with similar semantics cluster in LLM embedding space; edges whose endpoints have low
+cosine similarity are likely to harm homophily-driven message passing. We propose two
+complementary mechanisms:
+
+\begin{itemize}
+\item \textbf{Cosine-similarity enhancement (Method~II).} For each LLM view
+$\bar{f}_i$, we compute node embeddings $\mathbf{Z}^{(i)}$ and remove edges
+$(v_i,v_j)$ whose endpoint representations satisfy
+$\cos(\mathbf{z}_i,\mathbf{z}_j) < T$ for a threshold~$T$. This yields a collection of
+view-specific refined graphs $\{\bar{G}_i\}_{i=1}^{M}$, each with higher semantic
+homophily while preserving native text and node features.
+
+\item \textbf{Uncertainty-based enhancement (Method~III).} We train a GNN-based edge
+predictor with cross-validation and treat edges with high predictive uncertainty---measured
+by entropy or standard deviation across folds---as unreliable. Removing the most
+uncertain edges again increases homophily and complements similarity-based pruning with
+a model-driven criterion related to edge-prediction GSL
+\citep{yu2020grcn,zhao2021gaug}.
+\end{itemize}
+
+Both enhancers plug into the existing DIVERGE pipeline: multiple LoRA fine-tunes,
+per-view GNN training on refined graphs, and adaptive ensemble learning over logits.
+The final model therefore exploits \emph{three} sources of diversity---semantic
+(repeated LLM encodings), structural (view-specific refined topologies), and predictive
+(learned ensemble weights).
+
+\paragraph{Contributions.}
+Our main contributions are summarized as follows:
+\begin{itemize}
+\item We identify a structural bottleneck in LLM-on-TAG pipelines: even diverse,
+  high-quality semantic embeddings cannot fully compensate for edges that connect
+  semantically dissimilar nodes, and we motivate homophily-oriented edge pruning in
+  this setting.
+
+\item We propose two semantic structure enhancers for DIVERGE---cosine-similarity
+  thresholding and uncertainty-based edge removal---that refine topology using LLM
+  embeddings or GNN edge predictions \emph{without} rewriting node text or calling
+  external LLM APIs for structure modification.
+
+\item We integrate structural refinement with DIVERGE's multi-view encoding and
+  adaptive ensemble framework, producing view-specific denoised graphs rather than a
+  single jointly learned adjacency as in classical GSL
+  \citep{chen2020idgl,jin2020prognn}.
+
+\item We conduct extensive experiments on benchmark TAG datasets, showing that
+  removing noisy edges consistently improves both individual GNN accuracy and ensemble
+  performance compared to DIVERGE alone and to representative LLM-enhancer baselines
+  such as TAPE \citep{he2024harnessing}.
+\end{itemize}
+
+\paragraph{Paper organization.}
+The remainder of this paper is organized as follows.
+Section~\ref{sec:related-works} reviews graph structure learning, TAG-specific
+denoising, and LLM enhancer methods.
+Section~\ref{sec:preliminaries} introduces notation and recaps the DIVERGE framework.
+Section~\ref{sec:methodology} presents the cosine-similarity and uncertainty-based
+structural enhancers.
+Section~\ref{sec:experiments} reports experimental results and ablations.
+Section~\ref{sec:conclusion} concludes with limitations and future directions.
+
+
+================================================================================
+PLAIN SUMMARY (for your reference — do not paste into paper)
+================================================================================
+
+Opening:     TAGs are important; node classification needs text + structure.
+Problem 1:   LLM enhancers rewrite data and are costly; DIVERGE uses native text diversity.
+Problem 2:   Noisy edges hurt GNNs even with good LLM embeddings.
+Solution:    Two edge-pruning modules (cosine + uncertainty) plugged into DIVERGE.
+Contributions: 4 bullets — motivation, two methods, integration, experiments.
+Organization:  Standard section roadmap.
+
+Suggested label fixes in template.tex when you paste:
+  \section{Preliminaries}        → \label{sec:preliminaries}
+  \section{Methodology Enhancing Diverge} → \label{sec:methodology}
+  experiments / conclusion sections → add matching \label{} for cross-refs

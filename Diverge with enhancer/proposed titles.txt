@@ -1,0 +1,67 @@
+PROPOSED PAPER TITLES
+=====================
+Choose one style below. (Recommended: **Title 1** or **Title 3** for clarity + DIVERGE branding.)
+
+
+── RECOMMENDED (clear, accurate, conference-friendly) ──
+
+1. DIVERGE with Semantic Structure Enhancement: Pruning Noisy Edges for Text-Attributed Graph Learning
+
+2. Enhancing DIVERGE via Semantic Edge Pruning on Text-Attributed Graphs
+
+3. Semantic Structure Enhancement for DIVERGE: Homophily-Oriented Edge Denoising without LLM Rewriting
+
+4. Beyond Diverse LLM Encodings: Structure-Aware Edge Refinement for Text-Attributed Graphs
+
+
+── EMPHASIS ON METHOD (cosine + uncertainty) ──
+
+5. Cosine and Uncertainty-Guided Edge Pruning for Multi-View LLM–GNN Tag Classification
+
+6. Two Ways to Denoise TAGs: Cosine-Similarity and Uncertainty-Based Structure Enhancement for DIVERGE
+
+7. Semantic Edge Pruning via Embedding Similarity and Predictive Uncertainty on Text-Attributed Graphs
+
+
+── EMPHASIS ON PROBLEM (noisy edges / homophily) ──
+
+8. When Edges Lie: Removing Noisy Links to Improve LLM–GNN Learning on Text-Attributed Graphs
+
+9. Aligning Graph Structure with LLM Semantics: Post-hoc Edge Denoising for Text-Attributed Graphs
+
+10. Noisy Edges, Rich Text: Structure Refinement for Native-Text LLM–GNN Pipelines
+
+
+── SHORT / PUNCHY ──
+
+11. DIVERGE+: Semantic Structure Enhancement for Text-Attributed Graphs
+
+12. Prune, Don't Prompt: Lightweight Structure Enhancement for DIVERGE
+
+13. Denoise the Graph, Keep the Text: Enhancing DIVERGE on TAGs
+
+
+── CURRENT TITLE (revised spelling) ──
+
+14. Improving DIVERGE Performance by Removing Noisy Edges   ← fixes "Remvoing" typo
+
+15. Improving DIVERGE Approaches Using Noisy-Edge Removal on Text-Attributed Graphs
+
+
+── LaTeX (paste into template.tex) ──
+
+Recommended:
+\title{DIVERGE with Semantic Structure Enhancement: Pruning Noisy Edges for Text-Attributed Graph Learning}
+
+Alternative (shorter):
+\title{Enhancing DIVERGE via Semantic Edge Pruning on Text-Attributed Graphs}
+
+Alternative (problem-led):
+\title{Aligning Graph Structure with LLM Semantics: Post-hoc Edge Denoising for Text-Attributed Graphs}
+
+
+── NOTES ──
+• Include "DIVERGE" if this paper extends prior DIVERGE work and readers should recognize the line.
+• Include "text-attributed graph(s)" or "TAG" for discoverability in GNN/LLM venues.
+• Avoid "Remvoing" / vague "Approaches" in the final title.
+• Subtitle optional: e.g. "... via Cosine Similarity and Uncertainty-Based Pruning"

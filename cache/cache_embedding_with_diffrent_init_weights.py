@@ -17,11 +17,12 @@ class CacheEmbeddingDiffrentInitWeights(CacheEmbedding):
                  num_workers: int = 0, pin_memory: bool = True,
                  used_llm_responses: bool = False, used_summary_texts=False ,
                  used_paraphrased_texts=False, used_based_model: bool = False):
-        super().__init__(cfg, adapter_dir, pooling, num_workers, pin_memory, 
+        super().__init__(cfg, adapter_dir, pooling, num_workers, pin_memory,
                         used_llm_responses, used_summary_texts, used_paraphrased_texts, used_based_model)
-        # Store the init weight approach from config
+        # Store the init weight approach and seed from config
         self.init_lora_weights = cfg.peft.init_lora_weights
-    
+        self.seed = cfg.dataset.seed
+
     def save_cache(self, save_root: str = "./artifacts/cache", split=1) -> str:
         """
         Override save_cache to include init_lora_weights approach in filename.
@@ -48,18 +49,21 @@ class CacheEmbeddingDiffrentInitWeights(CacheEmbedding):
             fname = f"{self.model_name}_{self.dataset_name}_seqcls_lora_init-{self.init_lora_weights}_pool-{self.pooling}_paraphrased.pt"
 
         if split != 1:
-            fname = f"{self.model_name}_{self.dataset_name}_seqcls_lora_init-{self.init_lora_weights}_pool-{self.pooling}_semi_supervised.pt"
+            fname = f"{self.model_name}_{self.dataset_name}_seqcls_lora_init-{self.init_lora_weights}_pool-{self.pooling}_seed{self.seed}_semi_supervised.pt"
         save_path = os.path.join(save_root, fname)
         torch.save(self.cache_dict, save_path)
         print(f"[OK] Saved cache with init approach '{self.init_lora_weights}' to: {save_path}")
         return save_path
 
-def main(dataset_name, llm_name, peft_type, init_weight_approach, split, 
-         used_summary_texts, used_paraphrased_texts, used_llm_responses, 
-         used_based_model, pooling):
+def main(dataset_name, llm_name, peft_type, init_weight_approach, split,
+         used_summary_texts, used_paraphrased_texts, used_llm_responses,
+         used_based_model, pooling, seed=None):
     cfg = setup_finetuning_cfg(dataset_name=dataset_name, llm_name=llm_name, peft_type=peft_type)
     cfg.peft.init_lora_weights = init_weight_approach  # change this to try different initialization approaches
+    if seed is not None:
+        cfg.dataset.seed = seed  # override to match the seed used when the adapter was trained/saved
     print("=== Using LoRA initialization approach:", cfg.peft.init_lora_weights)
+    print("=== Using seed:", cfg.dataset.seed)
 
     # Get adapter directory for this specific initialization approach
     if used_summary_texts:
@@ -70,7 +74,8 @@ def main(dataset_name, llm_name, peft_type, init_weight_approach, split,
         adapter_dir = get_adapter_dir_lora_init_weights(cfg, used_llm_responses=used_llm_responses)
 
     if split != 1:
-        adapter_dir = get_semi_supervised_adapter_dir(cfg)
+        # Must match the adapter_dir naming used in train_llm/train_other_lora_init_apporaches.py
+        adapter_dir = f'{get_semi_supervised_adapter_dir(cfg)}_seed{cfg.dataset.seed}'
     print(adapter_dir)
     
     # Use the custom CacheEmbeddingDiffrentInitWeights class
@@ -116,9 +121,11 @@ if __name__ == "__main__":
     parser.add_argument('--pooling', type=str, default='mean',
                         choices=['mean', 'last', 'cls'],
                         help='Pooling strategy for embeddings')
-    
+    parser.add_argument('--seed', type=int, default=None,
+                        help='Seed of the trained adapter to load (must match the --seed used when training it)')
+
     args = parser.parse_args()
-    
+
     # Run main function with parsed arguments
     main(
         dataset_name=args.dataset_name,
@@ -130,5 +137,6 @@ if __name__ == "__main__":
         used_paraphrased_texts=args.used_paraphrased_texts,
         used_llm_responses=args.used_llm_responses,
         used_based_model=args.used_based_model,
-        pooling=args.pooling
+        pooling=args.pooling,
+        seed=args.seed
     )

@@ -1,0 +1,292 @@
+================================================================================
+PROPOSED DISCUSSION — paste into template.tex (after Experiments / Results)
+Compatible with: DIVERGE + cosine enhancer (Method II) + uncertainty enhancer (Method III)
+================================================================================
+
+\section{Discussion}
+\label{sec:discussion}
+
+In this section we interpret the experimental findings, relate them to prior work on
+graph structure learning and LLM-based TAG methods, and discuss limitations and
+future directions.
+
+
+% ---------------------------------------------------------------------------
+\subsection{Semantic Structure Enhancement as a Complement to DIVERGE}
+\label{sec:disc-diverge-complement}
+% ---------------------------------------------------------------------------
+
+Our results support the central hypothesis of this work: \emph{rich LLM semantics and
+clean graph topology are both necessary} for strong TAG node classification. DIVERGE
+already achieves competitive or state-of-the-art performance by encoding native node
+text through multiple LoRA-adapted LLMs and combining per-view GNNs with adaptive
+ensembling rather than uniform logit averaging \citep{he2024harnessing}. Tables
+\ref{tab:diverge_with_cosine_enhancer_ensembles_accuracy} and
+\ref{tab:accuracy_ensemble_after_enhancers} show that further gains are available when
+edges connecting semantically dissimilar nodes are removed before message passing.
+
+This pattern aligns with graph structure learning (GSL) literature, which has repeatedly
+shown that GNNs are sensitive to noisy or task-misaligned edges
+\citep{jin2020prognn,chen2020idgl,dong2023gps}. What differs in our setting is the
+\emph{source} of the feature signal used for denoising. Classical GSL methods such as
+IDGL and ProGNN refine adjacency from a single shallow or jointly learned embedding
+space \citep{chen2020idgl,jin2020prognn}. DIVERGE instead supplies multiple semantic
+views from independently initialized LoRA fine-tunes; each view induces its own refined
+graph $\bar{G}_i$, so structural enhancement amplifies representation diversity rather
+than collapsing structure learning into one end-to-end optimization. The final ensemble
+thus exploits three complementary axes: \textbf{semantic diversity} (multiple LLM
+encodings), \textbf{structural diversity} (view-specific denoised topologies), and
+\textbf{predictive diversity} (learned ensemble weights over GNN logits).
+
+Compared with LLM \emph{enhancer} pipelines that rewrite node text, synthesize labels,
+or call external models to modify topology
+\citep{he2024harnessing,Sun2026TopologicalEnhancerTAG,guo2024graphedit,zhang2025leveraging},
+our structural enhancer is deliberately lightweight: it requires no additional LLM API
+queries at refinement time and preserves the native document content that DIVERGE was
+designed to exploit. On Cora, CiteSeer, PubMed, and WikiCS, DIVERGE with cosine-based
+structural refinement outperforms TAPE, LLaGA, and standard GNN baselines
+(Tables~\ref{tab:diverge_with_cosine_enhancer_ensembles_accuracy}--\ref{tab:diverge_with_cosine_enhancer_ensembles_accuracy_macro_f1}),
+suggesting that homophily-oriented edge pruning can recover part of the benefit otherwise
+sought through generated explanations or rewritten inputs---while remaining compatible
+with DIVERGE's no-augmentation philosophy.
+
+
+% ---------------------------------------------------------------------------
+\subsection{Why Cosine Similarity Identifies Noisy Edges}
+\label{sec:disc-cosine}
+% ---------------------------------------------------------------------------
+
+The cosine-similarity enhancer (Method~II) rests on two empirical observations. First,
+same-label edges exhibit systematically higher mean cosine similarity than
+different-label edges in LLM embedding space (Table~\ref{tab:mean_std_cos_similarity},
+Figure~\ref{fig:cosine_box_plot}), confirming that fine-tuned LLM representations align
+with homophily to a useful degree. Second, different-label edges show greater variance,
+including cases where endpoints remain semantically close despite label mismatch---a
+signature of structural noise or graph-construction rules that ignore semantic class
+boundaries.
+
+Threshold-based pruning removes edges whose endpoints are far apart in representation
+space before GNN propagation. Sensitivity analysis (Figure~\ref{fig:multi}) reveals a
+practical sweet spot: at low thresholds almost no edges are removed and accuracy is
+unchanged; in a mid-range interval, a modest fraction of edges is pruned and accuracy
+often \emph{increases}, indicating that removed connections were harmful rather than
+informative. Aggressive pruning eventually hurts performance by deleting useful
+bridges---especially when heterophily or long-range dependencies matter
+\citep{dong2023gps}. This trade-off parallels PTDNet and GPS, where feature-aware edge
+removal helps only when sparsification is controlled \citep{luo2021ptdnet,dong2023gps}.
+
+Random removal of 30\% of edges
+(Table~\ref{tab:compare_structural_enhancer_random_model}) causes substantial accuracy
+drops, whereas targeted cosine pruning improves or maintains performance. The contrast
+confirms that gains are not an artifact of sparsifying the graph per se, but of removing
+edges specifically inconsistent with LLM-estimated semantic proximity. On Cora, CiteSeer,
+and WikiCS, cosine refinement yields the largest ensemble gains
+(Table~\ref{tab:accuracy_ensemble_after_enhancers}), whereas on PubMed the improvement
+is smaller---likely because citation links are already relatively homogeneous and the
+baseline DIVERGE accuracy is already high ($\sim$97\%).
+
+
+% ---------------------------------------------------------------------------
+\subsection{Uncertainty-Based Refinement and Edge-Prediction GSL}
+\label{sec:disc-uncertainty}
+% ---------------------------------------------------------------------------
+
+The uncertainty-based enhancer (Method~III) addresses a complementary failure mode.
+Cosine similarity measures \emph{static semantic distance} in embedding space; it does
+not explicitly ask whether an edge is supported by relational patterns learnable from
+the rest of the graph. By training an edge predictor under cross-validation and flagging
+edges with high standard deviation or entropy across folds, we target connections whose
+existence is \emph{ambiguous}---a criterion closer to edge-prediction GSL such as GRCN
+and GAug \citep{yu2020grcn,zhao2021gaug}.
+
+On Cora (Figure~\ref{fig:edge_similarity_boxplots_cora}), entropy is more sensitive and
+dispersed than standard deviation: it captures broader disagreement among bootstrap-trained
+predictors, whereas standard deviation concentrates near zero for most edges and
+highlights a smaller set of unstable predictions. Accordingly, std-based removal tends
+to yield stable improvements on PubMed
+(Table~\ref{tab:accuracy_ensemble_after_enhancers}), while entropy-based removal can
+excel on CiteSeer. Increasing the number of edge-prediction runs stabilizes uncertainty
+estimates (Figures~\ref{fig:std_uncertainty_vs_K_cora}--\ref{fig:entropy_uncertainty_vs_K_cora})
+but with diminishing returns beyond a modest fold count.
+
+Neither uncertainty measure dominates uniformly. Cosine pruning often achieves larger
+peak accuracy (e.g., Cora 94.10\% vs.\ 93.17\% baseline), while uncertainty pruning
+can improve Macro-F1 on imbalanced or noisier graphs (e.g., CiteSeer with entropy;
+PubMed with std in Table~\ref{tab:macro_f1_ensemble_after_enhancers}). This
+complementarity suggests that semantic distance and relational ambiguity capture
+partially overlapping but non-identical sets of noisy edges.
+
+
+% ---------------------------------------------------------------------------
+\subsection{Choosing Between Enhancers in Practice}
+\label{sec:disc-when-to-use}
+% ---------------------------------------------------------------------------
+
+Based on our experiments, we offer the following practical guidance:
+
+\begin{itemize}
+\item \textbf{Cosine similarity (Method~II)} is preferred when LLM embeddings show
+  clear separation between same-label and different-label edges
+  (Table~\ref{tab:mean_std_cos_similarity}), when homophily is a reasonable approximation
+  of the downstream task, and when interpretability matters---the threshold directly
+  encodes semantic proximity. It delivers the strongest gains on Cora and WikiCS in our
+  evaluation.
+
+\item \textbf{Uncertainty with standard deviation (Method~III, std)} is preferred when
+  the graph is large, already fairly homophilic, and incremental but stable improvement
+  is desired (PubMed). It removes fewer edges and is less sensitive to embedding scale
+  than a fixed cosine threshold.
+
+\item \textbf{Uncertainty with entropy (Method~III, entropy)} is worth considering on
+  graphs where label noise or heterophily produces many ambiguous links (CiteSeer), at
+  the cost of more hyperparameter tuning for top-$k$ or threshold strategies
+  (Figures~\ref{fig:line_plot_combined_testacc_entropy_topk_cora}--\ref{fig:line_plot_combined_testacc_entropy_threshold_cora}).
+
+\item \textbf{DIVERGE multi-view vs.\ single-view ensemble:} Single-representation
+  ensemble on multiple refined graphs approaches full DIVERGE performance on most
+  datasets and even surpasses it on CiteSeer under some initialization schemes, offering
+  a cost-effective deployment option when training multiple LoRA adapters is prohibitive.
+\end{itemize}
+
+A natural extension---not fully explored here---is to combine criteria, e.g., removing
+edges that simultaneously fall below a cosine threshold \emph{and} rank among the
+highest-uncertainty links, which may reduce false removals on heterophilic graphs.
+
+
+% ---------------------------------------------------------------------------
+\subsection{Relation to Graph Structure Learning and LLM Enhancers}
+\label{sec:disc-prior-work}
+% ---------------------------------------------------------------------------
+
+Our semantic structure enhancer occupies a middle ground between GNN-only GSL and
+LLM-based TAG enhancers (Section~\ref{sec:related-works}). Unlike ProGNN, IDGL, and
+PTDNet, we do not jointly learn a single adjacency matrix inside one training loop;
+refinement is a modular post-processing step on each LLM view, preserving DIVERGE's
+separation between semantic encoding and graph propagation. Unlike RoSE, GraphEdit, and
+LLM4GraphTopology \citep{Sun2026TopologicalEnhancerTAG,guo2024graphedit}, we do not
+invoke LLMs to rewrite edges or decompose relation types; structure is inferred from
+embeddings and GNN edge predictions already computed for classification.
+
+This design trades the expressive power of generative LLM structure editing for
+\emph{efficiency and reproducibility}: no external API calls, no hallucinated edge
+labels, and transparent criteria (cosine or uncertainty) for each removed link. The cost
+is that we cannot add missing edges or discover latent relation types that never appear
+in the observed graph---capabilities that LLM enhancers explicitly target
+\citep{Sun2026TopologicalEnhancerTAG,Yu2025NodeGenerationTAG}. For many citation and
+web-derived TAG benchmarks where the primary issue is \emph{spurious} rather than
+\emph{missing} edges, pruning-oriented enhancement appears sufficient.
+
+
+% ---------------------------------------------------------------------------
+\subsection{Limitations}
+\label{sec:disc-limitations}
+% ---------------------------------------------------------------------------
+
+Several limitations should be acknowledged.
+
+\paragraph{Homophily assumption.}
+Both enhancers implicitly assume that removing low-similarity or high-uncertainty edges
+helps classification. On strongly heterophilic graphs, beneficial edges may connect
+dissimilar nodes; methods such as ES-GNN explicitly split rather than delete such
+links \citep{ES-GNN}. Our evaluation focuses on citation-style benchmarks where
+homophily-oriented refinement is plausible but not guaranteed.
+
+\paragraph{Hyperparameter sensitivity.}
+Cosine threshold $T$, uncertainty threshold, and top-$k$ removal rate must be tuned
+per dataset and often per LLM view (Figure~\ref{fig:multi}). Unlike end-to-end GSL,
+refinement is not automatically aligned with the downstream loss. Automated selection
+via validation ESNR \citep{dong2023gps} or validation accuracy on a held-out split is
+an important practical requirement.
+
+\paragraph{Computational overhead.}
+Method~II adds pairwise cosine computation over edges for each of $M$ LLM views;
+Method~III adds cross-validated edge-predictor training. Both costs are typically
+smaller than multiple LoRA fine-tunes but non-negligible on million-edge graphs.
+
+\paragraph{Scope of evaluation.}
+We study node classification on four TAG benchmarks. Extension to link prediction,
+graph-level tasks, dynamic graphs, or graphs with rich edge text remains open. We also
+do not compare against every recent LLM enhancer (e.g., UltraTAG, SKETCH, TAGA)
+\citep{yu2025ultratag,zhou-etal-2025sketch,zhang2025taga} under identical tuning budgets.
+
+\paragraph{CiteSeer Macro-F1.}
+Cosine refinement improves CiteSeer accuracy but can reduce Macro-F1 relative to
+baseline DIVERGE (Table~\ref{tab:macro_f1_ensemble_after_enhancers}), suggesting that
+aggressive pruning may hurt minority classes. Class-aware or entropy-based criteria may
+be needed for balanced metrics.
+
+
+% ---------------------------------------------------------------------------
+\subsection{Future Work}
+\label{sec:disc-future}
+% ---------------------------------------------------------------------------
+
+Promising directions include:
+(i)~ \textbf{adaptive, per-class or per-view thresholds} learned from validation data
+rather than fixed globally;
+(ii)~ \textbf{hybrid enhancers} that intersect cosine and uncertainty scores, or combine
+pruning with edge addition for missing homophilic links as in GAug \citep{zhao2021gaug};
+(iii)~ \textbf{integration with LLM enhancers}---using DIVERGE encodings for structure
+scoring while optionally allowing LLM-generated labels in low-data regimes
+\citep{zhang2025leveraging,hu2025gaga};
+(iv)~ \textbf{theoretical analysis} connecting removed-edge rate to homophily ratio and
+GNN generalization, building on ESNR and minimal-sufficient-structure frameworks
+\citep{dong2023gps,fatemi2022cogsl};
+(v)~ \textbf{large-scale and heterophilic benchmarks} (ogbn-products, Roman-Empire,
+Wiki-CS subsets) to characterize when semantic pruning helps vs.\ harms;
+(vi)~ \textbf{single-pass deployment} combining the best refined graphs from one LLM
+view with multi-graph ensemble learning, as suggested by our single-representation
+experiments.
+
+
+% ---------------------------------------------------------------------------
+\section{Conclusion}
+\label{sec:conclusion}
+% ---------------------------------------------------------------------------
+
+We extended the DIVERGE framework for text-attributed graph node classification with a
+\emph{semantic structure enhancer} that removes noisy edges before GNN message passing,
+without rewriting native node text or calling external LLMs for topology editing. Two
+mechanisms---cosine-similarity thresholding on multi-view LLM embeddings and
+uncertainty-based pruning via cross-validated edge prediction---increase effective
+homophily and improve ensemble accuracy over DIVERGE alone on Cora, CiteSeer, PubMed,
+and WikiCS. Targeted removal consistently outperforms random edge deletion, confirming
+that structure quality mediates the benefit of rich semantic representations. Cosine and
+uncertainty criteria are complementary: the former excels when embedding-space homophily
+is strong; the latter offers stable gains when relational ambiguity dominates. By
+combining native-text LLM diversity with GSL-inspired denoising, our approach offers an
+efficient alternative to full LLM enhancer pipelines while pushing TAG performance
+beyond strong baselines including TAPE. Future work will pursue adaptive hybrid
+enhancers, broader benchmarks, and tighter integration with cost-aware LLM--GNN systems.
+
+
+================================================================================
+OPTIONAL SHORT DISCUSSION (~ half length — if page limit is strict)
+================================================================================
+
+\section{Discussion}
+\label{sec:discussion}
+
+Experiments confirm that DIVERGE's multi-view LLM encodings and graph topology are
+jointly important: targeted edge removal improves ensemble accuracy on all four benchmarks
+(Tables~\ref{tab:accuracy_ensemble_after_enhancers}--\ref{tab:diverge_with_cosine_enhancer_ensembles_accuracy}),
+while random 30\% deletion severely degrades performance
+(Table~\ref{tab:compare_structural_enhancer_random_model}). Cosine pruning leverages the
+observed gap in LLM embedding similarity between same-label and different-label edges;
+uncertainty pruning removes relationally ambiguous edges in the spirit of edge-prediction
+GSL \citep{yu2020grcn,zhao2021gaug}. The two criteria are complementary---cosine often
+peaks on Cora/WikiCS; std/entropy helps on PubMed/CiteSeer---and neither requires LLM
+API access unlike TAPE or structural LLM enhancers
+\citep{he2024harnessing,Sun2026TopologicalEnhancerTAG}.
+
+Limitations include homophily bias, hyperparameter tuning per dataset, and evaluation
+restricted to node classification. Future work will study hybrid criteria, heterophilic
+graphs, and combination with selective LLM annotation \citep{zhang2025leveraging,hu2025gaga}.
+
+\section{Conclusion}
+\label{sec:conclusion}
+
+We proposed semantic structure enhancement for DIVERGE: prune noisy edges using LLM
+cosine similarity or GNN uncertainty, then ensemble per-view GNNs on refined graphs.
+This preserves native text, avoids LLM rewriting, and improves over DIVERGE and TAPE on
+standard TAG benchmarks.

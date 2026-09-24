@@ -9,6 +9,7 @@ import os
 from dataset.data_utils import get_init_dataset_for_gnn
 from common import GNNEncoder, compute_acc_and_f1
 from common import load_graph_dataset_for_tape, set_seed
+from train_llm.efficiency import ResourceMonitor
 from yacs.config import CfgNode as CN
 import json
 from pathlib import Path
@@ -20,40 +21,98 @@ def get_datasets_path():
     datasets_path = os.path.join(repo_root, "datasets")
     return datasets_path
 
-def set_mgnn_cfg(datset_name='cora', supervised=True):
+# GNN encoders accepted by common.gnn.build_conv. To add a new encoder, register it
+# in build_conv and append its name here; tuning/training/lookup pick it up automatically.
+SUPPORTED_GNN_MODELS = ("SAGE", "GCN", "GAT", "GIN", "TransformerConv")
+DEFAULT_GNN_MODEL = "SAGE"
+
+
+def get_gnn_hyperparameter_dir():
+    return Path(__file__).resolve().parents[1] / 'gnn_hyperparameters'
+
+
+def gnn_hyperparameter_filename(dataset_name, supervised, llm_name=None, seed=None, gnn_model_name=None):
     """
-    Build a yacs CfgNode for GNN training. This function will try to load
-    a JSON hyperparameter file from either the local `gnn_hyperparameters/`
-    folder (preferred) or the legacy `hyperparameters/` folder.
+    Canonical hyperparameter JSON name:
+        <dataset>[_<llm>][_<gnn>][_semi_supervised][_seed<seed>].json
+    Without the gnn tag this reproduces the legacy names (e.g. cora_semi_supervised.json,
+    cora_llama_3.2_1B_semi_supervised_seed42.json), so existing files keep working.
+    """
+    parts = [dataset_name]
+    if llm_name:
+        parts.append(llm_name)
+    if gnn_model_name:
+        parts.append(gnn_model_name)
+    if not supervised:
+        parts.append('semi_supervised')
+    if seed is not None:
+        parts.append(f'seed{seed}')
+    return '_'.join(parts) + '.json'
+
+
+def candidate_gnn_hyperparameter_paths(dataset_name, supervised, llm_name=None, seed=None, gnn_model_name=None):
+    """
+    Hyperparameter files to try, most specific first. Files tagged with the requested
+    GNN encoder win over untagged (legacy, SAGE-tuned) files; within each group the
+    order is llm+seed -> llm -> seed -> generic per-dataset file.
+    """
+    hp_dir = get_gnn_hyperparameter_dir()
+    gnn = gnn_model_name or DEFAULT_GNN_MODEL
+    names = []
+    for g in (gnn, None):
+        for l, s in ((llm_name, seed), (llm_name, None), (None, seed), (None, None)):
+            names.append(gnn_hyperparameter_filename(dataset_name, supervised, l, s, g))
+    # dict.fromkeys dedups (e.g. when llm_name/seed are None) while keeping order
+    return [hp_dir / n for n in dict.fromkeys(names)]
+
+
+def set_mgnn_cfg(datset_name='cora', supervised=True, seed=None, llm_name=None, gnn_model_name=None):
+    """
+    Build a yacs CfgNode for GNN training from the most specific JSON in
+    `gnn_hyperparameters/` (see candidate_gnn_hyperparameter_paths), falling back
+    to defaults when none exists.
 
     The returned cfg contains fields consumed by `GNNTrainer`:
       - seed, device, dataset, gnn_model_name, llm_name
       - hidden_dim, num_layers, dropout, lr, epochs, early_stop
       - batch_norm, weight_decay, re_split
+      - hp_source: path of the JSON actually loaded ("defaults" if none), so callers
+        can verify which tuned hyperparameters a GNN run used.
 
-    If no JSON is found, sensible defaults are used.
+    Args:
+        seed: Optional override for the GNN training seed (and, via the caller,
+              the seed used to select the matching LLM embedding cache). If None,
+              the seed from the hyperparameter JSON / defaults is used unchanged.
+        llm_name: Optional LLM whose tuned hyperparameters to load (embedding
+              dimensionality/quality differs per LLM, so hyperparameters tuned via
+              gnns/tune_gnn_hyperparameter.py are saved per-LLM/per-seed). If None,
+              falls back to the generic per-dataset file for backwards compatibility.
+        gnn_model_name: GNN encoder (one of SUPPORTED_GNN_MODELS). If None, the
+              encoder stored in the loaded JSON is used (SAGE by default).
     """
+    if gnn_model_name is not None and gnn_model_name not in SUPPORTED_GNN_MODELS:
+        raise ValueError(f"Unsupported gnn_model_name '{gnn_model_name}'. Choose from {SUPPORTED_GNN_MODELS}")
 
-    # Find candidate paths for the hyperparameter JSON
-    repo_root = Path(__file__).resolve().parents[1]
-    candidates = [
-        repo_root / 'gnn_hyperparameters' / f"{datset_name}.json",
-    ]
-    if not supervised:
-        candidates = [
-            repo_root / 'gnn_hyperparameters' / f"{datset_name}_semi_supervised.json",
-        ]
-
-    hp = {}
+    candidates = candidate_gnn_hyperparameter_paths(datset_name, supervised, llm_name=llm_name, seed=seed,
+                                                    gnn_model_name=gnn_model_name)
+    hp, hp_source = {}, "defaults"
     for c in candidates:
         if c.exists():
             try:
                 with open(c, 'r', encoding='utf-8') as f:
                     hp = json.load(f)
+                hp_source = str(c)
                 print(f"Loaded GNN hyperparameters from: {c}")
                 break
             except Exception as e:
                 print(f"Failed to load {c}: {e}")
+    if hp_source == "defaults":
+        print(f"[set_mgnn_cfg] No tuned hyperparameters found for dataset={datset_name} llm={llm_name} "
+              f"seed={seed} gnn={gnn_model_name or DEFAULT_GNN_MODEL}; using defaults.")
+    elif gnn_model_name is not None and hp.get('gnn_model_name', DEFAULT_GNN_MODEL) != gnn_model_name:
+        print(f"[set_mgnn_cfg] WARNING: {Path(hp_source).name} was tuned for "
+              f"{hp.get('gnn_model_name', DEFAULT_GNN_MODEL)}, but {gnn_model_name} was requested. "
+              f"Run gnns/tune_gnn_hyperparameter.py --gnn_model_name {gnn_model_name} to tune it.")
 
     # Defaults
     defaults = {
@@ -70,12 +129,18 @@ def set_mgnn_cfg(datset_name='cora', supervised=True):
         'early_stop': 20,
         'batch_norm': 1,
         'weight_decay': 0.1,
-        're_split': 1,
+        're_split': 1 if supervised else 0,
     }
 
     # Merge loaded hyperparams with defaults
     for k, v in defaults.items():
         defaults[k] = hp.get(k, v)
+    if seed is not None:
+        defaults['seed'] = seed
+    if llm_name is not None:
+        defaults['llm_name'] = llm_name
+    if gnn_model_name is not None:
+        defaults['gnn_model_name'] = gnn_model_name
 
     cfg = CN()
     cfg.seed = int(defaults['seed'])
@@ -92,11 +157,36 @@ def set_mgnn_cfg(datset_name='cora', supervised=True):
     cfg.batch_norm = bool(int(defaults['batch_norm']))
     cfg.weight_decay = float(defaults['weight_decay'])
     cfg.re_split = bool(int(defaults.get('re_split', 1)))
+    cfg.hp_source = hp_source
 
     return cfg
 
+
+def resolve_path_prefix():
+    """Relative path from the CWD to the repo root (what load_graph_dataset_for_tape expects)."""
+    datasets_path = get_datasets_path()
+    repo_root = os.path.dirname(datasets_path)
+    if os.path.exists(os.path.join(repo_root, 'datasets')):
+        if os.path.abspath(os.getcwd()) == os.path.abspath(repo_root):
+            return '.'
+        return os.path.normpath(os.path.relpath(repo_root, start=os.getcwd()))
+    return '../..'
+
+
 class GNNTrainer():
-    def __init__(self, cfg, feature, modified_dataset=None, does_print_training_process=False):
+    def __init__(self, cfg, feature, modified_dataset=None, does_print_training_process=False,
+                 data=None, track_history=True, verbose=True):
+        """
+        Args:
+            data: Optional pre-loaded graph (from load_graph_dataset_for_tape). Pass it when
+                  training many GNNs on the same graph (e.g. hyperparameter tuning) to skip
+                  reloading/re-splitting the dataset on every run. Must have been loaded with
+                  the same dataset/re_split/seed as `cfg`.
+            track_history: If False, only val/test accuracy are computed per epoch (on GPU) and
+                  full metrics (F1, per-class errors) only at improving epochs. Much faster,
+                  used for tuning; the returned history then only has 'loss' and 'val_acc'.
+            verbose: Print split sizes / parameter counts / final accuracy.
+        """
         self.seed = cfg.seed
         set_seed(cfg.seed)
         self.device = torch.device("cuda:0" if cfg.device > 0 else "cpu")
@@ -113,40 +203,28 @@ class GNNTrainer():
         self.batch_norm = cfg.batch_norm
         self.weight_decay = cfg.weight_decay
         self.does_print_training_process = does_print_training_process
+        self.track_history = track_history
+        self.verbose = verbose
+        self.hp_source = cfg.get('hp_source', 'unknown')
         self.error_rate = dict()
         self.error_number = dict()
         self.best_model = None
         # Load data
         set_seed(self.seed)
-        # Get absolute path to project root (where datasets folder is located)
-        datasets_path = get_datasets_path()
-        repo_root = os.path.dirname(datasets_path)
-        # Use absolute path or relative path from current working directory
-        if os.path.exists(os.path.join(repo_root, 'datasets')):
-            # If running from project root, use current directory
-            if os.path.abspath(os.getcwd()) == os.path.abspath(repo_root):
-                path_prefix = '.'
-            else:
-                # Otherwise, use relative path from current directory to repo root
-                path_prefix = os.path.relpath(repo_root, start=os.getcwd())
-                # Normalize path to avoid double slashes
-                path_prefix = os.path.normpath(path_prefix)
+        if data is None:
+            # (dataset loading only touches numpy's RNG, so torch-side model init below is
+            # identical whether or not `data` is passed in)
+            data, num_classes, _ = load_graph_dataset_for_tape(cfg.dataset, self.device, re_split=cfg.re_split, path_prefix=resolve_path_prefix(), seed=self.seed, modified_dataset=modified_dataset, )
         else:
-            # Fallback to default
-            path_prefix = '../..'
-        data, num_classes, _ = load_graph_dataset_for_tape(cfg.dataset, self.device, re_split=cfg.re_split, path_prefix=path_prefix, seed=self.seed, modified_dataset=modified_dataset, )
+            num_classes = int(data.y.max().item() + 1)
 
         self.num_nodes = data.y.shape[0]
         self.num_classes = num_classes
         data.y = data.y.squeeze()
-        train_mask = data.train_mask
-        val_mask = data.val_mask
-        test_mask = data.test_mask
-        train_size = train_mask.sum().item()
-        val_size = val_mask.sum().item()
-        test_size = test_mask.sum().item()
-        print(f"train_size: {train_size}, val_size: {val_size}, test_size: {test_size}")
-        re_split_prefix, re_split_suffix = '_s_' if cfg.re_split else '', f'-seed{self.seed}'
+        if self.verbose:
+            print(f"train_size: {data.train_mask.sum().item()}, val_size: {data.val_mask.sum().item()}, "
+                  f"test_size: {data.test_mask.sum().item()}")
+            print(f"GNN: {self.gnn_model_name} | hyperparameters from: {self.hp_source}")
         # Init gnn feature
 
         self.model = GNNEncoder(
@@ -164,8 +242,9 @@ class GNNTrainer():
 
         self.features = self.features.to(self.device)
         self.data = data.to(self.device)
-        trainable_params = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
-        print(f"\nNumber of GNN parameters: {trainable_params}")
+        if self.verbose:
+            trainable_params = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
+            print(f"\nNumber of GNN parameters: {trainable_params}")
         self.ckpt = f"../../results/TAPE/{self.dataset_name}/{self.gnn_model_name}.pt"
 
     def _train(self):
@@ -200,6 +279,18 @@ class GNNTrainer():
             self.data.y[test_mask].cpu().numpy()
         )
         return accuracy, macrof1_scores, weightf1_scores, logits, error_rate, error_number
+
+    @torch.no_grad()
+    def _evaluate_fast(self):
+        """Val/test accuracy computed on-device (no CPU sync per mask, no sklearn).
+        Same scale/rounding as compute_acc_and_f1 (percent, 2 decimals) so early stopping
+        behaves exactly like the track_history=True path."""
+        self.model.eval()
+        logits = self.model(self.features, self.data.edge_index)
+        correct = (logits.argmax(dim=1) == self.data.y).float()
+        val_acc = round(correct[self.data.val_mask].mean().item() * 100.0, 2)
+        test_acc = round(correct[self.data.test_mask].mean().item() * 100.0, 2)
+        return val_acc, test_acc, logits
 
 
     def compute_error_rate(self, pred, y):
@@ -300,71 +391,116 @@ class GNNTrainer():
         print(f"Learning curves saved to: {save_path}")
         plt.close()
 
-    def train(self, show_plots=False):
+    def train(self, show_plots=False, epoch_callback=None):
         """
         Train the GNN model.
-        
+
         Args:
             show_plots: Whether to display plots (default False to avoid interruption during hyperparameter tuning)
+            epoch_callback: Optional fn(epoch, val_acc) -> bool; returning True stops training
+                early (e.g. to prune a clearly bad hyperparameter trial).
+
+        Returns (results, best_logits, history); results also holds the training cost:
+            train_time_sec, peak_vram_mb, peak_vram_delta_mb (see ResourceMonitor),
+            epochs_run and time_per_epoch_ms.
         """
+        with ResourceMonitor() as mon:
+            results, best_logits, history = self._fit(show_plots=show_plots, epoch_callback=epoch_callback)
+        cost = mon.metrics()
+        epochs_run = len(history['loss'])
+        results.update({
+            "train_time_sec": cost["time_sec"],
+            "peak_vram_mb": cost["peak_vram_mb"],
+            "peak_vram_delta_mb": cost["peak_vram_delta_mb"],
+            "epochs_run": epochs_run,
+            "time_per_epoch_ms": round(cost["time_sec"] / max(epochs_run, 1) * 1000.0, 3),
+        })
+        if self.verbose:
+            print(f"GNN training cost: {results['train_time_sec']:.2f}s ({epochs_run} epochs, "
+                  f"{results['time_per_epoch_ms']:.1f} ms/epoch), peak VRAM {results['peak_vram_mb']} MB "
+                  f"(+{results['peak_vram_delta_mb']} MB during training)")
+        return results, best_logits, history
+
+    def _fit(self, show_plots=False, epoch_callback=None):
         # ! Training
         best_eval_acc = best_test_acc = 0.0
         best_eval_f1 = best_test_f1 = 0.0
-        timer, counter, best_logits = [], 0, None
+        best_eval_weightf1 = best_test_weightf1 = 0.0
+        best_error_rate, best_error_number = {}, {}
+        counter, best_logits, best_state = 0, None, None
 
         # Initialize history tracking
-        history = {
-            'loss': [],
-            'train_acc': [], 'val_acc': [], 'test_acc': [],
-            'train_f1': [], 'val_f1': [], 'test_f1': [],
-            # Per-epoch test-set error statistics (list of dicts)
-            'error_rate': [],
-            'error_number': []
-        }
+        if self.track_history:
+            history = {
+                'loss': [],
+                'train_acc': [], 'val_acc': [], 'test_acc': [],
+                'train_f1': [], 'val_f1': [], 'test_f1': [],
+                # Per-epoch test-set error statistics (list of dicts)
+                'error_rate': [],
+                'error_number': []
+            }
+        else:
+            history = {'loss': [], 'val_acc': []}
 
         for epoch in range(1, 1 + self.epochs):
             loss = self._train()
-            accuracy, f1_scores, weightf1_scores, cur_logits, error_rate, error_number = self._evaluate()
+            if self.track_history:
+                accuracy, f1_scores, weightf1_scores, cur_logits, error_rate, error_number = self._evaluate()
+                train_acc, val_acc, test_acc = accuracy
+                train_f1, val_f1, test_f1 = f1_scores
+                train_weightf1, val_weightf1, test_weightf1 = weightf1_scores
 
-            train_acc, val_acc, test_acc = accuracy
-            train_f1, val_f1, test_f1 = f1_scores
-            train_weightf1, val_weightf1, test_weightf1 = weightf1_scores
-
-            # Track metrics
+                # Track metrics
+                history['train_acc'].append(train_acc)
+                history['test_acc'].append(test_acc)
+                history['train_f1'].append(train_f1)
+                history['val_f1'].append(val_f1)
+                history['test_f1'].append(test_f1)
+                history['error_rate'].append(error_rate)
+                history['error_number'].append(error_number)
+            else:
+                val_acc, test_acc, cur_logits = self._evaluate_fast()
             history['loss'].append(loss)
-            history['train_acc'].append(train_acc)
             history['val_acc'].append(val_acc)
-            history['test_acc'].append(test_acc)
-            history['train_f1'].append(train_f1)
-            history['val_f1'].append(val_f1)
-            history['test_f1'].append(test_f1)
-            history['error_rate'].append(error_rate)
-            history['error_number'].append(error_number)
 
             if val_acc > best_eval_acc:
+                if not self.track_history:
+                    # full metrics only at improving epochs
+                    accuracy, f1_scores, weightf1_scores, cur_logits, error_rate, error_number = self._evaluate()
+                    _, val_f1, test_f1 = f1_scores
+                    _, val_weightf1, test_weightf1 = weightf1_scores
                 best_eval_acc = val_acc
                 best_test_acc = test_acc
                 counter = 0
-                best_logits = deepcopy(cur_logits)
+                best_logits = cur_logits.detach().clone()
                 best_eval_f1, best_test_f1 = val_f1, test_f1
                 best_eval_weightf1, best_test_weightf1 = val_weightf1, test_weightf1
                 best_error_rate, best_error_number = error_rate, error_number
-                self.best_model = self.model
+                # snapshot weights (a plain reference would keep training and end up as the last epoch)
+                best_state = {k: v.detach().clone() for k, v in self.model.state_dict().items()}
             else:
                 counter += 1
 
             if epoch % 10 == 0 and self.does_print_training_process:
-                print(
-                    f"Epoch {epoch:03d} Loss {loss:.4f}  Train acc {train_acc:.3f} Val acc {val_acc:.3f} Test acc {test_acc:.3f}  Train F1 {train_f1:.3f} Val F1 {val_f1:.3f} Test F1 {test_f1:.4f}")
+                if self.track_history:
+                    print(
+                        f"Epoch {epoch:03d} Loss {loss:.4f}  Train acc {train_acc:.3f} Val acc {val_acc:.3f} Test acc {test_acc:.3f}  Train F1 {train_f1:.3f} Val F1 {val_f1:.3f} Test F1 {test_f1:.4f}")
+                else:
+                    print(f"Epoch {epoch:03d} Loss {loss:.4f}  Val acc {val_acc:.3f} Test acc {test_acc:.3f}")
 
             # Early stopping
             if counter >= self.patience:
                 break
+            if epoch_callback is not None and epoch_callback(epoch, val_acc):
+                break
 
-        print(f'\nTest Acc {best_test_acc:.3f}  Test F1 {best_test_f1:.3f}\n')
-        self.model = self.best_model
-        # Plot and save learning curves (don't show during hyperparameter tuning)
-        self.plot_learning_curves(history, show=show_plots)
+        if self.verbose:
+            print(f'\nTest Acc {best_test_acc:.3f}  Test F1 {best_test_f1:.3f}\n')
+        if best_state is not None:
+            self.model.load_state_dict(best_state)
+        self.best_model = self.model
+        if show_plots and self.track_history:
+            self.plot_learning_curves(history, show=True)
 
         return {
             "test_acc": best_test_acc,
@@ -377,7 +513,35 @@ class GNNTrainer():
             "error_number": best_error_number,
         }, best_logits, history
 
-def gnn_train_and_report(dataset_name, embedding, title="", does_print_training_process=False, reporter=None, supervised=True):
+def append_gnn_result_csv(row: dict, csv_path: str) -> str:
+    """
+    Append a single GNN/ensemble result row to a CSV report, creating the file
+    (and its parent directory) with a header on first write. Column order is
+    stable across appends; unseen keys are appended at the end.
+    """
+    import csv
+
+    os.makedirs(os.path.dirname(csv_path) or ".", exist_ok=True)
+    file_exists = os.path.isfile(csv_path)
+
+    fieldnames = list(row.keys())
+    if file_exists:
+        with open(csv_path, "r", newline="", encoding="utf-8") as f:
+            existing_header = next(csv.reader(f), [])
+        if existing_header:
+            fieldnames = existing_header + [k for k in row.keys() if k not in existing_header]
+
+    with open(csv_path, "a", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames, extrasaction="ignore")
+        if not file_exists:
+            writer.writeheader()
+        writer.writerow({k: row.get(k, "") for k in fieldnames})
+    return csv_path
+
+
+def gnn_train_and_report(dataset_name, embedding, title="", does_print_training_process=False, reporter=None,
+                          supervised=True, seed=None, llm_name=None, peft_type=None, init_weight_approach=None,
+                          csv_path="results/gnn_training/gnn_training_results.csv", gnn_model_name=None):
     """
     Train a GNN model on the given dataset using provided embeddings and report results.
 
@@ -387,6 +551,15 @@ def gnn_train_and_report(dataset_name, embedding, title="", does_print_training_
         title (str): Title for reporting (e.g., 'PISSA', 'ORTHOGONAL')
         does_print_training_process (bool): Whether to print training progress
         reporter: Reporter object for writing results to file
+        supervised (bool): Supervised vs semi-supervised GNN training setup
+        seed: Seed to use for this GNN run (and to record as the seed of the LLM
+              adapter/embedding used to build `embedding`, for CSV provenance).
+              If None, the seed from gnn_hyperparameters/<dataset>.json is used.
+        llm_name, peft_type, init_weight_approach: Provenance info for the embedding
+              used, recorded in the CSV report (init_weight_approach defaults to `title`).
+        csv_path: Where to append the CSV result row ("" / None disables CSV logging).
+        gnn_model_name: GNN encoder to train (see SUPPORTED_GNN_MODELS); None keeps the
+              encoder from the tuned hyperparameter JSON (SAGE by default).
 
     Returns:
         dict: Training results containing test_acc, test_f1, val_acc, val_f1
@@ -396,8 +569,10 @@ def gnn_train_and_report(dataset_name, embedding, title="", does_print_training_
     print(f"Embedding shape: {embedding.shape}")
     print(f"{'='*80}\n")
 
-    # Setup GNN configuration for the dataset
-    cfg = set_mgnn_cfg(dataset_name, supervised=supervised)
+    # Setup GNN configuration for the dataset (picks up per-LLM/per-seed tuned
+    # hyperparameters from gnn_hyperparameters/ if available, see set_mgnn_cfg)
+    cfg = set_mgnn_cfg(dataset_name, supervised=supervised, seed=seed, llm_name=llm_name,
+                       gnn_model_name=gnn_model_name)
 
     # Initialize GNN trainer with the embeddings
     trainer = GNNTrainer(cfg, embedding, does_print_training_process=does_print_training_process)
@@ -414,6 +589,9 @@ def gnn_train_and_report(dataset_name, embedding, title="", does_print_training_
     print(f"  Val Accuracy:        {results['val_acc']:.4f}")
     print(f"  Val F1 (Macro):      {results['val_f1']:.4f}")
     print(f"  Val F1 (Weighted):   {results['val_weight_f1']:.4f}")
+    print(f"  Training time:       {results['train_time_sec']:.2f}s ({results['epochs_run']} epochs, "
+          f"{results['time_per_epoch_ms']:.1f} ms/epoch)")
+    print(f"  Peak VRAM:           {results['peak_vram_mb']} MB (+{results['peak_vram_delta_mb']} MB during training)")
     print(f"{'='*80}\n")
 
     # Report results using reporter
@@ -427,12 +605,55 @@ def gnn_train_and_report(dataset_name, embedding, title="", does_print_training_
                         • Validation Accuracy: {results['val_acc']:.4f} ({results['val_acc']:.2%})
                         • Validation F1 (Macro): {results['val_f1']:.4f}
                         • Validation F1 (Weighted): {results['val_weight_f1']:.4f}
+                        Cost:
+                        • Training time: {results['train_time_sec']:.2f}s ({results['epochs_run']} epochs, {results['time_per_epoch_ms']:.1f} ms/epoch)
+                        • Peak VRAM: {results['peak_vram_mb']} MB (+{results['peak_vram_delta_mb']} MB during training)
                         """
         reporter.report(report_title, report_text)
 
+    # Append complete-info CSV row (dataset, LLM/embedding provenance, GNN hyperparams, metrics)
+    if csv_path:
+        from datetime import datetime
+        row = {
+            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "dataset_name": dataset_name,
+            "llm_name": llm_name if llm_name is not None else cfg.llm_name,
+            "peft_type": peft_type if peft_type is not None else "",
+            "init_weight_approach": init_weight_approach if init_weight_approach is not None else title,
+            "embedding_seed": seed if seed is not None else "",
+            "gnn_seed": cfg.seed,
+            "supervised": supervised,
+            "embedding_shape": tuple(embedding.shape),
+            "gnn_model_name": cfg.gnn_model_name,
+            "hidden_dim": cfg.hidden_dim,
+            "num_layers": cfg.num_layers,
+            "dropout": cfg.dropout,
+            "lr": cfg.lr,
+            "weight_decay": cfg.weight_decay,
+            "batch_norm": cfg.batch_norm,
+            "epochs": cfg.epochs,
+            "early_stop": cfg.early_stop,
+            "re_split": cfg.re_split,
+            "hp_source": os.path.basename(cfg.hp_source),
+            "test_accuracy": results["test_acc"],
+            "test_macro_f1": results["test_f1"],
+            "test_weighted_f1": results["test_weight_f1"],
+            "val_accuracy": results["val_acc"],
+            "val_macro_f1": results["val_f1"],
+            "val_weighted_f1": results["val_weight_f1"],
+            "train_time_sec": results["train_time_sec"],
+            "epochs_run": results["epochs_run"],
+            "time_per_epoch_ms": results["time_per_epoch_ms"],
+            "peak_vram_mb": results["peak_vram_mb"],
+            "peak_vram_delta_mb": results["peak_vram_delta_mb"],
+        }
+        append_gnn_result_csv(row, csv_path)
+        print(f"[OK] GNN result appended to: {csv_path}")
+
     return results, trainer.model
 
-def gnn_train_and_report_with_modified_dataset(modified_dataset, embedding, dataset_name, supervised=True):
+def gnn_train_and_report_with_modified_dataset(modified_dataset, embedding, dataset_name, supervised=True,
+                                                seed=None, llm_name=None, gnn_model_name=None):
     """
     Train a GNN model on the given modified dataset using provided embeddings and report results.
 
@@ -440,6 +661,9 @@ def gnn_train_and_report_with_modified_dataset(modified_dataset, embedding, data
         modified_dataset: Modified dataset object with updated edge_index
         embedding (torch.Tensor): Node embeddings to use as features
         dataset_name (str): Name of the dataset (e.g., 'cora', 'pubmed')
+        seed: Seed for the GNN run (see set_mgnn_cfg).
+        llm_name: LLM whose tuned hyperparameters to load (see set_mgnn_cfg).
+        gnn_model_name: GNN encoder to train (see set_mgnn_cfg).
 
     Returns:
         dict: Training results containing test_acc, test_f1, val_acc, val_f1
@@ -451,7 +675,8 @@ def gnn_train_and_report_with_modified_dataset(modified_dataset, embedding, data
     print(f"{'='*80}\n")
 
     # Setup GNN configuration for the dataset
-    cfg = set_mgnn_cfg(dataset_name, supervised=supervised)
+    cfg = set_mgnn_cfg(dataset_name, supervised=supervised, seed=seed, llm_name=llm_name,
+                       gnn_model_name=gnn_model_name)
 
     # Initialize GNN trainer with the embeddings and modified dataset
     trainer = GNNTrainer(cfg, embedding, modified_dataset=modified_dataset)
@@ -468,17 +693,28 @@ def gnn_train_and_report_with_modified_dataset(modified_dataset, embedding, data
     print(f"  Val Accuracy:        {results['val_acc']:.4f}")
     print(f"  Val F1 (Macro):      {results['val_f1']:.4f}")
     print(f"  Val F1 (Weighted):   {results['val_weight_f1']:.4f}")
+    print(f"  Training time:       {results['train_time_sec']:.2f}s ({results['epochs_run']} epochs, "
+          f"{results['time_per_epoch_ms']:.1f} ms/epoch)")
+    print(f"  Peak VRAM:           {results['peak_vram_mb']} MB (+{results['peak_vram_delta_mb']} MB during training)")
     print(f"{'='*80}\n")
 
     return results, trainer.model
 
 if __name__ == '__main__':
+    from config import setup_finetuning_cfg
+
     print("*" * 80)
     print("Check Hyperparamters")
     gnn_cfg = set_mgnn_cfg('pubmed', supervised=False)
-    data_pissa = get_init_dataset_for_gnn(supervised=False)
-    print(f"Learning rate: {cfg.lr}")
-    print(f"Epochs: {cfg.epochs}")
-    print(f"Dropout: {cfg.dropout}")
-    print(f"Num Layers: {cfg.num_layers}")
+    ft_cfg = setup_finetuning_cfg(
+        dataset_name=gnn_cfg.dataset,
+        llm_name=gnn_cfg.llm_name,
+        peft_type='lora',
+    )
+    init_caches = get_init_dataset_for_gnn(ft_cfg, supervised=False)
+    print(f"Learning rate: {gnn_cfg.lr}")
+    print(f"Epochs: {gnn_cfg.epochs}")
+    print(f"Dropout: {gnn_cfg.dropout}")
+    print(f"Num Layers: {gnn_cfg.num_layers}")
+    print(f"Loaded {len(init_caches)} init-weight caches (pissa, orthogonal, gaussian, loftq, eva)")
 

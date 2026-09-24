@@ -3,12 +3,22 @@ from common import set_seed
 from dataset.dataset_loader import prepare_data_for_finetuning, get_tokenizer, load_dataset, prepare_data_for_keyword_finetuning, prepare_data_for_finetuning_with_augmented_nodes
 from train_llm.peft_model import load_llm_model, get_lora_model, get_model_path
 from train_llm.training_config import get_training_config
+from train_llm.efficiency import (
+    append_efficiency_csv,
+    build_efficiency_row,
+    count_parameters,
+    format_efficiency_block,
+    measure_inference_latency,
+    peak_vram_bytes,
+    reset_cuda_peak_stats,
+)
 from transformers import Trainer
 import torch
 import os
+import time
 from peft import PeftModel
 from transformers import AutoTokenizer
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Subset
 
 class Train:
     def __init__(self, cfg, save_dir, reporter,  used_llm_responses=False, used_summary_texts=False, used_paraphrased_texts=False, train_with_keywords=False, split=1, 
@@ -20,8 +30,10 @@ class Train:
         self.seed = cfg.dataset.seed
         set_seed(cfg.dataset.seed)
         self.model_name = cfg.llm.model_name
+        self.lora_init = getattr(cfg.peft, "init_lora_weights", "N/A")
         self.max_seq_length = cfg.tokenizer.max_length
         self.used_llm_responses = used_llm_responses
+        self.efficiency_metrics = None
         self.tokenizer = get_tokenizer(cfg)
         datasets_path = get_datasets_path()
         repo_root = os.path.dirname(datasets_path)
@@ -62,7 +74,10 @@ class Train:
         else:
             self.train_dataset, self.val_dataset, self.test_dataset = prepare_data_for_finetuning(cfg, used_llm_responses=self.used_llm_responses, used_summary_texts=used_summary_texts, used_paraphrased_texts=used_paraphrased_texts, seed=self.seed, path_prefix=path_prefix, split=self.split)
         self.num_classes = cfg.dataset.num_classes
-        self.base_model = load_llm_model(cfg)
+        # Pass tokenizer so pad_token_id is set on the classification model
+        self.base_model = load_llm_model(cfg, tokenizer=self.tokenizer)
+        if getattr(self.tokenizer, "pad_token_id", None) is not None:
+            self.base_model.config.pad_token_id = self.tokenizer.pad_token_id
         self.save_dir = save_dir
         self.model = get_lora_model(self.base_model, cfg)
 
@@ -71,12 +86,17 @@ class Train:
         self.reporter.report_txt(f"Dataset: {self.dataset_name}")
         self.reporter.report_txt(f"Model: {self.model_name}")
         self.reporter.report_txt(f"PEFT Type: {self.cfg.peft.type}")
+        self.reporter.report_txt(f"LoRA init: {self.lora_init}")
+        self.reporter.report_txt(f"Split: {self.split}")
         self.reporter.report_txt(f"Seed: {self.seed}")
         
         self._train()
         save_dir = self.save_model()
         print("saving model to {}".format(save_dir))
         self.reporter.report_txt(f"\nModel saved to: {save_dir}")
+
+        # Cost / efficiency (wall-clock, peak VRAM, adapter size, inference latency)
+        self.collect_and_report_efficiency(adapter_dir=save_dir)
         
         self.plot_learning_curve()
         self.save_best_model_result()
@@ -96,6 +116,9 @@ class Train:
             eval_dataset=self.val_dataset,  # evaluation dataset
             compute_metrics=self.compute_metrics,
         )
+        self._train_wall_clock_sec = None
+        self._peak_vram_bytes = None
+        self._last_test_results = None
         try:
             self.reporter.report_title("Training Started")
             self.reporter.report_txt(f"Number of training samples: {len(self.train_dataset)}")
@@ -103,20 +126,101 @@ class Train:
             self.reporter.report_txt(f"Number of test samples: {len(self.test_dataset)}")
             self.reporter.report_txt(f"Number of epochs: {training_args.num_train_epochs}")
             self.reporter.report_txt(f"Learning rate: {training_args.learning_rate}")
-            
+            self.reporter.report_txt(f"LoRA init: {self.lora_init}")
+
+            reset_cuda_peak_stats()
+            t0 = time.perf_counter()
             self.trainer.train()
+            if torch.cuda.is_available():
+                torch.cuda.synchronize()
+            self._train_wall_clock_sec = time.perf_counter() - t0
+            self._peak_vram_bytes = peak_vram_bytes()
+
             test_results = self.trainer.evaluate(eval_dataset=self.test_dataset)
+            self._last_test_results = test_results
             test_acc = test_results.get('eval_accuracy', 'N/A')
             print(f"Test Accuracy: {test_acc:.4f}")
+            print(
+                f"[Efficiency] train wall-clock={self._train_wall_clock_sec:.1f}s, "
+                f"peak VRAM={(self._peak_vram_bytes or 0) / (1024**2):.1f} MB"
+            )
             
             self.reporter.report_title("Training Completed")
             self.reporter.report_txt(f"Test Accuracy: {test_acc:.4f}")
             self.reporter.report_txt(f"Test Loss: {test_results.get('eval_loss', 'N/A'):.4f}")
+            self.reporter.report_txt(f"Wall-clock train (s): {self._train_wall_clock_sec:.2f}")
+            if self._peak_vram_bytes is not None:
+                self.reporter.report_txt(
+                    f"Peak VRAM (MB): {self._peak_vram_bytes / (1024 ** 2):.2f}"
+                )
         except Exception as e:
             error_msg = f"Training failed with error: {str(e)}"
             print(error_msg)
             self.reporter.report_title("Training Failed")
             self.reporter.report_txt(error_msg)
+
+    def collect_and_report_efficiency(self, adapter_dir: str):
+        """
+        Build paper efficiency-table row for this (model × LoRA-init) run:
+        train time, GPU-hours, peak VRAM, adapter storage, inference latency.
+        Writes to reporter + run CSV + global efficiency CSV.
+        """
+        wall = getattr(self, "_train_wall_clock_sec", None)
+        if wall is None:
+            wall = float("nan")
+        peak = getattr(self, "_peak_vram_bytes", None)
+        trainable, total = count_parameters(self.model)
+
+        try:
+            inference_stats = measure_inference_latency(
+                self.model,
+                self.test_dataset,
+                batch_size=min(8, max(1, len(self.test_dataset))),
+                num_warmup=2,
+                num_batches=15,
+            )
+        except Exception as e:
+            print(f"[Efficiency] Inference latency measurement failed: {e}")
+            inference_stats = {
+                "inference_ms_per_sample": float("nan"),
+                "inference_samples_per_sec": float("nan"),
+                "inference_num_samples": 0.0,
+                "inference_batch_size": float("nan"),
+            }
+
+        test_results = getattr(self, "_last_test_results", None) or {}
+        row = build_efficiency_row(
+            cfg=self.cfg,
+            split=self.split,
+            wall_clock_train_sec=float(wall),
+            peak_vram=peak,
+            adapter_dir=adapter_dir,
+            inference_stats=inference_stats,
+            trainable_params=trainable,
+            total_params=total,
+            test_accuracy=test_results.get("eval_accuracy", ""),
+            test_loss=test_results.get("eval_loss", ""),
+        )
+        self.efficiency_metrics = row
+
+        # Per-run CSV next to adapter / train_info
+        run_csv = os.path.join(self.save_dir, "efficiency_metrics.csv")
+        append_efficiency_csv(row, run_csv)
+        row["report_csv"] = run_csv
+
+        # Global table for all models × LoRA inits (paper efficiency table)
+        global_csv = os.path.join("results", "efficiency", "lora_finetune_efficiency.csv")
+        append_efficiency_csv(row, global_csv)
+
+        self.reporter.report_title("Efficiency / Cost Report")
+        for line in format_efficiency_block(row):
+            self.reporter.report_txt(line)
+        self.reporter.report_txt("")
+        self.reporter.report_txt(f"Per-run efficiency CSV: {run_csv}")
+        self.reporter.report_txt(f"Global efficiency CSV: {global_csv}")
+        print(f"[OK] Efficiency metrics saved to: {run_csv}")
+        print(f"[OK] Appended to global efficiency table: {global_csv}")
+        return row
 
     def plot_learning_curve(self):
         """
@@ -163,6 +267,14 @@ class Train:
         print(f"[OK] Learning curve saved to: {plot_path}")
         plt.close()
 
+    def _subsample_dataset(self, dataset, max_size: int):
+        """Return dataset unchanged if it already fits max_size, else a deterministic random subset."""
+        n = len(dataset)
+        if max_size <= 0 or n <= max_size:
+            return dataset
+        idxs = random.Random(self.seed).sample(range(n), max_size)
+        return Subset(dataset, idxs)
+
     def save_best_model_result(self):
         """
             save the final loss and accuracy for best model for train validation test data
@@ -177,20 +289,30 @@ class Train:
             return
         
         csv_path = os.path.join(self.save_dir, 'training_results.csv')
-        
-        # Evaluate on all splits
-        train_results = self.trainer.evaluate(eval_dataset=self.train_dataset)
+
+        # Evaluate on all splits.
+        # Train split is usually by far the largest, so we cap it to the size
+        # of the bigger of val/test instead of running a full extra pass over it.
+        train_eval_cap = max(len(self.val_dataset), len(self.test_dataset))
+        train_eval_dataset = self._subsample_dataset(self.train_dataset, train_eval_cap)
+        train_results = self.trainer.evaluate(eval_dataset=train_eval_dataset)
         val_results = self.trainer.evaluate(eval_dataset=self.val_dataset)
-        test_results = self.trainer.evaluate(eval_dataset=self.test_dataset)
-        
+        # Test was already evaluated at the end of _train(); reuse it instead of re-running.
+        test_results = getattr(self, "_last_test_results", None)
+        if not test_results:
+            test_results = self.trainer.evaluate(eval_dataset=self.test_dataset)
+
         # Prepare results dictionary
         results = {
             'timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
             'model_name': self.model_name,
             'dataset_name': self.dataset_name,
             'peft_type': self.cfg.peft.type,
+            'lora_init': self.lora_init,
+            'split': self.split,
             'num_classes': self.num_classes,
             'max_seq_length': self.max_seq_length,
+            'train_eval_sample_size': len(train_eval_dataset),
             'train_loss': train_results.get('eval_loss', 'N/A'),
             'train_accuracy': train_results.get('eval_accuracy', 'N/A'),
             'val_loss': val_results.get('eval_loss', 'N/A'),
@@ -198,6 +320,22 @@ class Train:
             'test_loss': test_results.get('eval_loss', 'N/A'),
             'test_accuracy': test_results.get('eval_accuracy', 'N/A'),
         }
+        if self.efficiency_metrics:
+            for key in (
+                'wall_clock_train_sec',
+                'wall_clock_train_min',
+                'gpu_hours',
+                'peak_vram_mb',
+                'peak_vram_gb',
+                'adapter_dir_mb',
+                'adapter_weights_mb',
+                'inference_ms_per_sample',
+                'inference_samples_per_sec',
+                'trainable_params',
+                'total_params',
+                'trainable_pct',
+            ):
+                results[key] = self.efficiency_metrics.get(key, '')
         
         # Write to CSV
         file_exists = os.path.isfile(csv_path)
@@ -216,6 +354,8 @@ class Train:
         self.reporter.report_txt(f"Model: {results['model_name']}")
         self.reporter.report_txt(f"Dataset: {results['dataset_name']}")
         self.reporter.report_txt(f"PEFT Type: {results['peft_type']}")
+        self.reporter.report_txt(f"LoRA init: {results['lora_init']}")
+        self.reporter.report_txt(f"Split: {results['split']}")
         self.reporter.report_txt(f"Number of Classes: {results['num_classes']}")
         self.reporter.report_txt(f"Max Sequence Length: {results['max_seq_length']}")
         self.reporter.report_txt("")
@@ -230,6 +370,15 @@ class Train:
         self.reporter.report_txt("--- Test Set ---")
         self.reporter.report_txt(f"Loss: {results['test_loss']:.4f}")
         self.reporter.report_txt(f"Accuracy: {results['test_accuracy']:.4f}")
+        if self.efficiency_metrics:
+            self.reporter.report_txt("")
+            self.reporter.report_txt("--- Efficiency (see Efficiency / Cost Report) ---")
+            self.reporter.report_txt(
+                f"GPU-hours: {self.efficiency_metrics.get('gpu_hours', float('nan')):.6f} | "
+                f"Peak VRAM GB: {self.efficiency_metrics.get('peak_vram_gb', float('nan')):.3f} | "
+                f"Adapter MB: {self.efficiency_metrics.get('adapter_weights_mb', float('nan')):.2f} | "
+                f"Infer ms/sample: {self.efficiency_metrics.get('inference_ms_per_sample', float('nan')):.3f}"
+            )
         self.reporter.report_txt("")
         self.reporter.report_txt(f"Results CSV saved to: {csv_path}")
         
@@ -277,10 +426,16 @@ def load_llm_with_lora_adapter(
         max_length=cfg.tokenizer.max_length
     )
     if tokenizer.pad_token is None:
-        tokenizer.pad_token = tokenizer.eos_token
+        if tokenizer.eos_token is not None:
+            tokenizer.pad_token = tokenizer.eos_token
+        elif tokenizer.unk_token is not None:
+            tokenizer.pad_token = tokenizer.unk_token
+    tokenizer.padding_side = cfg.tokenizer.padding_side
     
     # Load base model
-    base_model = load_llm_model(cfg)
+    base_model = load_llm_model(cfg, tokenizer=tokenizer)
+    if getattr(tokenizer, "pad_token_id", None) is not None:
+        base_model.config.pad_token_id = tokenizer.pad_token_id
     
     # Load the LoRA adapter
     peft_model = PeftModel.from_pretrained(base_model, adapter_dir)

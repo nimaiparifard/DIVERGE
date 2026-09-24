@@ -189,4 +189,30 @@ cython_debug/
 
 # wikipedia dumpfiles
 entity_linker/*.bz2
-experiment_results
+experiment_results/
+results/
+datasets/
+local_models/
+exports/
+artifacts/
+outputs/
+outputs_eff/
+logs/
+tags_data_augmentation/artifacts/
+tags_data_augmentation/augmented_data/
+tags_data_augmentation/outputs/
+
+# Generated tensors / model weights / archives (datasets, caches, modified graphs, checkpoints)
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+*.bin
+*.tar.gz
+*.zip
+checkpoint-*/
+
+# Experiment trackers
+wandb/
+mlruns/
+runs/

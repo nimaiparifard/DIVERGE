@@ -1,0 +1,127 @@
+LLMs as Enhancers for Text-Attributed Graphs (TAGs)
+====================================================
+Enhancer methods use LLMs to modify node text, graph structure, or labels before/during GNN training to improve downstream performance.
+
+──────────────────────────────────────────────────────────────────────────────
+A. TEXT / FEATURE ENHANCEMENT
+──────────────────────────────────────────────────────────────────────────────
+
+1. TAPE — Harnessing Explanations: LLM-to-LM Interpreter for Enhanced Text-Attributed Graph Representation Learning
+   Venue: ICLR 2024 (published)
+   Authors: He et al.
+   What it does: Prompts an LLM for zero-shot class predictions and textual explanations per node; an LLM-to-LM interpreter (fine-tuned smaller LM) converts explanations into dense features for downstream GNNs. Often trains multiple GNNs and averages logits.
+   Enhancement type: Node text / feature enrichment
+   Note: Requires external LLM API; can add semantic noise when native text is already informative.
+
+2. NRUP — Unleashing the Power of Language Models in Text-Attributed Graph
+   Venue: EMNLP 2023 Findings (published)
+   Authors: Kuang et al.
+   What it does: Builds a hierarchical TAG with word-level nodes and applies four self-supervised pre-training tasks to co-model text and graph structure, updating node representations during training.
+   Enhancement type: Hierarchical graph construction + self-supervised node feature update
+   Note: Early work on jointly enhancing text and structure via LM pre-training.
+
+3. E-LLaGNN — All Against Some: Efficient Integration of Large Language Models for Message Passing in Graph Neural Networks
+   Venue: arXiv preprint (2024); no major conference/journal publication found
+   Authors: Jaiswal et al.
+   What it does: Selectively enhances only a budget-limited fraction of "critical" nodes via on-demand LLM neighborhood sampling and prompt-based feature enrichment, then runs standard GNN message passing. Supports LLM-free inference at deployment.
+   Enhancement type: Selective node text / neighborhood feature enrichment
+   Note: Targets cost efficiency vs. full-graph LLM augmentation (e.g., TAPE).
+
+──────────────────────────────────────────────────────────────────────────────
+B. STRUCTURE / TOPOLOGY ENHANCEMENT
+──────────────────────────────────────────────────────────────────────────────
+
+4. RoSE — Unleashing the Potential of Text-attributed Graphs: Automatic Relation Decomposition via Large Language Models
+   Venue: ICLR 2025 submission (arXiv 2405.18581); conference acceptance not confirmed
+   Authors: Seo et al.
+   What it does: Uses LLMs to (1) discover meaningful relation types and (2) decompose each edge into semantic relation types from connected nodes' text. Output plugs into multi-relational or edge-featured GNNs.
+   Enhancement type: Edge relation decomposition (structure refinement)
+   Note: Model-agnostic; single-round LLM queries per edge.
+
+5. LLM4GraphTopology — Large Language Models as Topological Structure Enhancers for Text-Attributed Graphs
+   Venue: DASFAA 2026 (published)
+   Authors: Sun et al.
+   What it does: Uses LLM-estimated semantic similarity to add/delete edges, and LLM pseudo-label propagation as regularization for GNN edge-weight learning. Integrates both refinements into GNN training.
+   Enhancement type: Edge addition/deletion + topology regularization
+   Note: Distinct from RoSE; focuses on pruning/adding edges rather than relation typing.
+
+6. GraphEdit — GraphEdit: Large Language Models for Graph Structure Learning
+   Venue: arXiv preprint (2024); ACL ARR 2024 submission; no major conference/journal publication found
+   Authors: Guo et al.
+   What it does: Instruction-tunes an LLM over graph structures to reason about node dependencies, denoise spurious edges, and infer missing connections from a global perspective.
+   Enhancement type: Graph structure learning / denoising
+   Note: General GSL framework applicable to TAGs.
+
+──────────────────────────────────────────────────────────────────────────────
+C. NODE / DATA GENERATION (FEW-SHOT)
+──────────────────────────────────────────────────────────────────────────────
+
+7. LLM4NG — Leveraging Large Language Models for Node Generation in Few-Shot Learning on Text-Attributed Graphs
+   Venue: AAAI 2025 (published)
+   Authors: Yu et al.
+   What it does: LLM generates synthetic labeled nodes from class semantics; an edge predictor connects them to the original graph, augmenting supervision without altering existing nodes.
+   Enhancement type: Synthetic node + edge generation
+   Note: Plug-and-play; strong gains in 1-shot settings (e.g., +76% on ogbn-arxiv).
+
+──────────────────────────────────────────────────────────────────────────────
+D. LABEL / COST-EFFICIENT ENHANCEMENT
+──────────────────────────────────────────────────────────────────────────────
+
+8. Locle — Leveraging Large Language Models for Effective Label-free Node Classification in Text-Attributed Graphs
+   Venue: SIGIR 2025 (published)
+   Authors: Zhang et al.
+   What it does: Active self-training that selects critical unlabeled nodes, queries LLMs for pseudo-labels, refines labels with GNN confidence, and rewires graph topology—all under a fixed LLM query budget.
+   Enhancement type: Selective LLM labeling + topology rewiring
+   Note: Label-free / low-cost annotation focus.
+
+9. GAGA — Low-cost Enhancer for Text Attributed Graph Learning via Graph Alignment
+   (also: Efficient Text-Attributed Graph Learning through Selective Annotation and Graph Alignment)
+   Venue: ICLR 2025 withdrawn submission; arXiv preprint (2025)
+   Authors: Hu et al. / Xie et al.
+   What it does: Annotates only ~1% representative nodes/edges with LLM, builds an annotation graph, and aligns it with the TAG via a two-level alignment module to propagate enhanced representations.
+   Enhancement type: Selective LLM annotation + graph alignment
+   Note: Aims for near-SOTA accuracy at 1% annotation cost.
+
+10. UltraTAG — Toward General and Robust LLM-enhanced Text-attributed Graph Learning
+    Venue: ICMR 2026 (published)
+    Authors: Zhang et al.
+    What it does: Modular pipeline unifying LLM-based augmentation, text encoding, and GNN training for robust TAG learning; includes UltraTAG-S variant for sparse text/edges.
+    Enhancement type: Unified augmentation + training framework
+    Note: System-level enhancer rather than a single augmentation trick.
+
+11. SKETCH — Taming Language Models for Text-attributed Graph Learning with Decoupled Aggregation
+    Venue: ACL 2025 (published)
+    Authors: Zhou et al.
+    What it does: Decouples semantic and structural aggregation: retrieves related node texts and distant structural contexts, then trains a long-context LM—reducing reliance on GNN propagation while improving efficiency.
+    Enhancement type: Retrieved text/structure context enrichment for LM training
+    Note: Enhances inputs via retrieval rather than LLM rewriting of all node text.
+
+──────────────────────────────────────────────────────────────────────────────
+E. SELF-SUPERVISED / MUTUAL TEXT–GRAPH TRANSFORMATION
+──────────────────────────────────────────────────────────────────────────────
+
+12. TAGA — Text-Attributed Graph Self-Supervised Learning by Synergizing Graph and Text Mutual Transformations
+    Venue: CIKM 2025 (published)
+    Authors: Zhang et al.
+    What it does: Builds two views—Text-of-Graph (topology-organized documents) and Graph-of-Text (text-derived graph)—and aligns their representations via self-supervised learning with a structure-preserving random walk.
+    Enhancement type: Dual-view graph↔text transformation (no external LLM rewriting)
+    Note: Strong in zero-shot and few-shot; enhances representations through view construction.
+
+──────────────────────────────────────────────────────────────────────────────
+SUMMARY BY PUBLICATION STATUS (prefer conference/journal)
+──────────────────────────────────────────────────────────────────────────────
+Published at major venues: TAPE (ICLR'24), NRUP (EMNLP'23 Findings), LLM4NG (AAAI'25),
+  Locle (SIGIR'25), SKETCH (ACL'25), TAGA (CIKM'25), LLM4GraphTopology (DASFAA'26),
+  UltraTAG (ICMR'26)
+
+Preprint / unconfirmed venue: E-LLaGNN (arXiv), GraphEdit (arXiv), GAGA (arXiv;
+  ICLR'25 withdrawn), RoSE (arXiv; ICLR'25 submission)
+
+──────────────────────────────────────────────────────────────────────────────
+ENHANCEMENT AXIS (for your related-work paragraph)
+──────────────────────────────────────────────────────────────────────────────
+  Text features:     TAPE, E-LLaGNN, NRUP
+  Graph structure:   RoSE, LLM4GraphTopology, GraphEdit, Locle (rewiring)
+  New nodes/edges:   LLM4NG
+  Labels/annotation: Locle, GAGA
+  Unified pipelines: UltraTAG, SKETCH, TAGA

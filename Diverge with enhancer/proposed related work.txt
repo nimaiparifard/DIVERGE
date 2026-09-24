@@ -1,0 +1,278 @@
+================================================================================
+PROPOSED RELATED WORK — paste into template.tex (Section: Related Works)
+Compatible with: DIVERGE base + Method II (cosine pruning) + Method III (uncertainty)
+================================================================================
+
+NOTE ON CITATIONS
+-----------------
+Keys already in references.bib: he2024harnessing, Sun2026TopologicalEnhancerTAG,
+  guo2024graphedit, Yu2025NodeGenerationTAG, Jaiswal2024AllAgainstSome,
+  hu2025gaga, zhang2025leveraging, zhou-etal-2025sketch, yu2025ultratag,
+  Zhang2024TAGSurvey, Chen2024LLaGA, Huang2024GNNAdapters, Wu2025LLMNode
+
+Suggested keys to ADD to references.bib for GSL / TAG structure papers:
+  zhu2021survey, franceschi2019lds, jin2020prognn, chen2020idgl, luo2021ptdnet,
+  dong2023gps, yu2020grcn, zhao2021gaug, li2022stable, fatemi2022cogsl,
+  liu2022sublime, klicpera2019digl, yang2019vhe, jiang2019glcn, wang2021gen,
+  kuang2023unleashing, zhang2025taga
+
+================================================================================
+LaTeX CONTENT (copy below into \section{Related Works})
+================================================================================
+
+\section{Related Works}
+\label{sec:related-works}
+
+Text-attributed graphs (TAGs) combine relational structure with natural-language
+node descriptions, making them well suited to citation networks, product graphs,
+and social platforms where both topology and text carry predictive signal
+\citep{Zhang2024TAGSurvey}. A central design question is how to fuse textual
+semantics with graph propagation: early pipelines encoded documents with
+shallow features (e.g., bag-of-words) and fed the resulting vectors into graph
+neural networks (GNNs), whereas recent work leverages pre-trained language models
+(PLMs/LLMs) for richer node representations \citep{Chen2024LLaGA,Huang2024GNNAdapters}.
+Our work builds on \textbf{DIVERGE}, which fine-tunes an LLM with parameter-efficient
+adaptation (LoRA) under \emph{multiple random initializations} to obtain diverse
+semantic encodings of \emph{native} node text---without rewriting, paraphrasing,
+or augmenting the original documents---and then trains one GNN per encoding before
+combining their outputs with adaptive ensemble learning rather than uniform logit
+averaging \citep{he2024harnessing}. In this paper we extend DIVERGE with
+\textbf{semantic structure enhancement}: we refine the observed topology when
+edges connect semantically dissimilar nodes, thereby increasing homophily before
+message passing. We organize prior work into three lines---general graph structure
+learning, structure-aware TAG learning without LLM enhancers, and LLM-based
+enhancement---and then state the research gap our approach addresses.
+
+
+% ---------------------------------------------------------------------------
+\subsection{Edge Rewiring and Denoising in Graph Learning}
+\label{sec:gsl-general}
+% ---------------------------------------------------------------------------
+
+Real-world graphs are often noisy, incomplete, or misaligned with node features.
+Because GNNs propagate information along observed edges, spurious connections can
+inject irrelevant signals and degrade node classification
+\citep{zhu2021survey,jin2020prognn}. \emph{Graph structure learning} (GSL) addresses
+this by jointly or sequentially refining topology and GNN parameters.
+
+\paragraph{Joint structure--parameter optimization.}
+\textbf{LDS} \citep{franceschi2019lds} formulates structure learning as bilevel
+optimization over a discrete edge distribution and GCN weights, enabling learning
+when graphs are missing or corrupted. \textbf{ProGNN} \citep{jin2020prognn} treats
+the adjacency matrix as a learnable variable regularized toward sparsity, low rank,
+and feature smoothness, and has become a standard reference for graph denoising under
+adversarial or noisy edges. \textbf{IDGL} \citep{chen2020idgl} iteratively alternates
+between (i) constructing a new graph from \emph{cosine similarity} of node embeddings
+and (ii) retraining the GNN on the updated graph until convergence. This iterative,
+similarity-driven rewiring is particularly relevant to our cosine-based structural
+enhancer (Method~II), although IDGL operates end-to-end on shallow features rather
+than on post-hoc LLM embeddings from multiple semantic views.
+
+\paragraph{Explicit edge removal and feature-aware rewiring.}
+Several methods target \emph{denoising} rather than full adjacency re-estimation.
+\textbf{PTDNet} \citep{luo2021ptdnet} learns a parameterized edge-drop module trained
+jointly with the downstream GNN to remove task-irrelevant connections.
+\textbf{GPS} \citep{dong2023gps} introduces an edge signal-to-noise ratio (ESNR) to
+quantify structural noise and rewires graphs using self-supervised link propensity
+scores derived from node features. \textbf{DIGL} \citep{klicpera2019digl} smooths
+the adjacency via personalized PageRank diffusion before propagation, offering a
+classic pre-processing denoising baseline. Together, these works establish that
+\emph{pruning or rewiring unreliable edges} can substantially improve GNN performance
+when node features encode meaningful similarity---a motivation we adopt in the
+TAG setting using LLM-derived semantics.
+
+\paragraph{Edge prediction and graph revision.}
+\textbf{GRCN} \citep{yu2020grcn} couples a graph-revision GNN that adds or reweights
+edges with a node-classification GNN optimized jointly on the revised structure.
+\textbf{GAug} \citep{zhao2021gaug} uses a graph autoencoder to predict edge existence,
+adding likely links and dropping unlikely ones before downstream training. These
+edge-predictor designs parallel the spirit of our uncertainty-based enhancer
+(Method~III), where an encoder--decoder estimates edge reliability; however, GRCN
+and GAug revise structure inside a single end-to-end pipeline on fixed input features,
+whereas we use cross-validated prediction uncertainty as a separate, interpretable
+criterion for noisy-edge removal on graphs already enriched by diverse LLM encodings.
+
+\paragraph{Self-supervised and compact structure learning.}
+\textbf{STABLE} \citep{li2022stable} first learns robust node embeddings via
+contrastive self-supervision and then rewires the graph by embedding similarity.
+\textbf{CoGSL} \citep{fatemi2022cogsl} compresses mutual information across multiple
+graph views to obtain a minimal sufficient structure for the task.
+\textbf{SUBLIME} \citep{liu2022sublime} performs unsupervised GSL through structure
+bootstrapping and contrastive agreement between learned and anchor graphs. These
+methods demonstrate that structure can be improved even with limited or no direct
+supervision on edges, complementing our homophily-driven pruning strategies.
+
+
+% ---------------------------------------------------------------------------
+\subsection{Edge Denoising for Text-Attributed Graphs}
+\label{sec:tag-structure-no-llm}
+% ---------------------------------------------------------------------------
+
+On TAGs, structure quality is equally critical: citation, co-purchase, and hyperlink
+graphs frequently connect documents that are topologically related yet semantically
+distant, violating the homophily assumptions underlying standard message passing
+\citep{yang2019vhe,Zhang2024TAGSurvey}. Early textual-network models such as
+\textbf{VHE} \citep{yang2019vhe} encode homophily directly in a variational
+framework, encouraging correlated latent representations for linked nodes while
+jointly modeling text and topology; however, VHE does not explicitly remove noisy
+edges from the observed graph. Joint graph--GNN learners including \textbf{GLCN}
+\citep{jiang2019glcn} and \textbf{GEN} \citep{wang2021gen} estimate or refine
+adjacency from node features and have been widely evaluated on citation-network
+benchmarks (Cora, Citeseer, PubMed) with bag-of-words attributes---historically the
+standard TAG setting before LLM encoders became dominant.
+
+Importantly, most GSL methods above were \emph{not} designed for modern TAG pipelines
+where node features come from fine-tuned LLMs and where multiple semantic views of
+the same native text are available. They typically (i) use a single feature source,
+(ii) entangle structure learning with one GNN training run, and (iii) do not exploit
+representation diversity from repeated parameter-efficient fine-tuning. Our structural
+enhancers differ precisely along these axes: we keep native text unchanged, derive
+\emph{multiple} LLM embedding spaces from DIVERGE, and apply \emph{post-hoc}
+topology refinement---cosine-threshold pruning (Method~II) or uncertainty-based edge
+removal (Method~III)---before training the per-view GNNs and ensemble. This positions
+our work between classical GSL on citation graphs and recent LLM enhancers that modify
+text or structure through external model calls (next subsection).
+
+
+% ---------------------------------------------------------------------------
+\subsection{LLMs as Enhancers for Text-Attributed Graph Learning}
+\label{sec:llm-enhancers}
+% ---------------------------------------------------------------------------
+
+A growing line of work assigns LLMs an \emph{enhancer} role: they alter node text,
+graph structure, or labels \emph{before or during} GNN training to improve downstream
+performance \citep{Jin2023LLMGraphs,Chen2024LLMGraphs,Li2024GraphLLMSurvey,Wu2025LLMNode}.
+We group enhancer methods by the modality they modify.
+
+\paragraph{Text and feature enhancement.}
+\textbf{TAPE} \citep{he2024harnessing} queries an LLM for zero-shot predictions and
+natural-language explanations, translates explanations into dense features through an
+LLM-to-LM interpreter, and trains multiple GNNs whose logits are uniformly averaged.
+Although highly effective, TAPE depends on external LLM API access and may inject
+semantic noise when native texts are already informative. \textbf{NRUP}
+\citep{kuang2023unleashing} constructs a hierarchical text--word graph and pre-trains
+with self-supervised tasks that co-update text and structure. \textbf{E-LLaGNN}
+\citep{Jaiswal2024AllAgainstSome} limits cost by enhancing only a budgeted subset of
+critical nodes via on-demand LLM prompts, enabling LLM-free inference at deployment.
+These methods enrich \emph{inputs} to the GNN; DIVERGE instead seeks gains from
+\emph{diverse encodings of unchanged native text} combined with adaptive ensembling.
+
+\paragraph{Structure and topology enhancement.}
+Structural LLM enhancers modify edges or relation types rather than rewriting node
+documents. \textbf{RoSE} decomposes single-relation edges into multiple semantic
+relation types using LLM-based generation and classification of edge semantics.
+\textbf{LLM4GraphTopology} \citep{Sun2026TopologicalEnhancerTAG} uses LLM-estimated
+semantic similarity to add or delete edges and applies pseudo-label propagation as
+topology regularization during GNN training. \textbf{GraphEdit} \citep{guo2024graphedit}
+instruction-tunes an LLM to denoise and complete graph structure from a global
+reasoning perspective. \textbf{Locle} \citep{zhang2025leveraging} performs active
+label-free learning with LLM pseudo-labels and includes GNN-guided topology rewiring
+under a fixed query budget. Like our work, these methods acknowledge that observed TAG
+topology may be suboptimal; unlike our work, they rely on LLM rewriting of structure
+or labels rather than scoring edge reliability from DIVERGE's multi-view semantic
+embeddings and lightweight GNN-based uncertainty.
+
+\paragraph{Data generation, label efficiency, and unified pipelines.}
+\textbf{LLM4NG} \citep{Yu2025NodeGenerationTAG} synthesizes labeled nodes and predicted
+edges for few-shot TAG learning. \textbf{GAGA} \citep{hu2025gaga} annotates a small
+representative subset of nodes/edges with an LLM and aligns an annotation graph to the
+full TAG. \textbf{UltraTAG} \citep{yu2025ultratag} modularizes augmentation, encoding,
+and GNN training into a unified robust pipeline. \textbf{SKETCH} \citep{zhou-etal-2025sketch}
+decouples semantic and structural aggregation via retrieval over node texts and distant
+structural contexts. \textbf{TAGA} \citep{zhang2025taga} builds dual Text-of-Graph and
+Graph-of-Text views and aligns them through self-supervised learning. Collectively,
+enhancer methods show that LLMs can improve TAG learning by enriching inputs---often
+at the cost of API fees, hallucination risk, or complex multi-stage pipelines.
+
+
+% ---------------------------------------------------------------------------
+\subsection{Research Gap}
+\label{sec:research-gap}
+% ---------------------------------------------------------------------------
+
+Existing work leaves three gaps that motivate our DIVERGE extensions with semantic
+structure enhancement.
+
+\paragraph{Gap 1: Structure refinement without LLM rewriting.}
+GNN-only GSL methods (ProGNN, IDGL, PTDNet, GPS, GRCN, etc.) demonstrate that edge
+denoising and homophily enhancement benefit message passing, but they generally operate
+on a \emph{single} shallow feature space and jointly optimize one structure--GNN pair.
+LLM enhancers improve TAG inputs by \emph{generating} new text, labels, or topology
+via costly external models. DIVERGE already shows that competitive performance is
+ attainable from \emph{native text alone} when multiple LoRA fine-tunes provide diverse
+semantic views and adaptive ensembling replaces uniform combination
+\citep{he2024harnessing}. We ask whether comparable structural gains can be achieved
+by \emph{refining}---not regenerating---the graph using those same diverse LLM
+embeddings, without additional LLM API calls at enhancement time.
+
+\paragraph{Gap 2: Multi-view semantics for edge scoring.}
+Prior cosine-similarity GSL (notably IDGL) and feature-aware rewiring (GPS, STABLE)
+use one embedding source. DIVERGE produces $M$ representation spaces
+$\{\mathbf{Z}^{(i)}\}_{i=1}^{M}$ from independently initialized LoRA runs, yielding
+$M$ structurally refined graphs $\{\bar{G}_i\}$ rather than a single denoised topology.
+Method~II removes edges whose endpoint embeddings fall below a cosine-similarity
+threshold in each view; Method~III removes edges with highest predictive uncertainty
+from a cross-validated GNN edge predictor. To our knowledge, combining \emph{multi-view
+LLM encoding diversity} with \emph{homophily-oriented edge pruning} in a post-hoc
+enhancer has not been systematically studied for TAG node classification.
+
+\paragraph{Gap 3: Complementarity of similarity-based and uncertainty-based denoising.}
+Cosine pruning (Method~II) is interpretable and directly encodes semantic homophily in
+LLM space, but relies on a fixed similarity threshold. Uncertainty pruning (Method~III)
+is model-driven and captures edges for which relational evidence is ambiguous across
+data splits, aligning with edge-prediction GSL \citep{yu2020grcn,zhao2021gaug} yet
+applied here as a modular step atop DIVERGE rather than as a fully joint rewrite of
+adjacency during a single GNN training run. Our experiments treat both enhancers as
+optional modules that plug into the DIVERGE ensemble, allowing semantic representation
+diversity and structural homophily to be exploited jointly.
+
+\paragraph{Summary of contribution relative to prior work.}
+In contrast to LLM enhancers that augment text or structure through generation
+\citep{he2024harnessing,Sun2026TopologicalEnhancerTAG,guo2024graphedit,zhang2025leveraging},
+and in contrast to classical GSL that denoises graphs from shallow features in a
+single pipeline \citep{jin2020prognn,chen2020idgl,luo2021ptdnet,dong2023gps}, we
+propose a lightweight \textbf{semantic structure enhancer} for DIVERGE: native node
+text is encoded by multiple fine-tuned LLMs; noisy edges are pruned per view by
+cosine similarity or predictive uncertainty; GNNs trained on refined graphs feed an
+adaptive ensemble. This design preserves DIVERGE's no-augmentation philosophy while
+ importing the homophily motivation of graph rewiring literature into the modern
+LLM-on-TAG setting.
+
+
+================================================================================
+OPTIONAL SHORT VERSION (if page limit is strict — ~40% of above)
+================================================================================
+
+\section{Related Works}
+
+TAG learning increasingly relies on LLM encoders and GNN propagation
+\citep{Zhang2024TAGSurvey,Chen2024LLaGA}. DIVERGE fine-tunes an LLM with multiple
+LoRA initializations to obtain diverse encodings of \emph{native} text and combines
+per-view GNNs with adaptive ensembling rather than uniform averaging as in TAPE
+\citep{he2024harnessing}. We extend DIVERGE by refining topology when edges connect
+semantically dissimilar nodes.
+
+\textbf{Graph structure learning.} Methods such as LDS, ProGNN, and IDGL jointly or
+iteratively learn cleaner adjacency matrices \citep{franceschi2019lds,jin2020prognn,chen2020idgl};
+PTDNet and GPS explicitly drop or rewire unreliable edges using node features
+\citep{luo2021ptdnet,dong2023gps}; GRCN and GAug revise structure via learned edge
+predictors \citep{yu2020grcn,zhao2021gaug}. These approaches typically use one shallow
+feature source and entangle structure learning with a single GNN.
+
+\textbf{TAG structure without LLM enhancers.} Early textual-network and citation-graph
+work (VHE, GLCN, GEN) models homophily or estimates structure from text features
+\citep{yang2019vhe,jiang2019glcn,wang2021gen} but does not leverage multi-view LLM
+semantics.
+
+\textbf{LLM enhancers.} TAPE, E-LLaGNN, and NRUP enrich node features
+\citep{he2024harnessing,Jaiswal2024AllAgainstSome,kuang2023unleashing}; RoSE,
+LLM4GraphTopology, GraphEdit, and Locle modify topology or labels via LLMs
+\citep{Sun2026TopologicalEnhancerTAG,guo2024graphedit,zhang2025leveraging}; LLM4NG,
+GAGA, UltraTAG, SKETCH, and TAGA target few-shot, cost-efficient, or unified pipelines
+\citep{Yu2025NodeGenerationTAG,hu2025gaga,yu2025ultratag,zhou-etal-2025sketch,zhang2025taga}.
+Enhancers often require API access, generated content, or complex staging.
+
+\textbf{Gap.} No prior method combines (i) DIVERGE-style multi-view native-text LLM
+encoding, (ii) post-hoc homophily enhancement via cosine or uncertainty edge pruning,
+and (iii) adaptive ensemble learning over both semantic and structural diversity---without
+LLM rewriting of node text or graph structure.

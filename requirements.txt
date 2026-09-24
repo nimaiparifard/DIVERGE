@@ -1,31 +1,41 @@
 # DIVERGE — Python dependencies (from project imports)
 #
-# Install PyTorch first for your CUDA/CPU setup, then PyG wheels that match that torch build:
+# Linux / Colab / RunPod: just run   bash sh_scripts/setup_env.sh
+#   (installs torch + matching PyG wheels, then this file).
+#
+# Manual install — torch first, then PyG wheels that match that torch build:
 #   https://pytorch.org/get-started/locally/
 #   https://pytorch-geometric.readthedocs.io/en/latest/install/installation.html
 #
-# Example (CUDA 12.1 — adjust index URL to your torch version):
-#   pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
-#   pip install pyg_lib torch_scatter torch_sparse torch_cluster torch_spline_conv -f https://data.pyg.org/whl/torch-2.4.0+cu121.html
-#   pip install torch-geometric
+# Known-good combo (the Windows dev machine):  Python 3.13, torch 2.7.1+cu128
+#   pip install torch==2.7.1 --index-url https://download.pytorch.org/whl/cu128
+#   pip install torch_scatter torch_sparse -f https://data.pyg.org/whl/torch-2.7.0+cu128.html
 #   pip install -r requirements.txt
 
 # --- Core deep learning ---
 torch>=2.1.0
 torch-geometric>=2.4.0
+# common/__init__.py imports common/hetero_gnn.py, which imports torch_sparse → required.
+# Install from the PyG wheel index (see above); a plain pip install compiles from source.
 torch-sparse>=0.6.18
 
 # --- LLM fine-tuning (train_llm/, cache/) ---
-transformers>=4.40.0
-peft>=0.11.0
-accelerate>=0.28.0
-bitsandbytes>=0.43.0
+# peft>=0.17: "orthogonal" LoRA init + EVA/LoftQ APIs used by train_llm/peft_model.py
+# transformers>=4.46: Gemma-2 / SmolLM2 / Llama-3.2 sequence classification
+transformers>=4.46.0
+peft>=0.17.0
+accelerate>=1.0.0
+bitsandbytes>=0.45.0
 sentencepiece>=0.2.0
+protobuf>=4.25.0
+safetensors>=0.4.3
+huggingface_hub>=0.34.0
 
 # --- Numerics & ML ---
-numpy>=1.24.0
+numpy>=1.26.0
 scipy>=1.11.0
 scikit-learn>=1.3.0
+pandas>=2.0.0
 
 # --- Config & utilities ---
 yacs>=0.1.8
@@ -38,15 +48,15 @@ seaborn>=0.13.0
 
 # --- Text / graph embeddings ---
 sentence-transformers>=2.6.0
-node2vec>=0.4.6
 networkx>=3.2
-gensim>=4.3.0
 
-# --- Optional: hypothesis testing (experiments/hypothesis_testing_fintuned_unfinetuned.py) ---
-statsmodels>=0.14.0
-
-# --- Optional: LLM text enhancement (experiments/enahnce_textual_embeddings.py) ---
-pydantic>=2.0.0
-langchain-core>=0.2.0
-langchain-ollama>=0.1.0
-langchain-openai>=0.1.0
+# --- Optional (install only if you use them) ---------------------------------
+# Node2Vec shallow features (common/dataloader.py, only when datasets/Node2Vec/<name>.pt
+# is missing). NOTE: gensim pins numpy<2 / old scipy and will downgrade a Colab env.
+#   pip install node2vec gensim
+# UMAP plots (visualize/*, experiments/info_embeddings.py):
+#   pip install umap-learn
+# Hypothesis testing (experiments/hypothesis_testing_fintuned_unfinetuned.py):
+#   pip install statsmodels
+# LLM text enhancement (experiments/enahnce_textual_embeddings.py):
+#   pip install pydantic langchain-core langchain-ollama langchain-openai

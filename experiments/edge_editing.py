@@ -419,8 +419,9 @@ def visualize_edge_editing_results(all_original_results, modified_results, all_m
     print("EDGE EDITING ANALYSIS COMPLETE!")
     print("=" * 80)
 
-def get_best_similarity_threshold(mistakes, dataset, node_embeddings, data_emb, tokenizer, model, device, cfg,  sentence_transformer_used=False, reporter=None, title="", supervised=True, used_mistakes=False):
-    similarities_th_range = np.arange(0.1, 0.95, 0.02)
+def get_best_similarity_threshold(mistakes, dataset, node_embeddings, data_emb, tokenizer, model, device, cfg,  sentence_transformer_used=False, reporter=None, title="", supervised=True, used_mistakes=False,
+                                   seed=None, llm_name=None, threshold_range=None):
+    similarities_th_range = threshold_range if threshold_range is not None else np.arange(0.1, 0.95, 0.02)
     best_acc, best_th, best_modified_dataset, best_stats, best_results, best_model = 0, 0, None, None, None, None
     print(f"Searching for best similarity threshold (testing {len(similarities_th_range)} thresholds)...")
     # Handle tuple from load_graph_dataset_for_tape
@@ -444,6 +445,8 @@ def get_best_similarity_threshold(mistakes, dataset, node_embeddings, data_emb, 
             embedding=data_emb,
             dataset_name=cfg.dataset.name,
             supervised=supervised,
+            seed=seed,
+            llm_name=llm_name,
         )
         if results_mod['val_acc'] > best_acc:
             best_acc = results_mod['test_acc']
@@ -670,10 +673,10 @@ def main(dataset_name, llm_name, peft_type, retrained_with_gnn_mistakes=True, re
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     if not retrained_with_gnn_mistakes:
-        data_pissa, data_orthogonal, data_loftq, data_eva, data_guassian = get_init_dataset_for_gnn(cfg)
+        data_pissa, data_orthogonal, data_guassian, data_loftq, data_eva = get_init_dataset_for_gnn(cfg)
         print("Getting Data Without retrained gnn mistakes")
     else:
-        data_pissa, data_orthogonal, data_loftq, data_eva, data_guassian = get_init_dataset_for_gnn_with_retrained_gnn_mistake(cfg)
+        data_pissa, data_orthogonal, data_guassian, data_loftq, data_eva = get_init_dataset_for_gnn_with_retrained_gnn_mistake(cfg)
         print("Getting Data With retrained gnn mistakes")
     emb_pissa, emb_orthogonal, emb_loftq, emb_eva, emb_guassian = get_embedding_from_data(
         data_pissa), get_embedding_from_data(data_orthogonal), get_embedding_from_data(

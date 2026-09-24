@@ -1,6 +1,12 @@
 from transformers import TrainingArguments
 
 def get_training_config(cfg):
+    # HF default for report_to=None is "all" → prompts wandb/mlflow if installed.
+    # Force disable unless explicitly set to a real integration.
+    report_to = cfg.report_to
+    if report_to is None or report_to == "" or str(report_to).lower() in ("null", "none", "false"):
+        report_to = "none"
+
     training_args = TrainingArguments(
         output_dir=cfg.training_args.output_dir,
         overwrite_output_dir=cfg.training_args.overwrite_output_dir,
@@ -25,7 +31,7 @@ def get_training_config(cfg):
         bf16=cfg.training_args.bf16,
         dataloader_num_workers=cfg.dataloader_num_workers,
         remove_unused_columns=cfg.remove_unused_columns,
-        report_to=cfg.report_to,
+        report_to=report_to,
         dataloader_pin_memory=cfg.dataloader_pin_memory,
         use_cpu=cfg.use_cpu,
     )

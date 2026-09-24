@@ -33,8 +33,16 @@ def get_tokenizer(cfg):
                                               trust_remote_code=cfg.llm.trust_remote_code,
                                               padding_side=cfg.tokenizer.padding_side,
                                               max_length=cfg.tokenizer.max_length)
+    # Causal LMs often lack a pad token; encoder models usually already have one.
     if tokenizer.pad_token is None:
-        tokenizer.pad_token = tokenizer.eos_token
+        if tokenizer.eos_token is not None:
+            tokenizer.pad_token = tokenizer.eos_token
+        elif tokenizer.unk_token is not None:
+            tokenizer.pad_token = tokenizer.unk_token
+        else:
+            tokenizer.add_special_tokens({"pad_token": "[PAD]"})
+    # Keep padding side aligned with config (left for decoder seq-cls, right for encoders)
+    tokenizer.padding_side = cfg.tokenizer.padding_side
     return tokenizer
 
 def get_dataset_path():

@@ -1,0 +1,178 @@
+================================================================================
+REWRITTEN METHODOLOGY — paste into template.tex
+Brief DIVERGE recap + semantic structure enhancement (Methods II & III)
+================================================================================
+
+\section{Methodology}
+\label{sec:methodology}
+
+\subsection{Problem Setup}
+We study node classification on a text-attributed graph
+$G=(V,E,D,Y)$, where $V=\{v_1,\ldots,v_N\}$ is the node set,
+$E\subseteq V\times V$ the edge set, $D=\{d_v\}$ the native node texts,
+and $Y=\{y_v\}$ labels over $C$ classes. The goal is to predict
+$\hat{y}_v$ for unlabeled nodes using both $D$ and $E$ without modifying
+the original documents.
+
+
+% ---------------------------------------------------------------------------
+\subsection{Background: DIVERGE (Brief Recap)}
+\label{sec:diverge-recap}
+% ---------------------------------------------------------------------------
+
+\textbf{DIVERGE} \citep{he2024harnessing} is our base framework. It does \emph{not}
+augment or rewrite node text; instead it builds diversity from repeated
+parameter-efficient fine-tuning of one pre-trained LLM $f(\cdot;\mathbf{W})$ with
+LoRA \citep{Hu2021LoRA}:
+\begin{equation}
+\bar{f}_i(x)=f(x;\mathbf{W}+\mathbf{B}_i\mathbf{A}_i),
+\qquad
+(\mathbf{A}^{(0)}_i,\mathbf{B}^{(0)}_i)\sim\mathcal{I}_i,
+\quad i=1,\ldots,M.
+\label{eq:fbar}
+\end{equation}
+Each run $i$ yields node embeddings $\mathbf{Z}^{(i)}\in\mathbb{R}^{N\times p}$ by
+mean-pooling token hidden states of $\bar{f}_i(d_v)$. A GNN is trained on
+$(G,\mathbf{Z}^{(i)})$ to produce logits $\mathbf{L}^{(i)}$. Finally, an
+\emph{adaptive} ensemble (model-, class-, or per-class MLP weighting) combines
+$\{\mathbf{L}^{(i)}\}_{i=1}^{M}$---unlike uniform averaging in TAPE
+\citep{he2024harnessing}. Algorithm~\ref{alg:diverge-short} summarizes this pipeline;
+our contribution inserts a structure-refinement step \emph{before} each per-view GNN.
+
+
+\begin{algorithm}[t]
+\caption{DIVERGE base pipeline (unchanged text; optional structure refinement)}
+\label{alg:diverge-short}
+\begin{algorithmic}
+\REQUIRE $G=(V,E,D,Y)$, pre-trained LLM $f$, LoRA runs $M$, enhancer $\in\{\emptyset,\ \text{cosine},\ \text{uncertainty}\}$
+\ENSURE Predicted labels $\hat{Y}$
+\FOR{$i=1$ to $M$}
+    \STATE Fine-tune LoRA adapters $\rightarrow$ encoder $\bar{f}_i$ (Eq.~\ref{eq:fbar})
+    \STATE Extract embeddings $\mathbf{Z}^{(i)}$ from native texts $D$
+    \IF{enhancer $=$ cosine}
+        \STATE Build $\bar{G}_i=(V,\bar{E}_i,D,Y)$ by pruning low-similarity edges (Sec.~\ref{sec:cosine-enhancer})
+    \ELSIF{enhancer $=$ uncertainty}
+        \STATE Build $\bar{G}_i=(V,\bar{E}_i,D,Y)$ by pruning high-uncertainty edges (Sec.~\ref{sec:uncertainty-enhancer})
+    \ELSE
+        \STATE $\bar{G}_i \leftarrow G$
+    \ENDIF
+    \STATE Train GNN on $(\bar{G}_i,\mathbf{Z}^{(i)})$; collect logits $\mathbf{L}^{(i)}$
+\ENDFOR
+\STATE Adaptive ensemble over $\{\mathbf{L}^{(i)}\}$ $\rightarrow$ $\hat{Y}$
+\end{algorithmic}
+\end{algorithm}
+
+
+% ---------------------------------------------------------------------------
+\subsection{Semantic Structure Enhancement}
+\label{sec:structure-enhancer}
+% ---------------------------------------------------------------------------
+
+\textbf{Motivation.} LLM embeddings from DIVERGE encode semantic similarity: linked
+nodes are often, but not always, close in embedding space. Noisy or rule-induced
+edges between dissimilar nodes violate homophily and hurt GNN message passing
+\citep{jin2020prognn,chen2020idgl}. We therefore refine $G$ into
+$\bar{G}=(V,\bar{E},D,Y)$ with $\bar{E}\subseteq E$ by removing unreliable edges
+\emph{before} training each view-specific GNN. Refinement is applied independently
+for each embedding $\mathbf{Z}^{(i)}$, yielding
+$\mathcal{G}=\{\bar{G}_i\}_{i=1}^{M}$ and models
+$\{\mathrm{GNN}_i(\bar{G}_i,\mathbf{Z}^{(i)})\}_{i=1}^{M}$.
+Node texts and features are never altered; only topology changes.
+
+
+% ---------------------------------------------------------------------------
+\subsection{Method II: Cosine-Similarity Edge Pruning}
+\label{sec:cosine-enhancer}
+% ---------------------------------------------------------------------------
+
+For view $i$, let $\mathbf{z}^{(i)}_u$ denote the embedding of node $v_u$ from
+$\mathbf{Z}^{(i)}$. For each edge $(v_u,v_v)\in E$, define cosine similarity
+\begin{equation}
+\mathrm{sim}^{(i)}_{uv}=
+\frac{\mathbf{z}^{(i)\top}_u\,\mathbf{z}^{(i)}_v}
+{\|\mathbf{z}^{(i)}_u\|_2\,\|\mathbf{z}^{(i)}_v\|_2}.
+\label{eq:cosine_similarity}
+\end{equation}
+Given threshold $T_i\in[-1,1]$, the refined edge set is
+\begin{equation}
+\bar{E}_i=\{(v_u,v_v)\in E:\ \mathrm{sim}^{(i)}_{uv}\ge T_i\}.
+\label{eq:cosine_prune}
+\end{equation}
+Edges with $\mathrm{sim}^{(i)}_{uv}<T_i$ are treated as semantically inconsistent
+(noisy) and removed. Threshold $T_i$ is tuned on validation data (sensitivity analysis
+in Section~\ref{sec:experiments}). This is a post-hoc, view-specific analogue of
+similarity-based graph structure learning \citep{chen2020idgl} applied to LLM
+embeddings rather than jointly learned shallow features.
+
+
+% ---------------------------------------------------------------------------
+\subsection{Method III: Uncertainty-Based Edge Pruning}
+\label{sec:uncertainty-enhancer}
+% ---------------------------------------------------------------------------
+
+Cosine pruning uses static embedding distance; uncertainty pruning targets edges
+whose \emph{existence} is ambiguous under a relational model.
+
+\paragraph{Edge predictor.}
+An encoder GNN maps node features (from $\mathbf{Z}^{(i)}$ or initial GNN states
+$h_u$) to representations $\mathbf{z}_u=\mathrm{GNN}(h_u)$. A decoder MLP outputs
+edge existence probability
+\begin{equation}
+p_{ij}=\mathrm{MLP}(\mathbf{z}_i,\mathbf{z}_j),
+\label{eq:edge_probability}
+\end{equation}
+trained with binary cross-entropy on observed edges in $E$.
+
+\paragraph{Uncertainty.}
+The predictor is retrained on $M_{\mathrm{cv}}$ bootstrap/cross-validation splits,
+giving probabilities $\{p_{ij}^{(m)}\}_{m=1}^{M_{\mathrm{cv}}}$ per edge. We use
+either standard deviation
+\begin{equation}
+U_{ij}^{\mathrm{std}}=
+\sqrt{\tfrac{1}{M_{\mathrm{cv}}}\textstyle\sum_m\big(p_{ij}^{(m)}-\mu_{ij}\big)^2},
+\qquad
+\mu_{ij}=\tfrac{1}{M_{\mathrm{cv}}}\textstyle\sum_m p_{ij}^{(m)},
+\label{eq:std_uncertainty}
+\end{equation}
+or entropy $U_{ij}^{\mathrm{ent}}=-\sum_m p_{ij}^{(m)}\log p_{ij}^{(m)}$.
+High $U_{ij}$ indicates an unreliable edge.
+
+\paragraph{Pruning strategies.}
+Two rules remove noisy edges from $E$:
+\begin{itemize}
+\item \textbf{Top-$k$\%:} remove the $k$\% of edges with highest $U_{ij}$.
+\item \textbf{Threshold:} remove edges with $U_{ij}>T$.
+\end{itemize}
+The result is $\bar{G}_i=(V,\bar{E}_i,D,Y)$ as in Eq.~\eqref{eq:cosine_prune}.
+As with Method~II, each LLM view $i$ can induce a different $\bar{E}_i$; GNNs and
+the DIVERGE ensemble proceed unchanged on the refined graphs.
+
+
+% ---------------------------------------------------------------------------
+\subsection{Overall Pipeline and Complexity}
+\label{sec:pipeline-summary}
+% ---------------------------------------------------------------------------
+
+\textbf{Pipeline.} (1)~$M$ LoRA fine-tunes on native text $\rightarrow$
+$\mathbf{Z}^{(i)}$; (2)~optional structure refinement
+$\bar{G}_i$ via Method~II or III; (3)~$M$ GNNs on
+$(\bar{G}_i,\mathbf{Z}^{(i)})$; (4)~adaptive ensemble over logits.
+
+\textbf{Design choices.} Methods~II and III are modular and mutually exclusive per
+experiment (or combinable in future work). Neither calls external LLM APIs for
+structure editing. Method~II is simpler and directly encodes semantic homophily;
+Method~III is model-driven and better suited when relational ambiguity dominates
+\citep{yu2020grcn,zhao2021gaug}.
+
+\textbf{Cost.} Over DIVERGE, Method~II adds $O(|E|)$ similarity checks per view;
+Method~III adds $M_{\mathrm{cv}}$ edge-predictor training runs---typically small
+relative to $M$ LoRA fine-tunes.
+
+
+================================================================================
+NOTES (do not paste into paper)
+================================================================================
+- Replaces verbose "Previous Method Diverge" + "Methodology Enhancing Diverge" blocks
+- Keep full DIVERGE ensemble equations in appendix or cite prior DIVERGE paper if published separately
+- Suggested template.tex labels: sec:methodology, sec:diverge-recap, sec:cosine-enhancer,
+  sec:uncertainty-enhancer, sec:experiments (for threshold tuning cross-ref)

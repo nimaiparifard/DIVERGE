@@ -6,14 +6,19 @@ import torch
 import os
 
 
-def get_init_dataset_for_gnn(cfg, supervised=True):
+def get_init_dataset_for_gnn(cfg, supervised=True, seed=None):
     """
     Load initial datasets for GNN training with different initialization methods.
-    
+
     Args:
         cfg: Configuration object with dataset and model settings
         supervised: If True, load supervised datasets; if False, load semi-supervised datasets
-        
+        seed: Seed the LoRA adapter/embedding cache was trained/saved with (matches the
+              --seed used in train_llm/train_other_lora_init_apporaches.py and
+              cache/cache_embedding_with_diffrent_init_weights.py). If None, falls back to
+              cfg.dataset.seed, and finally to the legacy (no-seed) cache filename for
+              backwards compatibility with caches generated before seed support was added.
+
     Returns:
         tuple: (data_pissa, data_orthogonal, data_guassian, data_loftq, data_eva)
     """
@@ -50,7 +55,8 @@ def get_init_dataset_for_gnn(cfg, supervised=True):
     # Build file paths based on supervised flag, with fallback to base names
     suffix = '_semi_supervised' if not supervised else ''
     base_name = f'{cfg.llm.model_name}_{cfg.dataset.name}_seqcls_{cfg.peft.type}'
-    
+    resolved_seed = seed if seed is not None else getattr(cfg.dataset, 'seed', None)
+
     init_types = {
         'pissa': 'pissa',
         'orthogonal': 'orthogonal',
@@ -58,12 +64,18 @@ def get_init_dataset_for_gnn(cfg, supervised=True):
         'eva': 'eva',
         'guassian': 'gaussian',
     }
-    
+
     data_paths = {}
     for key, init_name in init_types.items():
-        suffixed = os.path.join(cache_dir, f'{base_name}_init-{init_name}_pool-mean{suffix}.pt')
-        base = os.path.join(cache_dir, f'{base_name}_init-{init_name}_pool-mean.pt')
-        data_paths[key] = suffixed if os.path.exists(suffixed) else base
+        # Preference order: seed-tagged semi-supervised cache (current format) ->
+        # legacy semi-supervised cache without seed (pre-seed-support caches) ->
+        # supervised base cache (no seed / no semi-supervised suffix at all)
+        candidates = []
+        if not supervised and resolved_seed is not None:
+            candidates.append(os.path.join(cache_dir, f'{base_name}_init-{init_name}_pool-mean_seed{resolved_seed}{suffix}.pt'))
+        candidates.append(os.path.join(cache_dir, f'{base_name}_init-{init_name}_pool-mean{suffix}.pt'))
+        candidates.append(os.path.join(cache_dir, f'{base_name}_init-{init_name}_pool-mean.pt'))
+        data_paths[key] = next((p for p in candidates if os.path.exists(p)), candidates[0])
     
     data_path_pissa = data_paths['pissa']
     data_path_orthogonal = data_paths['orthogonal']
@@ -82,7 +94,8 @@ def get_init_dataset_for_gnn(cfg, supervised=True):
             f"Missing required cache files:\n" + "\n".join(missing_files) +
             f"\n\nCache directory: {cache_dir}\n"
             f"Supervised mode: {supervised}\n"
-            f"Please ensure these files exist or generate them first."
+            f"Seed: {resolved_seed}\n"
+            f"Please ensure these files exist or generate them first (see cache/cache_embedding_with_diffrent_init_weights.py --seed)."
         )
     
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')

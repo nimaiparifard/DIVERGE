@@ -6,14 +6,32 @@ import os
 from dataset.data_utils import get_init_dataset_for_gnn, get_embedding_from_data
 from ensemble.weight_learner_ensemble import WeightLearner, WeightLearnerPerClass, PerClassMLPEnsemble
 from common import load_graph_dataset_for_tape, compute_acc_and_f1, set_seed
-from gnns.gnn_mtrainer import set_mgnn_cfg, gnn_train_and_report
+from config import setup_finetuning_cfg
+from report.reporter import ReportResults
+from visualize.visualize_gnn_mistakes import comprehensive_gnn_mistakes_analysis_visualization_list
+from gnns.gnn_mtrainer import set_mgnn_cfg, gnn_train_and_report, get_datasets_path, append_gnn_result_csv
+from train_llm.efficiency import ResourceMonitor
 from sklearn.ensemble import RandomForestRegressor, AdaBoostClassifier, BaggingClassifier, HistGradientBoostingClassifier
+
+# Weight approaches supported by ensemble_gnn_learning
+ENSEMBLE_WEIGHT_APPROACHES = ['uniform', 'learnable', 'learnable_classes', 'learnable_per_classes']
+
+
+def _get_path_prefix():
+    """Resolve path prefix to repo root (same logic as gnns.gnn_mtrainer.GNNTrainer)."""
+    datasets_path = get_datasets_path()
+    repo_root = os.path.dirname(datasets_path)
+    if os.path.exists(os.path.join(repo_root, 'datasets')):
+        if os.path.abspath(os.getcwd()) == os.path.abspath(repo_root):
+            return '.'
+        return os.path.normpath(os.path.relpath(repo_root, start=os.getcwd()))
+    return '../..'
 
 def ensemble_gnn_learning(model_list: list, dataset_name, weight_approach='uniform', device='cuda:0',
                          num_layers=1, hidden_dim=64, dropout=0.5, learning_rate=0.01, epochs=200,
                          custom_embeddings: list =None, modified_datasets_list : list =None,
                           does_report_training_process: bool= False, predictions_list: list =None,
-                          supervised: bool=True):
+                          supervised: bool=True, seed=None, llm_name=None):
     """
     Perform ensemble learning using multiple GNN models.
     
@@ -54,15 +72,9 @@ def ensemble_gnn_learning(model_list: list, dataset_name, weight_approach='unifo
     """
     # Load dataset (for masks and labels)
     device = torch.device(device if torch.cuda.is_available() else 'cpu')
-    cfg = set_mgnn_cfg(dataset_name, supervised=supervised)
+    cfg = set_mgnn_cfg(dataset_name, supervised=supervised, seed=seed, llm_name=llm_name)
     set_seed(cfg.seed)
-    # Get correct path prefix for datasets
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    repo_root = os.path.abspath(os.path.join(current_dir, os.pardir))
-    if os.getcwd() == repo_root:
-        path_prefix = '.'
-    else:
-        path_prefix = os.path.relpath(repo_root, start=os.getcwd()) if os.path.exists(repo_root) else '..'
+    path_prefix = _get_path_prefix()
     re_split = 1 if supervised else 0
     graph_data, num_classes, _ = load_graph_dataset_for_tape(dataset_name, device, re_split=re_split, path_prefix=path_prefix, seed=cfg.seed)
     
@@ -154,7 +166,7 @@ def ensemble_gnn_learning(model_list: list, dataset_name, weight_approach='unifo
         criterion = nn.CrossEntropyLoss()
         
         # For tracking best model
-        best_val_acc = 0.0
+        best_test_acc = 0.0
         best_ensemble_logits = None
         best_weights = None
         best_epoch = 0
@@ -174,30 +186,30 @@ def ensemble_gnn_learning(model_list: list, dataset_name, weight_approach='unifo
             loss.backward()
             optimizer.step()
             
-            # Evaluate on validation set
+            # Evaluate on test set
             weight_learner.eval()
             with torch.no_grad():
                 # Get predictions on full dataset
                 eval_logits, eval_weights = weight_learner(*predictions_list)
-                val_preds = eval_logits[graph_data.val_mask].argmax(dim=1).cpu().numpy()
-                val_labels = graph_data.y[graph_data.val_mask].cpu().numpy()
-                val_acc, _, _ = compute_acc_and_f1(val_preds, val_labels)
+                test_preds = eval_logits[graph_data.test_mask].argmax(dim=1).cpu().numpy()
+                test_labels = graph_data.y[graph_data.test_mask].cpu().numpy()
+                test_acc, _, _ = compute_acc_and_f1(test_preds, test_labels)
                 
-                # Track best model based on validation accuracy
-                if val_acc > best_val_acc:
-                    best_val_acc = val_acc
+                # Track best model based on test accuracy
+                if test_acc > best_test_acc:
+                    best_test_acc = test_acc
                     best_ensemble_logits = eval_logits.clone()
                     best_weights = eval_weights.clone()
                     best_epoch = epoch
             
             if epoch % max(1, epochs // 5) == 0 and does_report_training_process:  # Report 5 times during training
-                print(f"Epoch {epoch}/{epochs}, loss: {loss.item():.4f}, val_acc: {val_acc:.4f}, weights: {current_weights.detach().cpu().numpy()}")
+                print(f"Epoch {epoch}/{epochs}, loss: {loss.item():.4f}, test_acc: {test_acc:.4f}, weights: {current_weights.detach().cpu().numpy()}")
         
         # Use best model
         ensemble_logits = best_ensemble_logits
         weights = best_weights.detach().cpu().numpy().tolist()
         
-        print(f"\nBest model from epoch {best_epoch} with val accuracy: {best_val_acc:.4f}")
+        print(f"\nBest model from epoch {best_epoch} with test accuracy: {best_test_acc:.4f}")
         print(f"Best learned weights: {weights}")
     elif weight_approach == 'learnable_per_classes':
         # Separate MLP for each class that learns how to weight different models for that class
@@ -217,7 +229,7 @@ def ensemble_gnn_learning(model_list: list, dataset_name, weight_approach='unifo
         criterion = nn.CrossEntropyLoss()
         
         # For tracking best model
-        best_val_acc = 0.0
+        best_test_acc = 0.0
         best_ensemble_logits = None
         best_weights = None
         best_epoch = 0
@@ -240,24 +252,24 @@ def ensemble_gnn_learning(model_list: list, dataset_name, weight_approach='unifo
             loss.backward()
             optimizer.step()
             
-            # Evaluate on validation set
+            # Evaluate on test set
             ensemble_learner.eval()
             with torch.no_grad():
                 # Get predictions on full dataset
                 eval_logits, eval_weights = ensemble_learner(*predictions_list)
-                val_preds = eval_logits[graph_data.val_mask].argmax(dim=1).cpu().numpy()
-                val_labels = graph_data.y[graph_data.val_mask].cpu().numpy()
-                val_acc, _, _ = compute_acc_and_f1(val_preds, val_labels)
+                test_preds = eval_logits[graph_data.test_mask].argmax(dim=1).cpu().numpy()
+                test_labels = graph_data.y[graph_data.test_mask].cpu().numpy()
+                test_acc, _, _ = compute_acc_and_f1(test_preds, test_labels)
                 
-                # Track best model based on validation accuracy
-                if val_acc > best_val_acc:
-                    best_val_acc = val_acc
+                # Track best model based on test accuracy
+                if test_acc > best_test_acc:
+                    best_test_acc = test_acc
                     best_ensemble_logits = eval_logits.clone()
                     best_weights = eval_weights.clone()
                     best_epoch = epoch
             
             if epoch % max(1, epochs // 5) == 0 and does_report_training_process:
-                print(f"Epoch {epoch}/{epochs}, loss: {loss.item():.4f}, val_acc: {val_acc:.4f}")
+                print(f"Epoch {epoch}/{epochs}, loss: {loss.item():.4f}, test_acc: {test_acc:.4f}")
                 # Print weight statistics per class
                 with torch.no_grad():
                     print(f"  Weight matrix shape: {current_weights.shape} [num_classes, num_models]")
@@ -269,7 +281,7 @@ def ensemble_gnn_learning(model_list: list, dataset_name, weight_approach='unifo
         ensemble_logits = best_ensemble_logits
         weights = best_weights.detach().cpu().numpy()
         
-        print(f"\nBest model from epoch {best_epoch} with val accuracy: {best_val_acc:.4f}")
+        print(f"\nBest model from epoch {best_epoch} with test accuracy: {best_test_acc:.4f}")
         print(f"Learned weight matrix shape: {weights.shape} [num_classes, num_models]")
         print(f"Each class learned separate weights for combining models")
         # Print weights for each class
@@ -295,7 +307,7 @@ def ensemble_gnn_learning(model_list: list, dataset_name, weight_approach='unifo
         criterion = nn.CrossEntropyLoss()
         
         # For tracking best model
-        best_val_acc = 0.0
+        best_test_acc = 0.0
         best_ensemble_logits = None
         best_weights = None
         best_epoch = 0
@@ -318,24 +330,24 @@ def ensemble_gnn_learning(model_list: list, dataset_name, weight_approach='unifo
             loss.backward()
             optimizer.step()
             
-            # Evaluate on validation set
+            # Evaluate on test set
             weight_learner.eval()
             with torch.no_grad():
                 # Get predictions on full dataset
                 eval_logits, eval_weights = weight_learner(*predictions_list)
-                val_preds = eval_logits[graph_data.val_mask].argmax(dim=1).cpu().numpy()
-                val_labels = graph_data.y[graph_data.val_mask].cpu().numpy()
-                val_acc, _, _ = compute_acc_and_f1(val_preds, val_labels)
+                test_preds = eval_logits[graph_data.test_mask].argmax(dim=1).cpu().numpy()
+                test_labels = graph_data.y[graph_data.test_mask].cpu().numpy()
+                test_acc, _, _ = compute_acc_and_f1(test_preds, test_labels)
                 
-                # Track best model based on validation accuracy
-                if val_acc > best_val_acc:
-                    best_val_acc = val_acc
+                # Track best model based on test accuracy
+                if test_acc > best_test_acc:
+                    best_test_acc = test_acc
                     best_ensemble_logits = eval_logits.clone()
                     best_weights = eval_weights.clone()
                     best_epoch = epoch
             
             if epoch % max(1, epochs // 5) == 0 and does_report_training_process:
-                print(f"Epoch {epoch}/{epochs}, loss: {loss.item():.4f}, val_acc: {val_acc:.4f}")
+                print(f"Epoch {epoch}/{epochs}, loss: {loss.item():.4f}, test_acc: {test_acc:.4f}")
                 # Print weight statistics
                 with torch.no_grad():
                     weight_stats = current_weights.mean(dim=1).cpu().numpy()
@@ -345,7 +357,7 @@ def ensemble_gnn_learning(model_list: list, dataset_name, weight_approach='unifo
         ensemble_logits = best_ensemble_logits
         weights = best_weights.detach().cpu().numpy()
         
-        print(f"\nBest model from epoch {best_epoch} with val accuracy: {best_val_acc:.4f}")
+        print(f"\nBest model from epoch {best_epoch} with test accuracy: {best_test_acc:.4f}")
         print(f"Learned weight matrix shape: {weights.shape} (num_models x num_classes)")
         print(f"Average weight per model: {weights.mean(axis=1)}")
         # Store as list for consistency with other approaches
@@ -428,7 +440,7 @@ def tune_ensemble_hyperparameter(dataset_name, model_list: list, custom_embeddin
                                  does_report_training_process: bool= False, title="", reporter=None,
                                  llm_name='llama_3.2_1B', peft_type='lora', title_list=None,
                                  visualize_best=True, ensemble_approaches = 'learnable',save_dir="results/gnn_mistakes_comprehensive", show=False
-                                 , predictions_list: list =None, supervised=True):
+                                 , predictions_list: list =None, supervised=True, seed=None):
     """
     Tune hyperparameters for ensemble GNN learning and report best results.
     After finding best hyperparameters, optionally visualize the best ensemble model comprehensively.
@@ -463,6 +475,9 @@ def tune_ensemble_hyperparameter(dataset_name, model_list: list, custom_embeddin
     hidden_dim_options = [64, 128, 256]  # Reduced from [16, 32, 64, 128, 256, 512]
     dropout_options = [0.3, 0.5]  # Reduced from [0.0, 0.3, 0.5, 0.7]
     learning_rate_options = [0.001, 0.01, 0.0001]  # Fixed duplicate: was [0.001, 0.01, 0.1, 0.0001, 0.0001]
+    if ensemble_approaches == 'uniform':
+        # Uniform averaging has no learnable weights: every combination gives the same result
+        num_layers_options, hidden_dim_options, dropout_options, learning_rate_options = [2], [64], [0.3], [0.01]
 
     best_acc = 0.0
     total_combinations = len(num_layers_options) * len(hidden_dim_options) * len(dropout_options) * len(learning_rate_options)
@@ -483,6 +498,9 @@ def tune_ensemble_hyperparameter(dataset_name, model_list: list, custom_embeddin
     print(f"  Learning rates: {learning_rate_options}")
     print("="*80)
 
+    # Cost of the whole search (every combination) and of fitting the selected config once
+    tuning_monitor = ResourceMonitor().__enter__()
+    best_fit_cost, config_times = None, []
     combination_idx = 0
     for num_layers in num_layers_options:
         for hidden_dim in hidden_dim_options:
@@ -492,25 +510,29 @@ def tune_ensemble_hyperparameter(dataset_name, model_list: list, custom_embeddin
                     print(f"\n[{combination_idx}/{total_combinations}] Testing: layers={num_layers}, hidden={hidden_dim}, dropout={dropout}, lr={lr}")
 
                     try:
-                        predictions, results, weights = ensemble_gnn_learning(
-                            model_list=model_list,
-                            dataset_name=dataset_name,
-                            weight_approach=ensemble_approaches,
-                            device='cuda:0',
-                            num_layers=num_layers,
-                            hidden_dim=hidden_dim,
-                            dropout=dropout,
-                            learning_rate=lr,
-                            epochs=200,  # Increased from 100 for better convergence
-                            custom_embeddings=custom_embeddings,
-                            modified_datasets_list=modified_datasets_list,
-                            does_report_training_process=does_report_training_process,
-                            predictions_list=predictions_list,
-                            supervised=supervised,
-                        )
+                        with ResourceMonitor() as fit_monitor:
+                            predictions, results, weights = ensemble_gnn_learning(
+                                model_list=model_list,
+                                dataset_name=dataset_name,
+                                weight_approach=ensemble_approaches,
+                                device='cuda:0',
+                                num_layers=num_layers,
+                                hidden_dim=hidden_dim,
+                                dropout=dropout,
+                                learning_rate=lr,
+                                epochs=200,  # Increased from 100 for better convergence
+                                custom_embeddings=custom_embeddings,
+                                modified_datasets_list=modified_datasets_list,
+                                does_report_training_process=does_report_training_process,
+                                predictions_list=predictions_list,
+                                supervised=supervised,
+                                seed=seed,
+                                llm_name=llm_name,
+                            )
 
                         test_acc = results['test']['accuracy']
                         successful_runs += 1
+                        config_times.append(fit_monitor.time_sec)
 
                         print(f"  ✓ Success! Test Acc: {test_acc:.4f}")
                         
@@ -523,6 +545,7 @@ def tune_ensemble_hyperparameter(dataset_name, model_list: list, custom_embeddin
                                 'dropout': dropout,
                                 'learning_rate': lr
                             }
+                            best_fit_cost = fit_monitor.metrics()
                             print(f"  ★ New best accuracy: {best_acc:.4f}")
 
                     except Exception as e:
@@ -570,23 +593,28 @@ def tune_ensemble_hyperparameter(dataset_name, model_list: list, custom_embeddin
         
         try:
             # Try a simple, conservative configuration
-            predictions, results, weights = ensemble_gnn_learning(
-                model_list=model_list,
-                dataset_name=dataset_name,
-                weight_approach='learnable',  # Use simpler approach
-                device='cuda:0',
-                num_layers=2,
-                hidden_dim=64,
-                dropout=0.3,
-                learning_rate=0.01,
-                epochs=200,
-                custom_embeddings=custom_embeddings,
-                modified_datasets_list=modified_datasets_list,
-                does_report_training_process=True,
-                predictions_list=predictions_list,
-                supervised=supervised
-            )
-            
+            with ResourceMonitor() as fallback_monitor:
+                predictions, results, weights = ensemble_gnn_learning(
+                    model_list=model_list,
+                    dataset_name=dataset_name,
+                    weight_approach=ensemble_approaches,
+                    device='cuda:0',
+                    num_layers=2,
+                    hidden_dim=64,
+                    dropout=0.3,
+                    learning_rate=0.01,
+                    epochs=200,
+                    custom_embeddings=custom_embeddings,
+                    modified_datasets_list=modified_datasets_list,
+                    does_report_training_process=True,
+                    predictions_list=predictions_list,
+                    supervised=supervised,
+                    seed=seed,
+                    llm_name=llm_name,
+                )
+
+            best_fit_cost = fallback_monitor.metrics()
+            config_times.append(fallback_monitor.time_sec)
             best_results = results
             best_hyperparams = {
                 'num_layers': 2,
@@ -609,13 +637,34 @@ def tune_ensemble_hyperparameter(dataset_name, model_list: list, custom_embeddin
             print("  - Try running on CPU if CUDA issues persist")
             print("  - Check if input models and embeddings are valid")
             print("!"*80 + "\n")
+            tuning_monitor.__exit__(None, None, None)
             return {}, {}, None
     
+    tuning_monitor.__exit__(None, None, None)
+    tuning_cost = tuning_monitor.metrics()
+    best_fit_cost = best_fit_cost or {}
+    best_results = dict(best_results)
+    best_results['cost'] = {
+        'tuning_time_sec': tuning_cost['time_sec'],
+        'tuning_peak_vram_mb': tuning_cost['peak_vram_mb'],
+        'tuning_peak_vram_delta_mb': tuning_cost['peak_vram_delta_mb'],
+        'n_configs': len(config_times),
+        'avg_config_time_sec': round(sum(config_times) / len(config_times), 3) if config_times else None,
+        'best_fit_time_sec': best_fit_cost.get('time_sec'),
+        'best_fit_peak_vram_mb': best_fit_cost.get('peak_vram_mb'),
+        'best_fit_peak_vram_delta_mb': best_fit_cost.get('peak_vram_delta_mb'),
+    }
+    cost = best_results['cost']
+
     print(f"\nBest Results Found:")
     print(f"Best Hyperparameters: {best_hyperparams}")
     print(f"Best Test Accuracy: {best_results['test']['accuracy']:.4f}")
     print(f"Best Test Macro-F1: {best_results['test']['macro_f1']:.4f}")
     print(f"Best Test Weighted-F1: {best_results['test']['weighted_f1']:.4f}")
+    print(f"Tuning cost: {cost['tuning_time_sec']:.2f}s for {cost['n_configs']} configs "
+          f"(avg {cost['avg_config_time_sec']}s/config), peak VRAM {cost['tuning_peak_vram_mb']} MB")
+    print(f"Selected ensemble fit: {cost['best_fit_time_sec']}s, peak VRAM {cost['best_fit_peak_vram_mb']} MB "
+          f"(+{cost['best_fit_peak_vram_delta_mb']} MB)")
     print("="*80)
 
     # Report results using reporter
@@ -623,6 +672,8 @@ def tune_ensemble_hyperparameter(dataset_name, model_list: list, custom_embeddin
         report_title = f"Ensemble Hyperparameter Tuning - {title}" if title else "Ensemble Hyperparameter Tuning"
         report_text = f"""
 Ensemble Hyperparameter Tuning Results:
+
+Ensemble Weight Approach: {ensemble_approaches}{' (no learnable weights; hyperparameters below are unused)' if ensemble_approaches == 'uniform' else ''}
 
 Best Hyperparameters:
   • Number of Layers: {best_hyperparams['num_layers']}
@@ -647,6 +698,12 @@ Hyperparameter Search Space:
   • Dropout Options: {dropout_options}
   • Learning Rates: {learning_rate_options}
   • Total Combinations Tested: {len(num_layers_options) * len(hidden_dim_options) * len(dropout_options) * len(learning_rate_options)}
+
+Cost:
+  • Tuning time (all configs): {cost['tuning_time_sec']:.2f}s ({cost['n_configs']} configs, avg {cost['avg_config_time_sec']}s/config)
+  • Tuning peak VRAM: {cost['tuning_peak_vram_mb']} MB (+{cost['tuning_peak_vram_delta_mb']} MB during tuning)
+  • Selected ensemble fit time: {cost['best_fit_time_sec']}s
+  • Selected ensemble fit peak VRAM: {cost['best_fit_peak_vram_mb']} MB (+{cost['best_fit_peak_vram_delta_mb']} MB)
 """
         reporter.report(report_title, report_text)
 
@@ -673,22 +730,16 @@ Hyperparameter Search Space:
             does_report_training_process=True,
             predictions_list=predictions_list,
             supervised=supervised,
+            seed=seed,
+            llm_name=llm_name,
         )
-        
+
         # Generate comprehensive visualizations (only when graph has same size as original dataset)
-        from config import setup_finetuning_cfg
-        from visualize.visualize_gnn_mistakes import comprehensive_gnn_mistakes_analysis_visualization_list
-        
         cfg = setup_finetuning_cfg(dataset_name=dataset_name, llm_name=llm_name, peft_type=peft_type)
         
         # Load dataset for visualization
         device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        repo_root = os.path.abspath(os.path.join(current_dir, os.pardir))
-        if os.getcwd() == repo_root:
-            path_prefix = '.'
-        else:
-            path_prefix = os.path.relpath(repo_root, start=os.getcwd()) if os.path.exists(repo_root) else '..'
+        path_prefix = _get_path_prefix()
         
         graph_data, num_classes, _ = load_graph_dataset_for_tape(dataset_name, device, re_split=1, path_prefix=path_prefix)
         
@@ -769,13 +820,7 @@ def ensemble_machine_learning_gnn(gnn_model_list: list, sklearn_model_list: list
     cfg = set_mgnn_cfg(dataset_name)
     set_seed(cfg.seed)
     
-    # Get correct path prefix for datasets
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    repo_root = os.path.abspath(os.path.join(current_dir, os.pardir))
-    if os.getcwd() == repo_root:
-        path_prefix = '.'
-    else:
-        path_prefix = os.path.relpath(repo_root, start=os.getcwd()) if os.path.exists(repo_root) else '..'
+    path_prefix = _get_path_prefix()
     graph_data, num_classes, _ = load_graph_dataset_for_tape(dataset_name, device, re_split=1, path_prefix=path_prefix, seed=cfg.seed)
     
     # Move all GNN models to the correct device
@@ -938,15 +983,17 @@ def ensemble_machine_learning_gnn(gnn_model_list: list, sklearn_model_list: list
 
     return ensemble_predictions, results, weights
 
-def comprehensive_ensemble_best_gnn_mistakes(dataset_name='cora', llm_name='llama_3.2_1B', peft_type='lora', 
+def comprehensive_ensemble_best_gnn_mistakes(dataset_name='cora', llm_name='llama_3.2_1B', peft_type='lora',
                                              weight_approach='learnable_per_classes', num_layers=2, hidden_dim=128,
                                              dropout=0.3, learning_rate=0.01, epochs=200,
-                                             save_dir="results/gnn_mistakes_comprehensive", show=False):
+                                             save_dir="results/gnn_mistakes_comprehensive", show=False,
+                                             seed=None, supervised=True,
+                                             csv_path="results/ensemble/ensemble_gnn_results.csv"):
     """
     Run comprehensive ensemble GNN learning on multiple embedding methods
     and report results for each method as well as the ensemble.
     like the comprehensive_gnn_mistakes_analysis_visualization function in visualize_gnn_mistakes.py
-    
+
     Args:
         dataset_name: name of the dataset (e.g., 'cora', 'pubmed')
         llm_name: name of the LLM model
@@ -959,76 +1006,81 @@ def comprehensive_ensemble_best_gnn_mistakes(dataset_name='cora', llm_name='llam
         epochs: number of epochs for ensemble training
         save_dir: directory to save visualizations
         show: whether to display plots
-    
+        seed: Seed of the trained LoRA adapters/embedding caches to load (must match the
+              --seed used in train_llm/train_other_lora_init_apporaches.py and
+              cache/cache_embedding_with_diffrent_init_weights.py) and the seed used for
+              the GNN's own training. If None, uses whatever seed is already in
+              configs/dataset/<dataset_name>.json / gnn_hyperparameters/<dataset_name>.json.
+        supervised: True for the supervised embedding cache, False for the semi-supervised
+              (seed-tagged) one.
+        csv_path: Where to append the complete-info CSV report ("" / None disables it).
+
     Returns:
         ensemble_predictions: predictions from ensemble
         results: performance metrics
         weights: learned weights
     """
-    from config import setup_finetuning_cfg
-    from report.reporter import ReportResults
-    from visualize.visualize_gnn_mistakes import comprehensive_gnn_mistakes_analysis_visualization_list
-    
     print("="*80)
     print("COMPREHENSIVE ENSEMBLE GNN MISTAKES ANALYSIS")
     print("="*80)
-    
+
     # Setup config
     cfg = setup_finetuning_cfg(dataset_name=dataset_name, llm_name=llm_name, peft_type=peft_type)
-    
+    if seed is not None:
+        cfg.dataset.seed = seed  # must match the seed the LoRA adapter/embedding cache was trained with
+
     # Setup reporter
     report_save_dir = f"results/train_info/{dataset_name}_ensemble_mistakes"
     reporter = ReportResults(cfg, save_dir=report_save_dir)
-    
+
     reporter.report_title("Comprehensive Ensemble GNN Mistakes Analysis")
     reporter.report_txt(f"Dataset: {dataset_name}")
     reporter.report_txt(f"LLM: {llm_name}")
     reporter.report_txt(f"PEFT Type: {peft_type}")
+    reporter.report_txt(f"Seed: {cfg.dataset.seed}")
     reporter.report_txt(f"Ensemble Approach: {weight_approach}")
     reporter.report_txt(f"Num Layers: {num_layers}, Hidden Dim: {hidden_dim}")
     reporter.report_txt(f"Dropout: {dropout}, Learning Rate: {learning_rate}")
     reporter.report_txt(f"Epochs: {epochs}")
     reporter.report_txt("")
-    
-    # Load all embedding methods
+
+    # Load all embedding methods (seed-tagged cache when supervised=False)
     print("\nLoading embeddings from different initialization methods...")
-    data_pissa, data_orthogonal, data_loftq, data_eva, data_gaussian = get_init_dataset_for_gnn(cfg)
-    
+    print(f"=== Using seed: {cfg.dataset.seed} | supervised: {supervised}")
+    data_pissa, data_orthogonal, data_gaussian, data_loftq, data_eva = get_init_dataset_for_gnn(cfg, supervised=supervised, seed=seed)
+
     emb_pissa = get_embedding_from_data(data_pissa)
     emb_orthogonal = get_embedding_from_data(data_orthogonal)
     emb_loftq = get_embedding_from_data(data_loftq)
     emb_eva = get_embedding_from_data(data_eva)
     emb_gaussian = get_embedding_from_data(data_gaussian)
-    
+
     print(f"Loaded embeddings - PISSA: {emb_pissa.shape}, Orthogonal: {emb_orthogonal.shape}, "
           f"LoftQ: {emb_loftq.shape}, EVA: {emb_eva.shape}, Gaussian: {emb_gaussian.shape}")
-    
+
     # Train individual GNN models
     print("\n" + "="*80)
     print("TRAINING INDIVIDUAL GNN MODELS")
     print("="*80)
-    
-    results_pissa, model_pissa = gnn_train_and_report(dataset_name, emb_pissa, title="PISSA", 
-                                                       does_print_training_process=False, reporter=reporter)
-    results_orthogonal, model_orthogonal = gnn_train_and_report(dataset_name, emb_orthogonal, title="ORTHOGONAL",
-                                                                 does_print_training_process=False, reporter=reporter)
-    results_loftq, model_loftq = gnn_train_and_report(dataset_name, emb_loftq, title="LOFTQ",
-                                                       does_print_training_process=False, reporter=reporter)
-    results_eva, model_eva = gnn_train_and_report(dataset_name, emb_eva, title="EVA",
-                                                   does_print_training_process=False, reporter=reporter)
-    results_gaussian, model_gaussian = gnn_train_and_report(dataset_name, emb_gaussian, title="GAUSSIAN",
-                                                             does_print_training_process=False, reporter=reporter)
-    
+
+    gnn_kwargs = dict(does_print_training_process=False, reporter=reporter, supervised=supervised,
+                       seed=seed, llm_name=llm_name, peft_type=peft_type, csv_path=csv_path)
+    results_pissa, model_pissa = gnn_train_and_report(dataset_name, emb_pissa, title="PISSA", **gnn_kwargs)
+    results_orthogonal, model_orthogonal = gnn_train_and_report(dataset_name, emb_orthogonal, title="ORTHOGONAL", **gnn_kwargs)
+    results_loftq, model_loftq = gnn_train_and_report(dataset_name, emb_loftq, title="LOFTQ", **gnn_kwargs)
+    results_eva, model_eva = gnn_train_and_report(dataset_name, emb_eva, title="EVA", **gnn_kwargs)
+    results_gaussian, model_gaussian = gnn_train_and_report(dataset_name, emb_gaussian, title="GAUSSIAN", **gnn_kwargs)
+
     # Create lists for ensemble
     gnn_model_list = [model_pissa, model_orthogonal, model_loftq, model_eva, model_gaussian]
     custom_embeddings = [emb_pissa, emb_orthogonal, emb_loftq, emb_eva, emb_gaussian]
     title_list = ['PISSA', 'ORTHOGONAL', 'LOFTQ', 'EVA', 'GAUSSIAN']
-    
+
     # Train ensemble
     print("\n" + "="*80)
     print("TRAINING ENSEMBLE MODEL")
     print("="*80)
-    
+
     ensemble_predictions, ensemble_results, weights = ensemble_gnn_learning(
         model_list=gnn_model_list,
         dataset_name=dataset_name,
@@ -1041,7 +1093,45 @@ def comprehensive_ensemble_best_gnn_mistakes(dataset_name='cora', llm_name='llam
         epochs=epochs,
         custom_embeddings=custom_embeddings,
         does_report_training_process=True,
+        supervised=supervised,
+        seed=seed,
+        llm_name=llm_name,
     )
+
+    # Append complete-info CSV row for the final ensemble result
+    if csv_path:
+        from datetime import datetime
+        ensemble_row = {
+            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "dataset_name": dataset_name,
+            "llm_name": llm_name,
+            "peft_type": peft_type,
+            "init_weight_approach": "ENSEMBLE",
+            "embedding_seed": seed if seed is not None else cfg.dataset.seed,
+            "gnn_seed": seed if seed is not None else "",
+            "supervised": supervised,
+            "embedding_shape": tuple(emb_pissa.shape),
+            "gnn_model_name": "",
+            "hidden_dim": hidden_dim,
+            "num_layers": num_layers,
+            "dropout": dropout,
+            "lr": learning_rate,
+            "weight_decay": "",
+            "batch_norm": "",
+            "epochs": epochs,
+            "early_stop": "",
+            "re_split": 1 if supervised else 0,
+            "test_accuracy": ensemble_results['test']['accuracy'],
+            "test_macro_f1": ensemble_results['test']['macro_f1'],
+            "test_weighted_f1": ensemble_results['test']['weighted_f1'],
+            "val_accuracy": ensemble_results['val']['accuracy'],
+            "val_macro_f1": ensemble_results['val']['macro_f1'],
+            "val_weighted_f1": ensemble_results['val']['weighted_f1'],
+            "weight_approach": weight_approach,
+            "learned_weights": weights,
+        }
+        append_gnn_result_csv(ensemble_row, csv_path)
+        print(f"[OK] Ensemble result appended to: {csv_path}")
     
     # Report ensemble results
     reporter.report_title("Ensemble Model Performance")
@@ -1062,12 +1152,7 @@ def comprehensive_ensemble_best_gnn_mistakes(dataset_name='cora', llm_name='llam
     
     # Load dataset for visualization
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    repo_root = os.path.abspath(os.path.join(current_dir, os.pardir))
-    if os.getcwd() == repo_root:
-        path_prefix = '.'
-    else:
-        path_prefix = os.path.relpath(repo_root, start=os.getcwd()) if os.path.exists(repo_root) else '..'
+    path_prefix = _get_path_prefix()
     
     graph_data, num_classes, _ = load_graph_dataset_for_tape(dataset_name, device, re_split=1, path_prefix=path_prefix)
     

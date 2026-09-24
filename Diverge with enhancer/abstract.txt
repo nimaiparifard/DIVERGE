@@ -1,0 +1,58 @@
+================================================================================
+ABSTRACT — paste into template.tex (before \section{Introduction})
+================================================================================
+
+\begin{abstract}
+Node classification on text-attributed graphs (TAGs) requires both rich textual
+semantics and a graph topology aligned with the task. Large language model (LLM)
+pipelines often improve performance by \emph{rewriting} node text or structure, but
+such enhancers can be costly, brittle, and dependent on external API access. The
+\textbf{DIVERGE} framework takes a different path: it fine-tunes a pre-trained LLM with
+LoRA under multiple random initializations to obtain diverse encodings of \emph{native}
+node text, trains one graph neural network (GNN) per view, and combines their outputs
+with adaptive ensemble learning rather than uniform logit averaging. We show that even
+strong LLM representations are limited when observed edges connect semantically
+dissimilar nodes, violating homophily and degrading message passing.
+
+We extend DIVERGE with a \textbf{semantic structure enhancer}---a lightweight,
+post-hoc module that prunes noisy edges before per-view GNN training, without modifying
+node text or calling LLMs for topology editing. Two criteria are proposed:
+(1)~\emph{cosine-similarity pruning}, which removes edges whose LLM endpoint embeddings
+fall below a validation-tuned threshold; and
+(2)~\emph{uncertainty-based pruning}, which removes edges with highest predictive
+uncertainty from a cross-validated GNN edge predictor (standard deviation or entropy).
+Each LLM view yields its own refined graph, so the ensemble jointly exploits semantic,
+structural, and predictive diversity.
+
+Experiments on Cora, CiteSeer, PubMed, and WikiCS show that targeted edge removal
+consistently improves over DIVERGE alone and outperforms strong baselines including
+TAPE, while random edge deletion severely hurts accuracy---confirming that gains arise
+from informed denoising rather than sparsification alone. Cosine and uncertainty
+enhancers are complementary across datasets, offering an efficient alternative to
+full LLM enhancer pipelines for TAG learning.
+\end{abstract}
+
+
+================================================================================
+SHORT ABSTRACT (~120 words — for strict page limits)
+================================================================================
+
+\begin{abstract}
+We study node classification on text-attributed graphs where noisy edges connect
+semantically dissimilar nodes and hurt GNN message passing despite strong LLM features.
+Building on \textbf{DIVERGE}---which encodes native text via multiple LoRA-adapted LLMs
+and adaptively ensembles per-view GNNs---we propose a \textbf{semantic structure enhancer}
+that prunes unreliable edges before training. Two modules are introduced: cosine-similarity
+thresholding on LLM embeddings, and uncertainty-based removal using a cross-validated
+edge predictor. Neither module rewrites text nor requires additional LLM API calls.
+On Cora, CiteSeer, PubMed, and WikiCS, structural refinement improves DIVERGE and
+surpasses TAPE; random edge deletion fails, validating targeted denoising.
+\end{abstract}
+
+
+================================================================================
+KEYWORDS (optional — add after abstract if journal requires)
+================================================================================
+
+\textbf{Keywords:} text-attributed graphs, graph neural networks, large language models,
+graph structure learning, edge denoising, ensemble learning, homophily

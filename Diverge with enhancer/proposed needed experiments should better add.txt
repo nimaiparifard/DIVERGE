@@ -1,0 +1,242 @@
+PROPOSED EXPERIMENTS FOR JOURNAL-QUALITY PAPER
+==============================================
+Goal: Strengthen DIVERGE + Semantic Structure Enhancer beyond current Cora / CiteSeer /
+PubMed / WikiCS results. Prioritized by reviewer impact vs. implementation cost.
+
+Legend:  [HIGH] = strongly recommended   [MED] = valuable   [LOW] = optional polish
+Status:  ✓ = you already have (partial)   ✗ = missing or weak in template.tex
+
+
+══════════════════════════════════════════════════════════════════════════════
+TIER 1 — HIGH PRIORITY (reviewers will ask; do these first)
+══════════════════════════════════════════════════════════════════════════════
+
+1. [HIGH] Statistical rigor: multiple runs + mean ± std
+   ────────────────────────────────────────────────────
+   What: Re-run main table (DIVERGE, +cosine, +uncertainty, TAPE, top GNN baselines)
+         with ≥5 fixed random seeds (LLM init, GNN init, data split if applicable).
+   Report: accuracy and Macro-F1 as mean ± std; mark best bold only if difference
+           is significant (paired t-test or Wilcoxon across seeds, p<0.05).
+   Why: Journal papers rarely accept single-point numbers without variance.
+   Effort: Medium (re-run existing pipeline 5×).
+   Table: "Main results with statistical significance."
+
+
+2. [HIGH] GSL baselines on the SAME LLM embeddings
+   ─────────────────────────────────────────────────
+   What: Take DIVERGE embeddings Z^(i) (or one representative view) and compare:
+         • DIVERGE + your cosine prune
+         • DIVERGE + your uncertainty prune
+         • ProGNN / IDGL / PTDNet / GPS (official or OpenGSL implementations)
+         all feeding the same GNN backbone and splits.
+   Why: Reviewers will say "is this just graph denoising?" — you must show your
+        post-hoc LLM-view pruning beats or matches GSL on identical features.
+   Effort: Medium–High (integrate OpenGSL: github.com/OpenGSL/OpenGSL).
+   Table: "Structure refinement: proposed vs. GSL baselines (same node features)."
+
+
+3. [HIGH] Homophily / structural metrics BEFORE vs. AFTER refinement
+   ───────────────────────────────────────────────────────────────────
+   What: For each dataset and enhancer, report:
+         • edge homophily ratio (same-label edges / all edges)
+         • avg. cosine sim. on retained vs. removed edges
+         • % edges removed at chosen threshold
+         • (optional) ESNR from GPS paper if you implement it
+   Why: Directly validates your core claim (noisy edges → lower homophily → prune helps).
+   Effort: Low (compute from existing embeddings + labels).
+   Table + figure: homophily bar chart before/after; scatter of removed-edge rate vs. Δacc.
+
+
+4. [HIGH] Larger-scale TAG benchmark: ogbn-arxiv
+   ───────────────────────────────────────────────
+   What: Run DIVERGE ± enhancer on ogbn-arxiv (standard split; subsample if GPU-limited).
+   Compare: TAPE numbers, GCN/LM baselines from literature, your DIVERGE+cosine.
+   Why: TAPE and most TAG papers use ogbn-arxiv; 4 small graphs alone look narrow.
+   Effort: High (LLM encoding cost on ~169k nodes — use cached embeddings / subset).
+   Tip: Start with 10–20% node subset + full pipeline proof, then scale.
+
+
+5. [HIGH] Fair comparison with at least 2 LLM enhancer baselines
+   ───────────────────────────────────────────────────────────────
+   What (pick feasible):
+         • TAPE — ✓ you have
+         • Locle or GAGA (label-efficient) OR LLM4GraphTopology / GraphEdit (structure)
+         • E-LLaGNN-style selective enhancement (if code available)
+   Same: GNN backbone, splits, tuning budget, metric (acc + Macro-F1).
+   Why: Positions you vs. "enhancer" line, not only vs. GCN/TAPE.
+   Effort: Medium–High depending on open-source availability.
+
+
+6. [HIGH] Ablation: isolate each component
+   ─────────────────────────────────────────
+   What: Full factorial (minimum):
+         | Semantic diversity (M LoRA views) | Structure enhancer | Ensemble |
+         |  M=1                              | none               | no/yes   |
+         |  M=1                              | cosine             | yes      |
+         |  M>1 (DIVERGE)                    | none               | yes      |
+         |  M>1                              | cosine             | yes      |
+         |  M>1                              | uncertainty        | yes      |
+   Why: Proves gains come from (a) multi-view LLM, (b) pruning, (c) ensemble — not one trick.
+   Effort: Medium (mostly reconfiguring existing code).
+   Table: "Ablation study."
+
+
+══════════════════════════════════════════════════════════════════════════════
+TIER 2 — STRONG VALUE (differentiates from conference sketch → journal)
+══════════════════════════════════════════════════════════════════════════════
+
+7. [MED] Hybrid enhancer: cosine AND uncertainty
+   ───────────────────────────────────────────────
+   What: Remove edge e iff sim(e)<T AND U(e) in top-k (or OR / union / intersection).
+   Test: intersection (conservative), union (aggressive), sequential (cosine then uncertainty).
+   Why: Discussion already suggests this; one experiment turns "future work" into result.
+   Effort: Low.
+
+
+8. [MED] Robustness: synthetic edge noise injection
+   ───────────────────────────────────────────────────
+   What: Start from clean graph; add random edges (10/20/30%) or flip labels on edges;
+         then run DIVERGE ± enhancer.
+   Plot: accuracy vs. noise rate; enhancer should help more as noise increases.
+   Why: Mirrors ProGNN/IDGL evaluation; shows your method is a denoiser, not dataset-specific hack.
+   Effort: Low–Medium.
+
+
+9. [MED] Heterophilic / low-homophily graphs
+   ────────────────────────────────────────────
+   What: Texas, Wisconsin, Cornell, Actor, or Roman-Empire (with text if available).
+   Expect: cosine pruning may hurt or help less — honest negative/conditional result.
+   Why: Journal reviewers expect boundary analysis; strengthens Limitations section.
+   Effort: Medium (need TAG version or BoW+LLM encode Wikipedia/abstract text).
+
+
+10. [MED] GNN backbone sensitivity
+    ───────────────────────────────
+    What: Repeat main result with GCN, GraphSAGE, GAT (same Z^(i), same refined graphs).
+    Why: Shows enhancer is GNN-agnostic, not tuned to one propagator.
+    Effort: Low (you have GCN/SAGE/GAT baselines partially).
+
+
+11. [MED] LLM backbone sensitivity
+    ───────────────────────────────
+    What: Run pipeline with 2 LLMs (e.g., Llama-3-8B + Mistral-7B, or RoBERTa vs. Llama).
+    Report: same trend (enhancer helps) or where it breaks.
+    Why: Generalization beyond one fine-tuned model.
+    Effort: High (2× fine-tuning cost).
+
+
+12. [MED] Cost / efficiency comparison
+    ────────────────────────────────────
+    What: Wall-clock and GPU hours for:
+          TAPE (LLM API + GNN), DIVERGE, DIVERGE+cosine, DIVERGE+uncertainty,
+          one GSL baseline.
+    Include: # LLM API calls, peak memory, edges processed.
+    Why: Core selling point is "no extra LLM calls for structure"; quantify it.
+    Effort: Low (log existing runs).
+
+
+13. [MED] Label efficiency (few-shot / semi-supervised)
+    ─────────────────────────────────────────────────────
+    What: Vary training label rate {1%, 5%, 10%, 20%, 60%} on Cora / CiteSeer.
+    Compare: DIVERGE vs. DIVERGE+enhancer vs. TAPE vs. LLM4NG-style (if feasible).
+    Why: TAG enhancers often target label-scarce settings; Locle/GAGA compete here.
+    Effort: Medium.
+
+
+14. [MED] Uncertainty experiments on ALL datasets (not only Cora)
+    ─────────────────────────────────────────────────────────────
+    What: Extend Figures (threshold, top-k, #models) to CiteSeer, PubMed, WikiCS.
+    Status: ✓ Cora only in template — ✗ others missing.
+    Effort: Medium (repeat existing Cora scripts).
+
+
+15. [MED] Hyperparameter sensitivity summary (one figure)
+    ──────────────────────────────────────────────────────
+    What: 2D heatmaps or line plots: threshold T vs. acc; top-k vs. acc; M LoRA runs vs. acc.
+    Pool: one panel per dataset or average.
+    Why: Shows stability; supports "tuned on validation" claim.
+    Effort: Low if logs exist from Figure multi/threshold sweeps.
+
+
+══════════════════════════════════════════════════════════════════════════════
+TIER 3 — POLISH & REVIEWER-PROOFING
+══════════════════════════════════════════════════════════════════════════════
+
+16. [LOW] Case study: qualitative edge removal
+    What: Sample 5–10 removed edges (low cosine / high uncertainty); show node titles +
+          labels; human-readable "why pruned."
+    Why: Interpretability figure for journal.
+    Effort: Low.
+
+
+17. [LOW] Correlation analysis
+    What: Plot Δaccuracy vs. Δhomophily across datasets/thresholds; Pearson r.
+    Why: Supports causal narrative (homophily increase → gain).
+    Effort: Low.
+
+
+18. [LOW] Ensemble method comparison (your 3 ensemble variants)
+    What: Already have 3 ensembles — add short table: which ensemble + which enhancer wins.
+    Status: ✓ partial in tables — unify one recommendation.
+    Effort: Low.
+
+
+19. [LOW] Single-view + multi-graph ensemble (expand current experiment)
+    What: You show single-representation ≈ DIVERGE — add runtime vs. accuracy Pareto plot.
+    Effort: Low.
+
+
+20. [LOW] Reproducibility checklist
+    What: Fixed seeds, hardware, LLM version, LoRA rank, GNN layers, split URLs (OGB/Planetoid).
+    Publish: config YAML + script entry points.
+    Effort: Low but mandatory for top journals.
+
+
+══════════════════════════════════════════════════════════════════════════════
+SUGGESTED NEW TABLES / FIGURES FOR REVISED PAPER
+══════════════════════════════════════════════════════════════════════════════
+
+Table A  Main results (5 seeds, mean±std, significance vs. DIVERGE)
+Table B  Ablation (M views × enhancer × ensemble)
+Table C  GSL baselines on same LLM features
+Table D  Homophily & % edges removed before/after
+Table E  ogbn-arxiv (or arxiv subset) results
+Table F  Cost comparison (time, API calls, memory)
+
+Figure 1 Pipeline (DIVERGE + optional enhancer)          — may exist
+Figure 2 Homophily before/after + cosine same/diff edges  — ✓ partial
+Figure 3 Threshold / top-k sensitivity (all 4 datasets)
+Figure 4 Robustness to injected edge noise
+Figure 5 Runtime–accuracy trade-off (DIVERGE vs. TAPE vs. enhancers)
+
+
+══════════════════════════════════════════════════════════════════════════════
+MINIMUM "JOURNAL UPGRADE" PACKAGE (if time is limited — ~6 experiments)
+══════════════════════════════════════════════════════════════════════════════
+
+Run these six in order:
+
+  1. Multiple seeds + mean±std on main comparison table
+  2. Ablation table (M=1 vs M>1, with/without cosine enhancer)
+  3. Homophily before/after + % edges removed
+  4. GSL baseline (IDGL + ProGNN) on your LLM embeddings
+  5. ogbn-arxiv subset or full (at least one large TAG benchmark)
+  6. Synthetic edge-noise robustness curve
+
+With these, you can credibly claim: statistical validity, component attribution,
+mechanistic support, GSL competitiveness, scale, and denoising — minimum bar
+for TKDE / TNNLS / Knowledge-Based Systems / Neural Networks journal track.
+
+
+══════════════════════════════════════════════════════════════════════════════
+IMPLEMENTATION NOTES
+══════════════════════════════════════════════════════════════════════════════
+
+• OpenGSL baselines: https://github.com/OpenGSL/OpenGSL
+• OGB arxiv: https://ogb.stanford.edu/docs/nodeprop/#ogbn-arxiv
+• Homophily: h = (1/|E|) Σ 1[y_u = y_v] for undirected edges (u,v)
+• TAPE / LLMNodeBed for fair TAG comparisons: HuggingFace LLMNodeBed
+• Report compute: GPU model, hours, LLM params, LoRA rank r, M views, GNN type
+
+• Avoid: claiming SOTA on 4 small graphs only without variance or large-graph result.
+• Avoid: comparing only to GCN/TAPE without GSL or enhancer baselines on same features.

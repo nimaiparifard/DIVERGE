@@ -22,9 +22,13 @@ def setup_finetuning_cfg(dataset_name: str = 'cora', llm_name: str = 'llama_3.2_
     cfg.llm = CN()
     llm_data = load_llm_config_json(llm_name)
     cfg.llm.model_name = llm_data.llm.model_name
+    cfg.llm.hf_repo_id = llm_data.llm.get('hf_repo_id', None)
     cfg.llm.local_files_only = llm_data.llm.local_files_only
     cfg.llm.trust_remote_code = llm_data.llm.trust_remote_code
-    cfg.llm.ft_target_modules = llm_data.llm.get('ft_target_modules', ["q_proj", "v_proj"])  # default value if not in config
+    cfg.llm.architecture = llm_data.llm.get('architecture', 'decoder')
+    cfg.llm.use_4bit = llm_data.llm.get('use_4bit', False)
+    cfg.llm.torch_dtype = llm_data.llm.get('torch_dtype', 'bfloat16')
+    cfg.llm.ft_target_modules = llm_data.llm.get('ft_target_modules', ["q_proj", "v_proj"])
     cfg.llm.caching_batch_size = llm_data.llm.get('caching_batch_size', 64)
 
     cfg.tokenizer = CN()
@@ -42,7 +46,12 @@ def setup_finetuning_cfg(dataset_name: str = 'cora', llm_name: str = 'llama_3.2_
     cfg.peft.rank = peft_data.rank
     cfg.peft.lora_alpha = peft_data.lora_alpha
     cfg.peft.lora_dropout = peft_data.lora_dropout
-    cfg.peft.module_to_save = ["score"]
+    # Encoder models (e.g. DeBERTa) use "classifier"; causal LMs use "score"
+    default_head = ["classifier"] if cfg.llm.architecture == "encoder" else ["score"]
+    cfg.peft.module_to_save = llm_data.llm.get(
+        'module_to_save',
+        peft_data.get('module_to_save', default_head),
+    )
     cfg.peft.init_lora_weights = peft_data.get('init_lora_weights', 'pissa')
     cfg.peft.use_rslora = peft_data.get('use_rslora', True)
 

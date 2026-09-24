@@ -304,7 +304,7 @@ if __name__ == "__main__":
     labels = dataset.y
     n = 2708
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    data_pissa, data_orthogonal, data_loftq, data_eva, data_guassian = get_init_dataset_for_gnn(cfg)
+    data_pissa, data_orthogonal, data_guassian, data_loftq, data_eva = get_init_dataset_for_gnn(cfg)
     emb_pissa, emb_orthogonal, emb_loftq, emb_eva, emb_guassian = get_embedding_from_data(
         data_pissa), get_embedding_from_data(data_orthogonal), get_embedding_from_data(
         data_loftq), get_embedding_from_data(data_eva), get_embedding_from_data(data_guassian)
@@ -372,7 +372,7 @@ if __name__ == "__main__":
     # )
     
     # Option 2: Using OpenAI (uncomment and add your API key)
-    api_key = "tpsg-kg5ltPI3f09hSjMbjXDKclzJbuFdUlT"
+    api_key = os.environ.get("OPENAI_API_KEY")  # set OPENAI_API_KEY in your environment
     enhancer = MistakeTextEnhancer(
         dataset_name=dataset_name,
         dataset=dataset,
