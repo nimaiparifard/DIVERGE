@@ -44,7 +44,7 @@ WHICH SCRIPT (Linux = sh_scripts/*.sh, Windows = scripts/*.bat)
  1. GET THE CODE  (inside /workspace = the persistent volume)
 ------------------------------------------------------------------------------
    cd /workspace
-   git clone -b main https://github.com/nimaiparifard/DIVERGE.git     # or the branch you pushed to
+   git clone -b master https://github.com/nimaiparifard/DIVERGE.git   # the work is on master
    cd DIVERGE
    tmux new -s diverge          # ALWAYS work inside tmux: closing the browser tab does not kill the run
                                 # detach: Ctrl+b then d      re-attach later: tmux attach -t diverge
