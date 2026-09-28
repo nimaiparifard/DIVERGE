@@ -2,18 +2,18 @@
 setlocal EnableDelayedExpansion
 
 REM =============================================================================
-REM Run the full DIVERGE pipeline (experiments/diverge.py) across
-REM datasets x LLMs x seeds: per-approach GNN training -> mistake-driven edge
-REM editing -> ensemble (before/after editing). Requires that, for every
+REM Run the full DIVERGE pipeline (experiments/diverge.py, no edge editing) across
+REM datasets x LLMs x seeds: per-approach GNN training -> ensemble.
+REM Requires that, for every
 REM (dataset, llm, seed) combination, you already ran:
 REM   1) scripts/run_all_datasets_lora_init.bat   (trains the LoRA adapters)
 REM   2) scripts/run_cache_embedding_all_datasets.bat (caches their embeddings)
 REM
 REM Every run appends one complete-info row PER ENSEMBLE APPROACH to:
-REM   results/diverge/diverge_results.csv
-REM (rows of the same run share run_id; columns: per-approach before/after
-REM  accuracy & F1, edit thresholds, edges removed, ensemble_weight_approach,
-REM  ensemble before/after test/val accuracy & F1 - see experiments/diverge.py)
+REM   results/diverge/diverge_no_edge_editing_results.csv
+REM (rows of the same run share run_id; columns: per-approach accuracy & F1,
+REM  ensemble_weight_approach, ensemble test/val accuracy & F1
+REM  - see experiments/diverge.py)
 REM The per-run report (all ensemble tuning results + a summary table) is in:
 REM   results/train_info/<dataset>_diverge_<split>_seed<seed>/
 REM
@@ -31,13 +31,12 @@ REM SPLIT=0 (semi-supervised) so --seed actually selects a different, seed-tagge
 REM embedding cache per run (see cache/cache_embedding_with_diffrent_init_weights.py).
 REM Under SPLIT=1 the embedding cache is seed-independent; only the GNN train/val/test
 REM re-split would vary across seeds. Set SPLIT=1 below if that's what you want instead.
-set SPLIT=0
-REM Ensemble weight approaches (comma-separated, or "all"). GNN training and edge
-REM editing run once per (dataset, llm, seed); every approach reuses those models.
+set SPLIT=1
+REM Ensemble weight approaches (comma-separated, or "all"). GNN training
+REM runs once per (dataset, llm, seed); every approach reuses those models.
 set ENSEMBLE_APPROACHES=uniform,learnable,learnable_classes,learnable_per_classes
-set THRESHOLD_STEPS=17
 set APPROACHES=pissa,orthogonal,gaussian,loftq,eva
-set DIVERGE_CSV=results\diverge\diverge_results.csv
+set DIVERGE_CSV=results\diverge\diverge_no_edge_editing_results.csv
 
 REM Disable HF Trainer logging integrations (wandb/mlflow prompts block unattended runs)
 set WANDB_DISABLED=true
@@ -50,10 +49,10 @@ REM Datasets
 set DATASETS=cora
 
 REM LLMs (must match configs/llm_configs/<name>.json and local_models/<name>)
-set LLM_NAMES=llama_3.2_1B smollm2_1.7B gemma2_2B 
+set LLM_NAMES=llama_3.2_1B
 
 REM Seeds (must match the seeds used to train/cache the adapters being loaded)
-set SEEDS=42 43 44 45
+set SEEDS=42
 
 REM Status / tracking files
 set STATUS_DIR=results\run_status
@@ -98,11 +97,11 @@ for %%d in (%DATASETS%) do (
                 echo split=%SPLIT%
                 echo seed=%%s
                 echo ensemble_approaches=%ENSEMBLE_APPROACHES%
-                echo command=python -m experiments.diverge --dataset_name %%d --llm_name %%m --peft_type %PEFT_TYPE% --seed %%s --split %SPLIT% --approaches %APPROACHES% --ensemble_approaches %ENSEMBLE_APPROACHES% --threshold_steps %THRESHOLD_STEPS% --csv_path %DIVERGE_CSV%
+                echo command=python -m experiments.diverge --dataset_name %%d --llm_name %%m --peft_type %PEFT_TYPE% --seed %%s --split %SPLIT% --approaches %APPROACHES% --ensemble_approaches %ENSEMBLE_APPROACHES% --csv_path %DIVERGE_CSV%
                 echo pid_note=see console / Task Manager for python process
             ) > "%CURRENT_FILE%"
 
-            python -m experiments.diverge --dataset_name "%%d" --llm_name "%%m" --peft_type "%PEFT_TYPE%" --seed %%s --split %SPLIT% --approaches "%APPROACHES%" --ensemble_approaches "%ENSEMBLE_APPROACHES%" --threshold_steps %THRESHOLD_STEPS% --csv_path "%DIVERGE_CSV%"
+            python -m experiments.diverge --dataset_name "%%d" --llm_name "%%m" --peft_type "%PEFT_TYPE%" --seed %%s --split %SPLIT% --approaches "%APPROACHES%" --ensemble_approaches "%ENSEMBLE_APPROACHES%" --csv_path "%DIVERGE_CSV%"
             set EXIT_CODE=!ERRORLEVEL!
             set "TS_END=%DATE% %TIME%"
 

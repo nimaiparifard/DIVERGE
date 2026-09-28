@@ -19,11 +19,54 @@ def re_split_data(num_node, train_percent=0.6, val_percent=0.2, test_percent=0.2
     val_ids = np.sort(node_ids[int(num_node * train_percent): int(num_node * (train_percent + val_percent))])
     test_ids = np.sort(node_ids[int(num_node * (train_percent + val_percent)): int(num_node * (train_percent + val_percent + test_percent))])
     
-    train_mask = torch.tensor(np.array([idx in train_ids for idx in range(num_node)]))
-    val_mask = torch.tensor(np.array([idx in val_ids for idx in range(num_node)]))
-    test_mask = torch.tensor(np.array([idx in test_ids for idx in range(num_node)])) 
+    def to_mask(ids):
+        mask = np.zeros(num_node, dtype=bool)
+        mask[ids] = True
+        return torch.from_numpy(mask)
 
-    return train_mask.to(device), val_mask.to(device), test_mask.to(device)
+    return to_mask(train_ids).to(device), to_mask(val_ids).to(device), to_mask(test_ids).to(device)
+
+
+def is_seeded_split(dataset_name, re_split):
+    """True when the train/val/test masks are drawn from `seed` (False = the dataset's own fixed split)."""
+    return bool(re_split) or dataset_name in ["computer", "history", "photo"]
+
+
+def compute_split(dataset_name, num_nodes, re_split, device, seed=None):
+    if dataset_name in ["computer", "history", "photo"] and not re_split:
+        # Semi-supervised setting for Computer, History, and Photo (10%:10%:60% for train:val:test)
+        return re_split_data(num_nodes, train_percent=0.1, val_percent=0.1, test_percent=0.6, device=device, seed=seed)
+    return re_split_data(num_nodes, device=device, seed=seed)
+
+
+# Splits exported by scripts/export_seeds.py; copied to another machine they pin the exact
+# train/val/test nodes of every (dataset, split, seed). Set DIVERGE_IGNORE_SAVED_SPLITS=1 to bypass.
+SAVED_SPLITS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "seed_snapshot", "splits")
+
+
+def saved_split_path(dataset_name, re_split, seed):
+    return os.path.join(SAVED_SPLITS_DIR, f"{dataset_name}_split{int(bool(re_split))}_seed{int(seed)}.npz")
+
+
+def load_saved_split(dataset_name, num_nodes, re_split, device, seed):
+    if seed is None or os.environ.get("DIVERGE_IGNORE_SAVED_SPLITS") == "1":
+        return None
+    path = saved_split_path(dataset_name, re_split, seed)
+    if not os.path.exists(path):
+        return None
+    import numpy as np
+    saved = np.load(path)
+    if int(saved["num_nodes"]) != num_nodes:
+        raise ValueError(f"Saved split {path} is for {int(saved['num_nodes'])} nodes, dataset has {num_nodes}")
+    # Leave numpy's global RNG exactly where re_split_data would have left it
+    np.random.seed(seed)
+    np.random.shuffle(np.arange(num_nodes))
+    masks = []
+    for key in ("train_idx", "val_idx", "test_idx"):
+        mask = torch.zeros(num_nodes, dtype=torch.bool)
+        mask[torch.from_numpy(saved[key].astype(np.int64))] = True
+        masks.append(mask.to(device))
+    return tuple(masks)
 
 
 def load_graph_dataset(dataset_name, device, re_split=False, path_prefix="../..", seed=None, modified_dataset=None):
@@ -31,21 +74,17 @@ def load_graph_dataset(dataset_name, device, re_split=False, path_prefix="../.."
         graph_data = modified_dataset
     else:
         graph_data = torch.load(f"{path_prefix}/datasets/{dataset_name}.pt", weights_only=False).to(device)
-    # Alternative 
+    # Alternative
     # graph_data.edge_index = to_undirected(graph_data.edge_index) if dataset_name in ["citeseer", "arxiv"] else graph_data.edge_index
-    graph_data.edge_index = to_undirected(graph_data.edge_index) 
-    
+    graph_data.edge_index = to_undirected(graph_data.edge_index)
+
     # Skip re-splitting if we have a modified dataset (it already has the correct masks)
     # if not modified_dataset:
-    if dataset_name in ["computer", "history", "photo"]:
-        if re_split:
-            graph_data.train_mask, graph_data.val_mask, graph_data.test_mask = re_split_data(graph_data.num_nodes, device=device, seed=seed)
-        else:
-            # Semi-supervised setting for Computer, History, and Photo (10%:10%:60% for train:val:test)
-            graph_data.train_mask, graph_data.val_mask, graph_data.test_mask = re_split_data(graph_data.num_nodes, train_percent=0.1, val_percent=0.1, test_percent=0.6, device=device, seed=seed)
-    else:
-        if re_split:
-            graph_data.train_mask, graph_data.val_mask, graph_data.test_mask = re_split_data(graph_data.num_nodes, device=device, seed=seed)
+    if is_seeded_split(dataset_name, re_split):
+        masks = load_saved_split(dataset_name, graph_data.num_nodes, re_split, device, seed)
+        if masks is None:
+            masks = compute_split(dataset_name, graph_data.num_nodes, re_split, device, seed=seed)
+        graph_data.train_mask, graph_data.val_mask, graph_data.test_mask = masks
 
     return graph_data
 

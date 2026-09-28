@@ -57,8 +57,10 @@ class CacheEmbeddingDiffrentInitWeights(CacheEmbedding):
 
 def main(dataset_name, llm_name, peft_type, init_weight_approach, split,
          used_summary_texts, used_paraphrased_texts, used_llm_responses,
-         used_based_model, pooling, seed=None):
+         used_based_model, pooling, seed=None, batch_size=None):
     cfg = setup_finetuning_cfg(dataset_name=dataset_name, llm_name=llm_name, peft_type=peft_type)
+    if batch_size is not None:
+        cfg.llm.caching_batch_size = batch_size  # inference only: embeddings do not depend on it
     cfg.peft.init_lora_weights = init_weight_approach  # change this to try different initialization approaches
     if seed is not None:
         cfg.dataset.seed = seed  # override to match the seed used when the adapter was trained/saved
@@ -123,6 +125,8 @@ if __name__ == "__main__":
                         help='Pooling strategy for embeddings')
     parser.add_argument('--seed', type=int, default=None,
                         help='Seed of the trained adapter to load (must match the --seed used when training it)')
+    parser.add_argument('--batch_size', type=int, default=None,
+                        help='Override caching_batch_size from configs/llm_configs/<llm>.json (bigger GPU -> bigger batch)')
 
     args = parser.parse_args()
 
@@ -138,5 +142,6 @@ if __name__ == "__main__":
         used_llm_responses=args.used_llm_responses,
         used_based_model=args.used_based_model,
         pooling=args.pooling,
-        seed=args.seed
+        seed=args.seed,
+        batch_size=args.batch_size,
     )

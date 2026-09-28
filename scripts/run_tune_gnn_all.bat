@@ -17,7 +17,7 @@ set SCRIPT_DIR=%~dp0
 cd /d "%SCRIPT_DIR%.."
 
 REM 0 = semi-supervised (seed-tagged embedding caches), 1 = supervised
-set RE_SPLIT=0
+set RE_SPLIT=1
 
 REM Datasets
 set DATASETS=cora
@@ -27,23 +27,30 @@ set LLM_NAMES=llama_3.2_1B
 #set LLM_NAMES=llama_3.2_1B smollm2_1.7B gemma2_2B
 
 REM Seeds (must match the seeds the LoRA adapters / embedding caches were made with)
-set SEEDS=42 43 44 45
+set SEEDS=42
 
 REM GNN encoders to tune: SAGE GCN GAT GIN TransformerConv
 set GNN_MODELS=SAGE
 
 REM Embedding cache to tune on
-set INIT_APPROACH=pissa
+set INIT_APPROACH=eva
 
 REM Search settings (see python -m gnns.tune_gnn_hyperparameter --help)
-set SEARCH=random
+#set SEARCH=grid
+#set RUNG0_EPOCHS=0
+#set TOP_K=512
+#set N_EVAL_SEEDS=3
+#set N_TRIALS=512
+REM Search settings (see python -m gnns.tune_gnn_hyperparameter --help)
+set SEARCH=grid
 set N_TRIALS=60
-set RUNG0_EPOCHS=50
-set TOP_K=8
-set N_EVAL_SEEDS=3
+set RUNG0_EPOCHS=100
+set TOP_K=64
+set N_EVAL_SEEDS=5
+set PRUNE_RATIO=0.9
 
 REM Set to 1 to re-tune combinations that already have a tuned file
-set RETUNE=0
+set RETUNE=1
 set SKIP_FLAG=--skip_existing
 if "%RETUNE%"=="1" set SKIP_FLAG=
 

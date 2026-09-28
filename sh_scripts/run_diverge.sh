@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # Linux port of scripts/run_diverge.bat
-# Full DIVERGE pipeline (experiments/diverge.py) across datasets x LLMs x seeds:
+# Full DIVERGE pipeline (experiments/diverge_with_edge_editing.py) across datasets x LLMs x seeds:
 # per-approach GNN training -> mistake-driven edge editing -> ensemble.
 # Needs, for every (dataset, llm, seed): trained adapters + their embedding caches.
 #
@@ -63,7 +63,7 @@ for d in $DATASETS; do
           fi
       fi
 
-      CMD=("$PYTHON" -m experiments.diverge --dataset_name "$d" --llm_name "$m" --peft_type "$PEFT_TYPE"
+      CMD=("$PYTHON" -m experiments.diverge_with_edge_editing --dataset_name "$d" --llm_name "$m" --peft_type "$PEFT_TYPE"
            --seed "$s" --split "$SPLIT" --approaches "$APPROACHES" --ensemble_approaches "$ENSEMBLE_APPROACHES"
            --threshold_steps "$THRESHOLD_STEPS" --csv_path "$DIVERGE_CSV")
       TS="$(ts)"

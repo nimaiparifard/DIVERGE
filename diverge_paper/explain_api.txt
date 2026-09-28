@@ -1,0 +1,105 @@
+Reviewer 1 - Comment 5
+======================
+
+"The claim that DIVERGE reduces computational and API cost should be qualified, since avoiding
+external APIs does not necessarily mean lower local computation cost."
+
+
+1. Is the reviewer right?
+-------------------------
+
+Partly, and we should say so.
+
+The paper currently claims "reducing computational AND API cost" in:
+  - Abstract (template.tex line ~118)
+  - Contribution 2 (template.tex line ~171)
+  - Section 3 / Preliminaries (template.tex line ~266)
+  - Conclusion
+
+- API cost: clearly true. DIVERGE makes zero API calls.
+- Computational cost: not guaranteed. DIVERGE fine-tunes a 1B LLM K=5 times and trains 5 GNNs,
+  so it costs more to run locally than a single LoRA or a frozen encoder.
+
+
+2. The idea: compare with API-based methods and their cost
+----------------------------------------------------------
+
+Comparing API cost is a good idea, but it only covers half the comment. If we show only dollars,
+the reviewer will say we ignored the point. Compare BOTH kinds of cost side by side:
+
+| Cost dimension             | TAPE (API-based)                  | Single LoRA | DIVERGE (K=5)               |
+|----------------------------|-----------------------------------|-------------|-----------------------------|
+| API calls / $ per dataset  | N nodes x tokens x price          | 0           | 0                           |
+| Node text sent off-site    | Yes                               | No          | No                          |
+| Local LM fine-tuning       | Yes (~3 runs: orig/expl/pred text)| 1 run       | 5 runs                      |
+| GPU-hours (train)          | measure                           | measure     | measure                     |
+| Peak VRAM                  | measure                           | measure     | measure                     |
+| Inference per new node     | 1 API call + LM passes            | 1 pass      | 5 passes (or batched LoRA)  |
+| Accuracy                   | ...                               | ...         | ...                         |
+
+Points to make with this table:
+
+ 1. TAPE is not API-only. It also fine-tunes local LMs (on original, explanation and prediction
+    text), so its total cost = API fees + local compute. The fair comparison is total cost vs
+    total cost, not DIVERGE's compute vs TAPE's API bill alone.
+
+ 2. Estimate API cost from tokens per dataset:
+      cost = #nodes x (avg input tokens + prompt tokens + generated explanation tokens) x price
+    Do this for 2-3 models (e.g. a cheap one and a GPT-4-class one) and state the pricing date.
+
+ 3. Convert our GPU-hours to dollars so both methods share one unit:
+      - electricity: RTX 5070 ~250 W x hours x $/kWh, and/or
+      - equivalent cloud GPU hourly rate.
+
+ 4. Use the consumer-GPU hardware as a strength: everything runs on a 12 GB RTX 5070
+    (template.tex line ~618), no datacenter GPU needed.
+
+ 5. Scaling differs:
+      - API cost grows with every new or re-processed node, is recurring, and depends on rate
+        limits and provider pricing changes.
+      - DIVERGE's cost is mostly one-off training; afterwards inference is local.
+
+ 6. Give readers a cheaper option: the K ablation (K = 1, 2, 3, 5), also requested by R1-C7 and
+    R2-C4, shows an accuracy-vs-cost trade-off, so users can pick K = 2-3.
+
+ 7. Verify the "$125 for ~130k nodes" figure (template.tex line ~266) against the TAPE paper
+    before relying on it in the rebuttal.
+
+The same measured cost table also answers R1-C4, R2-C4 and R4-C6, so one experiment covers four
+comments.
+
+
+3. Draft response
+-----------------
+
+Response:
+
+We thank the reviewer for this important point and agree that the original wording was too
+strong. Avoiding external APIs removes per-node monetary fees and off-site data transfer, but it
+does not by itself imply lower local computation; indeed, DIVERGE requires more local GPU
+computation than a single-LoRA encoder because it trains K adapters and K GNNs.
+
+We have made two revisions.
+
+(1) Wording. Throughout the Abstract, Introduction (Contribution 2), Section 3, and Conclusion, we
+replaced "reducing computational and API cost" with "eliminating external API fees and
+third-party data transfer, at the cost of additional local GPU computation, which we quantify in
+Section X."
+
+(2) Quantitative analysis. We added Section X.X ("Cost analysis"), which compares DIVERGE, a
+single-LoRA baseline, and TAPE on (i) estimated API cost per dataset based on token counts and
+current provider pricing, (ii) training GPU-hours, wall-clock time, and peak VRAM measured on the
+same RTX 5070 GPU, (iii) per-node inference cost, and (iv) a dollar-equivalent total cost. We note
+that TAPE also fine-tunes local language models in addition to its API calls. The results show
+that [DIVERGE's total cost is lower than / comparable to TAPE's on N of 5 datasets, while
+DIVERGE's local compute is ~K x a single LoRA]. We further report accuracy as a function of the
+number of LoRA runs (K = 1, 2, 3, 5), so practitioners can choose a cheaper configuration. We now
+present DIVERGE's main practical advantage as API independence and on-premises deployability,
+rather than universally lower computation.
+
+
+Note:
+- Fill in the bracketed parts only after measuring the numbers.
+- If DIVERGE's total cost turns out higher than TAPE's on some dataset, say that plainly and lean
+  on the privacy / no-API-dependency argument. Reviewers accept that far more readily than a cost
+  claim they can't verify.

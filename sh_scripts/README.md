@@ -9,6 +9,9 @@
 | `run_all_datasets_lora_init.sh` | = `scripts/run_all_datasets_lora_init.bat` |
 | `run_cache_embedding_all_datasets.sh` | = `scripts/run_cache_embedding_all_datasets.bat` |
 | `run_diverge.sh` | = `scripts/run_diverge.bat` |
+| `run_lora_init_parallel.sh` | parallel training: several runs on one GPU (VRAM-gated queue, OOM retry) |
+| `run_cache_embedding_parallel.sh` | parallel embedding caching (same queue, `BATCH_SIZE=` override) |
+| `RUNPOD_GUIDE.txt` | step-by-step RunPod / RTX 4090 guide: which script, in which order, tuning `MAX_JOBS` |
 | `export_outputs.sh` | pack adapters + caches + results (filterable by dataset/llm/init/seed) into one tar.gz |
 | `restore_outputs.sh` | merge a tar.gz / sync folder into this checkout (Linux **or Git Bash on Windows**) |
 | `list_runs.sh` | table of which (dataset, llm, init, seed) are trained / cached / DIVERGE-done |

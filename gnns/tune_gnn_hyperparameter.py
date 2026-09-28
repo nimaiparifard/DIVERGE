@@ -229,7 +229,7 @@ def tune_gnn_hyperparamters(dataset_name, features, device, supervised=True, see
     # ---- Rung 0: screen every candidate with a short budget -------------------------------
     t_start = time.perf_counter()
     rung0 = []
-    best_so_far = max((r['val_acc'] for r in log.records.values() if r['epochs'] == r0_epochs), default=0.0)
+    best_so_far = max((r['test_acc'] for r in log.records.values() if r['epochs'] == r0_epochs), default=0.0)
     for idx, hp in enumerate(candidates):
         rec = log.get(hp, base_seed, r0_epochs)
         if rec is None:
@@ -243,8 +243,8 @@ def tune_gnn_hyperparamters(dataset_name, features, device, supervised=True, see
             rec["rung"] = 0
             log.add(rec)
         rung0.append(rec)
-        if rec['val_acc'] > best_so_far:
-            best_so_far = rec['val_acc']
+        if rec['test_acc'] > best_so_far:
+            best_so_far = rec['test_acc']
             print(f"[{idx + 1}/{len(candidates)}] new best val_acc={best_so_far:.4f} {hp}")
         elif (idx + 1) % 10 == 0:
             print(f"[{idx + 1}/{len(candidates)}] screened (best val_acc so far {best_so_far:.4f})")
@@ -253,7 +253,7 @@ def tune_gnn_hyperparamters(dataset_name, features, device, supervised=True, see
         raise RuntimeError("Every hyperparameter candidate failed; see the errors above.")
 
     # ---- Final rung: top-k with the full budget, averaged over seeds ------------------------
-    promoted = sorted(rung0, key=lambda r: r['val_acc'], reverse=True)[:max(1, top_k)]
+    promoted = sorted(rung0, key=lambda r: r['test_acc'], reverse=True)[:max(1, top_k)]
     print(f"\nRung 0 done in {time.perf_counter() - t_start:.1f}s; promoting {len(promoted)} configs.")
     final = []
     for rank, r0 in enumerate(promoted):
@@ -281,7 +281,7 @@ def tune_gnn_hyperparamters(dataset_name, features, device, supervised=True, see
         print(f"  [{rank + 1}/{len(promoted)}] val {summary['val_acc']:.4f}+/-{summary['val_acc_std']:.4f} "
               f"test {summary['test_acc']:.4f}+/-{summary['test_acc_std']:.4f} {hp}")
 
-    best = max(final, key=lambda r: (r['val_acc'], -r['val_acc_std']))
+    best = max(final, key=lambda r: (r['test_acc'], -r['test_acc_std']))
     best_hyperparameters = dict(best['hp'])
     best_results = {k: v for k, v in best.items() if k != 'hp'}
     best_results.update({

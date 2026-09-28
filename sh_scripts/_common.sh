@@ -17,6 +17,11 @@ export HF_HUB_DISABLE_TELEMETRY=1
 export PYTHONIOENCODING=utf-8
 export PYTHONUNBUFFERED=1
 
+# Seeds exported from another machine (scripts/export_seeds.py); an explicit SEEDS=... still wins
+if [[ -z "${SEEDS:-}" && -f seed_snapshot/seeds.env ]]; then
+    source seed_snapshot/seeds.env
+fi
+
 STATUS_DIR="results/run_status"
 mkdir -p "$STATUS_DIR"
 

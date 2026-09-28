@@ -26,6 +26,9 @@
 \usepackage{placeins}
 \usepackage{float}
 \usepackage{xcolor}
+\newcommand{\revone}[1]{\textcolor{red}{#1}}   % Reviewer 1
+\newcommand{\revtwo}[1]{\textcolor{blue}{#1}}  % Reviewer 2
+\newcommand{\revthree}[1]{\textcolor{green}{#1}} % Reviewer 4
 \usepackage{subcaption} % Fixed hidden spaces here
 
 \title{Improving DIVERGE Approaches Performance Using Remvoing Noisy Edges}
@@ -1424,6 +1427,113 @@ In the third and fourth rows, the results of DIVERGE after uncertainty-based ref
 The comparison shows that, in most datasets, applying structural refinement prior to ensemble learning leads to improved performance. This finding indicates that the targeted removal of noisy edges can improve graph structure quality and enhance message passing in graph neural networks.
 
 It is also observed that the two structural refinement approaches (cosine similarity–based and uncertainty-based) exhibit competitive and complementary behavior. In some datasets, cosine-based refinement yields better results, while in others, uncertainty-based refinement performs better. This suggests that the effectiveness of each method depends on the structural and statistical properties of the graph, and neither approach is strictly dominant.
+
+% =====================================================================
+% R2-C5 (also R1-C6, R4-C3, R4-C6): behaviour of the adaptive ensemble.
+% Source: experiments/ensemble_experiments/, results/ensemble_experiments/
+% Protocol-independent numbers (uniform, oracle, parameter-free rules,
+% per-view logit scale, agreement buckets) are final. Numbers marked
+% "TODO rerun" come from heads selected on the test set and must be
+% replaced by the run with the corrected protocol (PROTOCOL=val_split).
+% =====================================================================
+\subsection{\revtwo{Behaviour of the Adaptive Ensemble Weights}}
+\label{sec:ensemble_weight_analysis}
+
+\revtwo{The trainable ensemble heads add parameters on top of the GNN pool, so it is necessary to show what the learned weights do and when they are preferable to simple averaging. We therefore analyse the heads on Cora with LLaMA-3.2-1B and GraphSAGE. All fusion rules are applied to exactly the same five view GNNs (one per LoRA initialization), the same nodes and the same labels, so every difference between rules is caused by the fusion step alone. Each experiment is repeated over four GNN seeds and three fusion seeds (12 runs), and we report mean $\pm$ standard deviation.}
+
+\paragraph{\revthree{Training protocol of the ensemble heads.}}
+\revthree{The GNNs are trained on the training nodes. Because the GNNs have been fitted on these nodes, their training-node logits are over-confident and do not resemble the logits of unseen nodes. The ensemble head is therefore fitted on the GNN logits of one half of the validation nodes, and its training epoch and hyperparameters are selected on the other half. The test nodes are used once, for the final evaluation.} \revone{Model-level weights in Method~1 are node-conditioned: an MLP maps the concatenated logits of a node to $M$ softmax weights, so different nodes can receive different weights.}
+
+\paragraph{\revtwo{Where can a fusion rule change the prediction?}}
+\revtwo{Every rule studied here combines the view logits with non-negative weights that sum to one. Such a combination cannot change the prediction of a node on which all views predict the same label. Table~\ref{tab:ens_agreement} groups the test nodes by the number of views that agree on the plurality label and reports uniform averaging and an oracle that counts a node as correct if at least one view is correct.}
+
+\begin{table}[ht]
+\centering
+\caption{\revtwo{Test accuracy (\%) on Cora grouped by the number of views (out of five) that agree on the plurality label. The oracle is correct if any view is correct. Mean over 12 runs.}}
+\label{tab:ens_agreement}
+\begin{tabular}{c c c c}
+\hline
+Agreeing views & Share of test nodes & Oracle & Uniform average \\
+\hline
+5/5 & 87.2\% & 95.29 & 95.29 \\
+4/5 &  7.1\% & 90.97 & 64.57 \\
+3/5 &  4.8\% & 87.85 & 44.98 \\
+2/5 &  0.9\% & 79.17 & 27.08 \\
+\hline
+All & 100\%  & 94.46 & 90.13 \\
+\hline
+\end{tabular}
+\end{table}
+
+\revtwo{Two conclusions follow. First, the views are complementary: the oracle is 4.3 percentage points above uniform averaging, and uniform averaging is already above the best single view selected on validation (90.13 vs.\ 89.62). Second, 87\% of the test nodes are unanimous, so any fusion rule can only act on the remaining 13\%. This bounds the possible gain of a learned head over averaging and explains why the differences between ensemble variants are small in absolute terms.} \revthree{The same argument explains the small margin on ArXiv (77.89 vs.\ 77.69), where the views are strong and largely agree.}
+
+\paragraph{\revtwo{Do the learned weights react to the quality of a view?}}
+\revtwo{To test the behaviour of the weights directly, we deliberately degraded one view and refitted all heads. The LLM embeddings of the target view were perturbed with Gaussian noise of increasing scale ($\mathbf{X}+s\,\sigma(\mathbf{X})\,\boldsymbol{\epsilon}$, $s\in\{0,0.5,1,2,4,8\}$), replaced by random features, or shuffled across nodes, and its GNN was retrained with the same seed and split. In a second test, the logits of the weakest view were duplicated $k$ times, which gives this view $(1+k)/(M+k)$ of the vote under uniform averaging.}
+
+\begin{figure}[ht]
+\centering
+\begin{subfigure}{0.49\textwidth}
+  \centering
+  \includegraphics[width=\linewidth]{Images/ens_weak_view_noise_orthogonal_cora.png}
+  \caption{\revtwo{Noise injected into the Orthogonal view}}
+  \label{fig:ens_weak_view}
+\end{subfigure}
+\hfill
+\begin{subfigure}{0.49\textwidth}
+  \centering
+  \includegraphics[width=\linewidth]{Images/ens_duplication_cora.png}
+  \caption{\revtwo{Duplicating the weakest view}}
+  \label{fig:ens_duplication}
+\end{subfigure}
+\caption{\revtwo{Behaviour of the learned weights under controlled interventions on Cora. Left: ensemble accuracy and the weight assigned to a view as its embeddings are degraded. Right: accuracy and total weight on a view whose logits are copied $k$ times; the dashed reference of uniform averaging grows to $(1+k)/(M+k)$.}}
+\label{fig:ens_interventions}
+\end{figure}
+
+\revtwo{Figure~\ref{fig:ens_interventions} shows that the weights respond as intended. As a view is degraded, its learned weight decreases monotonically. When the Orthogonal embeddings are shuffled, which reduces the accuracy of that view alone to 48.7\%, its weight falls from 0.24 to 0.02 under the node-conditioned head (Method~1), and similar reductions to 0.02--0.05 are observed for the EVA and LoftQ views. Under duplication, uniform averaging gives the copied view 56\% of the vote with four extra copies, whereas the node-conditioned head keeps its total weight at 11\% because the copies carry no new information. Uniform averaging has no mechanism to detect either situation. The learned head therefore acts as a safeguard: it removes the influence of a weak or redundant view without requiring the practitioner to know in advance which LoRA initialization will perform poorly on a new dataset.}
+
+\paragraph{\revtwo{Class-level and node-level weights.}}
+% TODO rerun: exp6 / exp5 numbers below are from heads selected on the test set
+\revtwo{For the class-level head, the weight a view receives for a class correlates positively with the accuracy of that view on the class (mean Spearman $\rho=0.36$, measured on the nodes used to fit the head). In about three of the seven Cora classes the highest-weighted view is not the globally best view, which is the specialisation that motivates class-level weighting (Figure~\ref{fig:ens_class_weights}). For the node-conditioned head, the per-node weights are not uniform (normalised entropy 0.65, where 1 denotes uniform weights), confirming that the head assigns different weights to different nodes.}
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.9\textwidth]{Images/ens_class_weights_heatmap_cora.png}
+\caption{\revtwo{Left: learned class-level weight of each view (rows) for each class (columns) on Cora. Right: accuracy of each view on the test nodes of each class. Circles mark the top view per class.}}
+\label{fig:ens_class_weights}
+\end{figure}
+
+\paragraph{\revtwo{Why the gain over simple averaging depends on the balance of the views.}}
+\revtwo{Averaging raw logits gives each view an equal vote only if the views produce logits of similar scale. On Cora the five views have almost the same logit scale: their effective shares of the uniform logit sum range from 0.196 to 0.207 (an equal vote is 0.200). Their contributions to the ensemble are also nearly equal: the Shapley value of each view, computed exactly over all 31 view subsets, lies between 11.6 and 12.1 percentage points of test accuracy. When the views are balanced in this way, the optimal weights are close to uniform, and the room for a learned head is limited to the 13\% of contested nodes identified above. When one view is weak or redundant, the optimal weights are far from uniform, and the learned head moves towards them (Figure~\ref{fig:ens_interventions}).}
+
+\begin{table}[ht]
+\centering
+\caption{\revtwo{Fusion rules applied to the same five view GNNs on Cora (mean $\pm$ std over 12 runs). \#Params: extra trainable parameters of the fusion step.}}
+\label{tab:ens_fusion_rules}
+\begin{tabular}{l l r c c}
+\hline
+Rule & Type & \#Params & Accuracy & Macro-F1 \\
+\hline
+Best single view (by validation) & -- & 0 & 89.62{\scriptsize$\pm$0.90} & -- \\
+Uniform average of logits & parameter-free & 0 & 90.13{\scriptsize$\pm$0.83} & 88.67{\scriptsize$\pm$0.88} \\
+Uniform average of probabilities & parameter-free & 0 & 90.22{\scriptsize$\pm$0.91} & 88.76{\scriptsize$\pm$0.79} \\
+Majority vote & parameter-free & 0 & 90.13{\scriptsize$\pm$1.18} & 88.73{\scriptsize$\pm$1.16} \\
+Maximum confidence & parameter-free & 0 & 90.18{\scriptsize$\pm$0.95} & 88.79{\scriptsize$\pm$1.05} \\
+Entropy-weighted average & parameter-free & 0 & 90.36{\scriptsize$\pm$0.85} & 89.03{\scriptsize$\pm$0.84} \\
+\hline
+% TODO rerun: fill from results/ensemble_experiments/exp3_fusion_baselines/exp3_summary.csv (protocol=val_split)
+DIVERGE Method 1 (node-conditioned) & learned & 2.6k--10.5k & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
+DIVERGE Method 2 (class-level) & learned & -- & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
+DIVERGE Method 3 (per-class networks) & learned & -- & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
+\hline
+\end{tabular}
+\end{table}
+
+% TODO after rerun: keep ONE of the two sentences below, depending on the numbers.
+% (a) if the learned heads beat uniform significantly (exp4, McNemar/Wilcoxon + Holm):
+% \revtwo{Under this protocol the learned heads improve over uniform averaging by X pp (Wilcoxon $p=\dots$ after Holm correction), and the improvement is concentrated on the contested nodes of Table~\ref{tab:ens_agreement}.}
+% (b) if they are on par:
+% \revtwo{On Cora, where the views are balanced, the learned heads perform on par with uniform averaging; their benefit lies in the robustness shown in Figure~\ref{fig:ens_interventions}, not in a systematic accuracy gain on balanced views.}
+\revtwo{Table~\ref{tab:ens_fusion_rules} compares the learned heads with parameter-free rules on the same GNNs. In summary, the learned weights behave in an interpretable way: they down-weight degraded and duplicated views, assign more weight to views on the classes they handle well, and vary across nodes. Their advantage over simple averaging is therefore largest when the quality of the views is unequal, and smallest when the views are balanced, as on Cora.}
 
 
 \section{Results}

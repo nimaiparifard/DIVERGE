@@ -102,7 +102,8 @@ def compute_cka_matrix(emb: dict, approaches: list) -> dict:
     return cka_matrix
 
 
-def save_cka_heatmap(cka_matrix: dict, approaches: list, save_path: str) -> str:
+def save_cka_heatmap(cka_matrix: dict, approaches: list, save_path: str,
+                     title: str = "Linear CKA between LoRA-init embeddings") -> str:
     import matplotlib.pyplot as plt
 
     n = len(approaches)
@@ -119,7 +120,7 @@ def save_cka_heatmap(cka_matrix: dict, approaches: list, save_path: str) -> str:
         for j in range(n):
             ax.text(j, i, f"{mat[i, j]:.2f}", ha='center', va='center',
                      color='white' if mat[i, j] < 0.6 else 'black', fontsize=9)
-    ax.set_title("Linear CKA between LoRA-init embeddings")
+    ax.set_title(title)
     fig.colorbar(im, ax=ax, label='CKA')
     plt.tight_layout()
 

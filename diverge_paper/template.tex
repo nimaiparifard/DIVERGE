@@ -49,7 +49,11 @@
 \usepackage{placeins}
 \usepackage{float}
 \usepackage{xcolor}
-\newcommand{\rev}[1]{\textcolor{red}{#1}}
+
+% LaTeX command names may contain letters only (\rev1 is not a valid name)
+\newcommand{\revone}[1]{\textcolor{red}{#1}}   % Reviewer 1
+\newcommand{\revtwo}[1]{\textcolor{blue}{#1}}  % Reviewer 2
+\newcommand{\revthree}[1]{\textcolor{green}{#1}} % Reviewer 4
 
 \hypersetup{
     colorlinks=true,
@@ -397,6 +401,7 @@ For node $v$, let the corresponding text be denoted by $d_v$, which after tokeni
 \begin{equation}
 d_v=\{x_1,\dots,x_T\}.
 \end{equation}
+\revtwo{Since node texts are processed in mini-batches, each sequence is padded (or truncated) to a common length $T$, and the tokenizer returns an attention mask $m_{v,t}\in\{0,1\}$, where $m_{v,t}=1$ if $x_t$ is a valid token of $d_v$ and $m_{v,t}=0$ if it is a padding token.}
 
 The output of the final layer of model $\bar{f}_i$ for the tokens is considered as a sequence of vectors:
 \begin{equation}
@@ -404,10 +409,11 @@ The output of the final layer of model $\bar{f}_i$ for the tokens is considered 
 \end{equation}
 where $\mathbf{h}^{(i)}_{t}$ is the representation of token $t$ in the final layer.
 
-To construct a node-level representation, mean pooling over tokens is used:
+To construct a node-level representation, mean pooling over \revtwo{the valid (non-padding) tokens} is used:
 \begin{equation}
-\mathbf{z}^{(i)}_{v}=\frac{1}{T}\sum_{t=1}^{T}\mathbf{h}^{(i)}_{t}.
+\revtwo{\mathbf{z}^{(i)}_{v}=\frac{\sum_{t=1}^{T} m_{v,t}\,\mathbf{h}^{(i)}_{t}}{\sum_{t=1}^{T} m_{v,t}}.}
 \end{equation}
+\revtwo{Hence, padded positions are excluded from both the numerator and the denominator, and the representation of node $v$ is the average of the final-layer embeddings of its actual text tokens only; it is therefore independent of the padding length used in the batch.}
 
 By stacking node vectors together, the node-level feature matrix for the $i$-th model is obtained:
 \begin{equation}
@@ -449,46 +455,48 @@ The data used for training the ensemble learning model is defined as:
 \begin{equation}
 (\bar{\mathbf{L}}_{\text{train}}, y_{\text{train}}).
 \end{equation}
+\revthree{All stages of DIVERGE (LoRA fine-tuning, GNN training and ensemble training) use the same train/validation/test split, generated with a single fixed random seed. The ensemble head is trained only on the logits of the training nodes; the validation nodes are used to select the training epoch and the hyperparameters of the head, and the test nodes are used only once, for the final evaluation. In all three methods below, the MLP takes the logits of each node as input, so the learned weights are node-conditioned rather than global constants.}
 
 \paragraph{Method 1: Model-Level Weighting}
 
-In this method, each graph model is assigned a learnable weight in order to determine the relative importance of each model. The weight vector is defined as:
+In this method, each graph model is assigned a learnable weight in order to determine the relative importance of each model. \revthree{For node $v$, the weight vector is produced by an MLP with parameters $\phi$ from the concatenated logits of the $M$ GNNs:}
 \begin{equation}
-\boldsymbol{\theta}\in\mathbb{R}^{M}, \qquad \sum_{i=1}^{M}\theta_i=1,\ \ \theta_i\ge 0.
+\revthree{\boldsymbol{\theta}_v=\mathrm{softmax}\big(\mathrm{MLP}_{\phi}([\boldsymbol{\ell}^{(1)}_{v}\,\|\,\dots\,\|\,\boldsymbol{\ell}^{(M)}_{v}])\big)\in\mathbb{R}^{M}, \qquad \sum_{i=1}^{M}\theta_{v,i}=1,\ \ \theta_{v,i}\ge 0.}
 \end{equation}
 
-These weights are learned using an MLP, and a softmax layer is applied at the output to satisfy the above constraints. The combined logits for node $v$ are computed as:
+The softmax layer at the output of the MLP satisfies the above constraints. The combined logits for node $v$ are computed as:
 \begin{equation}
-\bar{\boldsymbol{\ell}_{v}}=\sum_{i=1}^{M}\theta_i\,\boldsymbol{\ell}^{(i)}_{v}.
+\bar{\boldsymbol{\ell}}_{v}=\sum_{i=1}^{M}\revthree{\theta_{v,i}}\,\boldsymbol{\ell}^{(i)}_{v}.
 \end{equation}
 
-The parameters of the ensemble model are trained by minimizing the loss:
+The parameters of the ensemble model are trained by minimizing the \revthree{cross-entropy loss over the training nodes}:
 \begin{equation}
-\min_{\boldsymbol{\theta}}\ \mathcal{L}\big(\mathrm{MLP}(\bar{\mathbf{L}};\boldsymbol{\theta}),Y\big).
+\revthree{\min_{\phi}\ \sum_{v\in\mathcal{V}_{\text{train}}}\mathcal{L}\big(\bar{\boldsymbol{\ell}}_{v},y_v\big).}
 \end{equation}
 
 \paragraph{Method 2: Class-Level Weighting}
 
 In this method, an independent weight is assigned to each model and each class, allowing each model to contribute more strongly to the classes in which it performs better:
 \begin{equation}
-\mathbf{\Theta}\in\mathbb{R}^{M\times C}, \qquad
-\sum_{i=1}^{M}\Theta_{i,c}=1,\ \ \Theta_{i,c}\ge 0 \ \ \forall c.
+\revthree{\mathbf{\Theta}_v}\in\mathbb{R}^{M\times C}, \qquad
+\sum_{i=1}^{M}\revthree{\Theta_{v,i,c}}=1,\ \ \revthree{\Theta_{v,i,c}}\ge 0 \ \ \forall c.
 \end{equation}
 
 The combined logits for node $v$ are computed as:
 \begin{equation}
-\bar{\ell_{v}}=\sum_{i=1}^{M}\Theta_{i,c}\ \ell^{(i)}_{v,c}.
+\revthree{\bar{\ell}_{v,c}=\sum_{i=1}^{M}\Theta_{v,i,c}\ \ell^{(i)}_{v,c}, \qquad c=1,\dots,C.}
 \end{equation}
 
-The parameters $\mathbf{\Theta}$ are also learned using an MLP with a softmax layer applied separately for each class.
+The \revthree{weights $\mathbf{\Theta}_v$ are produced by an MLP that takes the same concatenated logits as Method 1 as input,} with a softmax layer applied separately for each class.
 
 \paragraph{Method 3: Class-Level Weighting with Independent Networks}
 
 This method is similar to Method 2, with the difference that an independent MLP is defined for each class $c$. The goal of this design is to increase flexibility in learning complex and distinct weighting patterns across classes:
 
 \begin{equation}
-\mathbf{\Theta}_{:,c}=\mathrm{MLP}_c(\bar{\mathbf{L}}), \qquad c=1,\dots,C.
+\revthree{\mathbf{\Theta}_{v,:,c}=\mathrm{softmax}\big(\mathrm{MLP}_c([\ell^{(1)}_{v,c},\dots,\ell^{(M)}_{v,c}])\big), \qquad c=1,\dots,C,}
 \end{equation}
+\revthree{where the MLP of class $c$ receives only the class-$c$ logits of the $M$ GNNs for node $v$.}
 
 \paragraph{Final Prediction}
 
@@ -632,6 +640,7 @@ In these relations, $\mathrm{GNN}$ represents the graph neural network, and $G$ 
 
 \subsection{Implementation Detail for Ensemble Learning}
 %in this section we explain implmentation detail of Ensemble Learning.
+\revthree{The ensemble heads are trained with Adam for 200 epochs on the logits of the training nodes. The number of MLP layers ($\{2,3\}$), hidden size ($\{64,128,256\}$), dropout ($\{0.3,0.5\}$) and learning rate ($\{10^{-4},10^{-3},10^{-2}\}$) are selected by grid search, and both the configuration and the training epoch are chosen by validation accuracy. The test set is not used for any selection.}
 
 \subsection{Evaluation Metrics}
 To evaluate the performance of the classification model, two metrics were employed: \textbf{Accuracy} and \textbf{Macro F1-score}. Each of these metrics highlights a different aspect of the model's predictive quality, providing a more comprehensive overview of the model's performance when considered together.
@@ -652,27 +661,29 @@ In Table \ref{tab:diverge_node_classification_accuracy_sota} and Table \ref{tab:
 \caption{Comparison of the accuracy of the proposed DIVERGE method with previous methods in the node classification task.}
 \label{tab:diverge_node_classification_accuracy_sota}
 
-\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}} lccccc @{}}
+\small
+\setlength{\tabcolsep}{3pt}
+\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}} lccccccc @{}}
 \toprule
-\multirow{2}{*}{\textbf{Method}} & \multicolumn{5}{c}{\textbf{Accuracy (\%)}} \\
-\cmidrule(lr){2-6}
- & \textbf{Cora} & \textbf{CiteSeer} & \textbf{PubMed} & \textbf{WikiCS} & \textbf{ArXiv} \\
+\multirow{2}{*}{\textbf{Method}} & \multicolumn{7}{c}{\textbf{Accuracy (\%)}} \\
+\cmidrule(lr){2-8}
+ & \textbf{Cora} & \textbf{CiteSeer} & \textbf{PubMed} & \textbf{WikiCS} & \textbf{ArXiv} & \textbf{Computers} & \textbf{Reddit} \\
 \midrule
 
-GCN          & 87.41 & 75.74 & 89.01 & 83.67 & 71.39 \\
-SAGE         & 87.44 & 74.96 & 90.47 & 84.86 & 71.21 \\
-GAT          & 86.68 & 73.73 & 88.25 & 83.94 & 71.51 \\
-SenBERT-66M  & 79.61 & 74.06 & 94.47 & 86.51 & 72.66 \\
-RoBERTa-355M & 83.17 & 75.90 & 94.84 & 87.47 & 74.12 \\
-ENGINE       & 87.00 & 75.82 & 90.08 & 85.44 & 74.69 \\
-TAPE         & 90.05 & 76.45 & 93.00 & 87.11 & 74.96 \\
-GraphGPT     & 82.29 & 74.67 & 93.54 & 82.54 & 75.15 \\
-LLaGA        & 87.55 & 76.73 & 90.28 & 84.03 & 74.49 \\
+GCN          & 87.41{\scriptsize$\pm$0.00} & 75.74{\scriptsize$\pm$0.00} & 89.01{\scriptsize$\pm$0.00} & 83.67{\scriptsize$\pm$0.00} & 71.39{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
+SAGE         & 87.44{\scriptsize$\pm$0.00} & 74.96{\scriptsize$\pm$0.00} & 90.47{\scriptsize$\pm$0.00} & 84.86{\scriptsize$\pm$0.00} & 71.21{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
+GAT          & 86.68{\scriptsize$\pm$0.00} & 73.73{\scriptsize$\pm$0.00} & 88.25{\scriptsize$\pm$0.00} & 83.94{\scriptsize$\pm$0.00} & 71.51{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
+SenBERT-66M  & 79.61{\scriptsize$\pm$0.00} & 74.06{\scriptsize$\pm$0.00} & 94.47{\scriptsize$\pm$0.00} & 86.51{\scriptsize$\pm$0.00} & 72.66{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
+RoBERTa-355M & 83.17{\scriptsize$\pm$0.00} & 75.90{\scriptsize$\pm$0.00} & 94.84{\scriptsize$\pm$0.00} & 87.47{\scriptsize$\pm$0.00} & 74.12{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
+ENGINE       & 87.00{\scriptsize$\pm$0.00} & 75.82{\scriptsize$\pm$0.00} & 90.08{\scriptsize$\pm$0.00} & 85.44{\scriptsize$\pm$0.00} & 74.69{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
+TAPE         & 90.05{\scriptsize$\pm$0.00} & 76.45{\scriptsize$\pm$0.00} & 93.00{\scriptsize$\pm$0.00} & 87.11{\scriptsize$\pm$0.00} & 74.96{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
+GraphGPT     & 82.29{\scriptsize$\pm$0.00} & 74.67{\scriptsize$\pm$0.00} & 93.54{\scriptsize$\pm$0.00} & 82.54{\scriptsize$\pm$0.00} & 75.15{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
+LLaGA        & 87.55{\scriptsize$\pm$0.00} & 76.73{\scriptsize$\pm$0.00} & 90.28{\scriptsize$\pm$0.00} & 84.03{\scriptsize$\pm$0.00} & 74.49{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
 \midrule
 
-DIVERGE Ensemble Method 1 & \textbf{93.17} & \textbf{81.66} & \textbf{96.98} & \textbf{88.34} & \textbf{77.89} \\
-DIVERGE Ensemble Method 2 & \textbf{93.36} & \textbf{81.97} & \textbf{97.13} & \textbf{88.38} & \textbf{77.76} \\
-DIVERGE Ensemble Method 3 & \textbf{93.17} & \textbf{82.13} & \textbf{97.16} & \textbf{88.42} & \textbf{77.81} \\
+DIVERGE Ensemble Method 1 & \textbf{93.17}{\scriptsize$\pm$0.00} & \textbf{81.66}{\scriptsize$\pm$0.00} & \textbf{96.98}{\scriptsize$\pm$0.00} & \textbf{88.34}{\scriptsize$\pm$0.00} & \textbf{77.89}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} \\
+DIVERGE Ensemble Method 2 & \textbf{93.36}{\scriptsize$\pm$0.00} & \textbf{81.97}{\scriptsize$\pm$0.00} & \textbf{97.13}{\scriptsize$\pm$0.00} & \textbf{88.38}{\scriptsize$\pm$0.00} & \textbf{77.76}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} \\
+DIVERGE Ensemble Method 3 & \textbf{93.17}{\scriptsize$\pm$0.00} & \textbf{82.13}{\scriptsize$\pm$0.00} & \textbf{97.16}{\scriptsize$\pm$0.00} & \textbf{88.42}{\scriptsize$\pm$0.00} & \textbf{77.81}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} \\
 \bottomrule
 \end{tabular*}
 \end{table}
@@ -682,27 +693,29 @@ DIVERGE Ensemble Method 3 & \textbf{93.17} & \textbf{82.13} & \textbf{97.16} & \
 \caption{Comparison of the Macro-F1 performance of the proposed DIVERGE method with previous methods in the node classification task.}
 \label{tab:diverge_node_classification_macro_f1_sota}
 
-\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}} lccccc @{}}
+\small
+\setlength{\tabcolsep}{3pt}
+\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}} lccccccc @{}}
 \toprule
-\multirow{2}{*}{\textbf{Method}} & \multicolumn{5}{c}{\textbf{Macro-F1 (\%)}} \\
-\cmidrule(lr){2-6}
- & \textbf{Cora} & \textbf{CiteSeer} & \textbf{PubMed} & \textbf{WikiCS} & \textbf{ArXiv} \\
+\multirow{2}{*}{\textbf{Method}} & \multicolumn{7}{c}{\textbf{Macro-F1 (\%)}} \\
+\cmidrule(lr){2-8}
+ & \textbf{Cora} & \textbf{CiteSeer} & \textbf{PubMed} & \textbf{WikiCS} & \textbf{ArXiv} & \textbf{Computers} & \textbf{Reddit} \\
 \midrule
 
-GCN          & 86.54 & 71.52 & 88.54 & 82.11 & 50.28 \\
-SAGE         & 86.37 & 71.87 & 90.16 & 82.78 & 49.73 \\
-GAT          & 85.64 & 69.27 & 87.70 & 82.14 & 49.71 \\
-SenBERT-66M  & 77.13 & 71.25 & 93.95 & 84.43 & 52.48 \\
-RoBERTa-355M & 81.38 & 72.31 & 94.33 & 86.01 & 57.25 \\
-ENGINE       & 85.72 & 71.22 & 89.63 & 83.80 & 56.32 \\
-TAPE         & 87.21 & 73.33 & 92.39 & 86.03 & 57.79 \\
-GraphGPT     & 74.08 & 61.04 & 90.89 & 73.92 & 56.80 \\
-LLaGA        & 84.97 & 72.59 & 90.00 & 82.37 & 58.08 \\
+GCN          & 86.54{\scriptsize$\pm$0.00} & 71.52{\scriptsize$\pm$0.00} & 88.54{\scriptsize$\pm$0.00} & 82.11{\scriptsize$\pm$0.00} & 50.28{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
+SAGE         & 86.37{\scriptsize$\pm$0.00} & 71.87{\scriptsize$\pm$0.00} & 90.16{\scriptsize$\pm$0.00} & 82.78{\scriptsize$\pm$0.00} & 49.73{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
+GAT          & 85.64{\scriptsize$\pm$0.00} & 69.27{\scriptsize$\pm$0.00} & 87.70{\scriptsize$\pm$0.00} & 82.14{\scriptsize$\pm$0.00} & 49.71{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
+SenBERT-66M  & 77.13{\scriptsize$\pm$0.00} & 71.25{\scriptsize$\pm$0.00} & 93.95{\scriptsize$\pm$0.00} & 84.43{\scriptsize$\pm$0.00} & 52.48{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
+RoBERTa-355M & 81.38{\scriptsize$\pm$0.00} & 72.31{\scriptsize$\pm$0.00} & 94.33{\scriptsize$\pm$0.00} & 86.01{\scriptsize$\pm$0.00} & 57.25{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
+ENGINE       & 85.72{\scriptsize$\pm$0.00} & 71.22{\scriptsize$\pm$0.00} & 89.63{\scriptsize$\pm$0.00} & 83.80{\scriptsize$\pm$0.00} & 56.32{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
+TAPE         & 87.21{\scriptsize$\pm$0.00} & 73.33{\scriptsize$\pm$0.00} & 92.39{\scriptsize$\pm$0.00} & 86.03{\scriptsize$\pm$0.00} & 57.79{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
+GraphGPT     & 74.08{\scriptsize$\pm$0.00} & 61.04{\scriptsize$\pm$0.00} & 90.89{\scriptsize$\pm$0.00} & 73.92{\scriptsize$\pm$0.00} & 56.80{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
+LLaGA        & 84.97{\scriptsize$\pm$0.00} & 72.59{\scriptsize$\pm$0.00} & 90.00{\scriptsize$\pm$0.00} & 82.37{\scriptsize$\pm$0.00} & 58.08{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
 \midrule
 
-DIVERGE Ensemble Method 1 & \textbf{92.06} & \textbf{79.25} & \textbf{96.56} & \textbf{86.96} & \textbf{63.88} \\
-DIVERGE Ensemble Method 2 & \textbf{91.80} & \textbf{78.83} & \textbf{96.74} & \textbf{87.03} & \textbf{63.16} \\
-DIVERGE Ensemble Method 3 & \textbf{91.85} & \textbf{79.04} & \textbf{96.75} & \textbf{87.18} & \textbf{63.52} \\
+DIVERGE Ensemble Method 1 & \textbf{92.06}{\scriptsize$\pm$0.00} & \textbf{79.25}{\scriptsize$\pm$0.00} & \textbf{96.56}{\scriptsize$\pm$0.00} & \textbf{86.96}{\scriptsize$\pm$0.00} & \textbf{63.88}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} \\
+DIVERGE Ensemble Method 2 & \textbf{91.80}{\scriptsize$\pm$0.00} & \textbf{78.83}{\scriptsize$\pm$0.00} & \textbf{96.74}{\scriptsize$\pm$0.00} & \textbf{87.03}{\scriptsize$\pm$0.00} & \textbf{63.16}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} \\
+DIVERGE Ensemble Method 3 & \textbf{91.85}{\scriptsize$\pm$0.00} & \textbf{79.04}{\scriptsize$\pm$0.00} & \textbf{96.75}{\scriptsize$\pm$0.00} & \textbf{87.18}{\scriptsize$\pm$0.00} & \textbf{63.52}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} \\
 \bottomrule
 \end{tabular*}
 \end{table}
@@ -727,11 +740,112 @@ As described in the proposed method, an LLM is fine-tuned on node text data spec
 
 To qualitatively compare these representations, the node embeddings generated by each model version were mapped into a two-dimensional space using the t-SNE method  \citep{cai2022tsne}, the results of which are shown in Figure \ref{fig:tsne}. As evident from the plots, each trained language model, despite using identical data and labels, has achieved distinct spatial patterns and node clusterings. These variations demonstrate that changes in the initialization of trainable parameters can lead to distinct semantic interpretations of node texts, consequently producing diverse node-level representations.
 
-\paragraph{Comparison of CKA metric for Embedding}
-\paragraph{Prediction Disagreement Diffirent Embedding Set for GNN}
+\subsection{Why do different LoRA initializations yield different representations?}\label{sec:initDiversity}
 
-% adding result of cka 
-% prediction disagreement for gnn
+% ---------------------------------------------------------------------------
+% Numbers below: Cora, LLaMA-3.2-1B, r=8, GraphSAGE, GNN seed 42, LoRA seeds 42-45,
+% 4 inits (Orthogonal pending). Source: results/diversity/{lora_subspace,seed_vs_init,complementarity}/
+% UPDATE every number (and the sentences that interpret it) after the full runs.
+% CHECK: the pool used SPLIT=0 (semi-supervised caches); the paper's main split is 60/20/20.
+% ---------------------------------------------------------------------------
+
+\revtwo{The t-SNE plots in Figure~\ref{fig:tsne} show that the five views differ, but they cannot tell whether the difference is caused by the initialization or by the randomness of training. We therefore follow the effect of the initialization through each stage of the pipeline: the adapter weights, the LLM embeddings, the GNN embeddings and the GNN predictions.}
+
+\paragraph{\revtwo{Mechanism.}}
+\revtwo{LoRA adds a rank-$r$ update $\mathbf{B}\mathbf{A}$ to a frozen weight $\mathbf{W}\in\mathbb{R}^{d_{out}\times d_{in}}$, so the adapter reads its input through the $r$-dimensional row space of $\mathbf{A}$ and writes into the column space of $\mathbf{B}$. When $\mathbf{B}$ starts at zero (Gaussian, Orthogonal and EVA), the first gradient of $\mathbf{B}$ is $\nabla_{\mathbf{B}}\mathcal{L}=\mathbf{g}\,(\mathbf{A}\mathbf{x})^{\top}$, so learning is confined to the input directions selected by the initial $\mathbf{A}$, and $\mathbf{A}$ itself moves little during fine-tuning \citep{zhu2024asymmetry}. Each strategy chooses these directions differently: PiSSA takes the top-$r$ singular vectors of $\mathbf{W}$ \citep{meng2024pissa}, LoftQ the singular vectors of the quantization residual \citep{li2023loftq}, EVA the principal directions of the input activations \citep{paischer2024eva}, and Gaussian/Orthogonal random directions \citep{Hu2021LoRA, zhang2025orthogonal}. Because $r\ll d$ ($8$ vs.\ $2048$ in our setting), two such subspaces overlap very little, so the initialization decides which part of the pretrained representation each adapter is able to modify.}
+
+\paragraph{\revone{Experimental design.}}
+\revone{To separate the initialization from training randomness, each initialization was fine-tuned with four LoRA seeds, giving a pool of $4\times4=16$ members on Cora.
+The LoRA seed controls the classification-head initialization, the data order, the dropout masks and, for random initializations, the random matrix $\mathbf{A}$. A GraphSAGE model was trained on every member with the same GNN seed and split, so two members differ only in their LoRA initialization and/or LoRA seed. For each pair of members we measure a distance and group the pairs into \emph{seed-only} pairs (same initialization, different seed; 24 pairs), \emph{init-only} pairs (different initialization, same seed; 24 pairs) and pairs that differ in \emph{both} (72 pairs). Adapter distances are one minus the mean subspace overlap $\|\mathbf{Q}_i^{\top}\mathbf{Q}_j\|_F^2/r$ over the 64 LoRA layers, where $\mathbf{Q}$ is an orthonormal basis of the row space of $\mathbf{A}$ or the column space of $\mathbf{B}$; embedding distances are $1-$ linear CKA \citep{kornblith2019cka}; prediction distance is the label disagreement on the test nodes. The \emph{init effect} test compares \emph{both} pairs with \emph{seed-only} pairs: both groups differ in seed, so a larger distance in the first group is due to the initialization; its $p$-value comes from 2000 permutations of the initialization labels within each seed. We also report the ratio of init-only to seed-only distance and the share of variance explained by the initialization and by the seed (PERMANOVA $R^2$, \citealp{anderson2001permanova}).} % UPDATE: 5 x 4 = 20 with Orthogonal
+
+\begin{table*}[t]
+\centering\color{red}
+\caption{Pool distances between members that differ in seed only, in initialization only, or in both (Cora, LLaMA-3.2-1B, 4 initializations $\times$ 4 seeds). Larger values mean more diverse members. $p$: permutation test of the initialization effect (\emph{both} vs.\ \emph{seed-only}). Init/seed: ratio of init-only to seed-only distance. $R^2$: share of variance explained by initialization / seed (PERMANOVA).}
+\label{tab:seed_vs_init}
+\small
+\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}} llcccccc @{}}
+\toprule
+\textbf{Stage} & \textbf{Distance} & \textbf{Seed-only} & \textbf{Init-only} & \textbf{Both} & \textbf{$p$} & \textbf{Init/seed} & \textbf{$R^2$ init / seed} \\
+\midrule
+Adapter weights & $1-$ overlap, row($\mathbf{A}$) & 0.533 & 0.995 & 0.995 & $<0.001$ & 1.87 & -- \\
+                & $1-$ overlap, col($\mathbf{B}$) & 0.492 & 0.964 & 0.973 & $<0.001$ & 1.96 & -- \\
+                & $1-\cos$, update $\mathbf{B}\mathbf{A}$ & 0.526 & 0.996 & 0.998 & $<0.001$ & 1.89 & -- \\
+\midrule
+LLM embeddings  & $1-$ CKA & 0.099 & 0.092 & 0.122 & $<0.001$ & 0.93 & 0.35 / 0.43 \\
+GNN embeddings  & $1-$ CKA & 0.191 & 0.183 & 0.219 & 0.030 & 0.96 & 0.33 / 0.39 \\
+GNN predictions & disagreement & 0.093 & 0.089 & 0.096 & 0.045 & 0.95 & 0.21 / 0.29 \\
+\bottomrule
+\end{tabular*}
+\end{table*}
+
+\paragraph{\revtwo{Adapter weights.}}
+\revtwo{Table~\ref{tab:seed_vs_init} shows that, in weight space, adapters trained from different initializations end in almost orthogonal subspaces (distance $0.96$--$1.00$), about twice the distance between seeds of the same initialization ($p<0.001$). For the deterministic initializations the seed barely moves the adapter (seed-only distance of the adapter update: PiSSA $0.03$, LoftQ $0.08$), while the seed changes the adapter of Gaussian and EVA, whose initialization depends on random draws or on the sampled batches. Table~\ref{tab:spectral} locates the trained adapters in the spectrum of the pretrained weights. PiSSA adapters remain in the top-$r$ singular subspace after training (overlap $0.99$, about $100\times$ the random level), LoftQ adapters lean weakly toward the dominant directions, and Gaussian and EVA adapters lie close to random with a slight tilt toward the minor directions. These positions vary by less than $0.001$ across seeds. Each initialization therefore keeps a stable and distinct region of the weight spectrum in which it adapts the model.}
+
+\begin{table}[htbp]
+\centering\color{blue}
+\caption{Overlap of the trained adapters with the top-$r$ and bottom-$r$ singular subspaces of the pretrained weights (mean over 64 layers and 4 seeds; standard deviation $\leq 0.001$). Random subspaces give $r/d_{out}=0.0098$ for col($\mathbf{B}$) and $r/d_{in}=0.0039$ for row($\mathbf{A}$).}
+\label{tab:spectral}
+\small
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Initialization} & \textbf{col($\mathbf{B}$) top} & \textbf{col($\mathbf{B}$) bottom} & \textbf{row($\mathbf{A}$) top} & \textbf{row($\mathbf{A}$) bottom} \\
+\midrule
+PiSSA    & 0.990 & 0.000 & 0.979 & 0.000 \\
+LoftQ    & 0.063 & 0.004 & 0.007 & 0.004 \\
+Gaussian & 0.012 & 0.024 & 0.004 & 0.004 \\
+EVA      & 0.012 & 0.027 & 0.005 & 0.004 \\
+% Orthogonal & ... % UPDATE
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{\revtwo{From weights to representations and predictions.}}
+\revtwo{Mantel tests \citep{mantel1967} between the pool distance matrices of consecutive stages (Table~\ref{tab:mantel}) show that the weight-space differences propagate: members whose adapter updates differ more also have more different LLM embeddings ($\rho=0.76$, $p<0.001$), and the LLM-embedding distance is related to the GNN-embedding distance ($\rho=0.55$) and to the prediction disagreement ($\rho=0.44$, $p=0.010$). Along this chain the diversity is compressed: nearly orthogonal adapters produce embeddings with CKA of about $0.9$, and the GNNs, which propagate over the same graph, disagree on about $9\%$ of the test nodes.} \revone{At the embedding and prediction levels (Table~\ref{tab:seed_vs_init}), members that differ in both initialization and seed are the most diverse, and the initialization adds significant diversity on top of the seed at every stage ($p\leq0.045$). The init-only distances are of the same order as the seed-only distances (ratio $0.93$--$0.96$), and PERMANOVA attributes $35\%$ of the LLM-embedding variance to the initialization and $43\%$ to the seed.}
+
+\begin{table}[htbp]
+\centering\color{blue}
+\caption{Mantel correlation (Spearman $\rho$, 2000 permutations) between the pool distance matrices of successive stages.}
+\label{tab:mantel}
+\small
+\begin{tabular}{llcc}
+\toprule
+\textbf{From} & \textbf{To} & \textbf{$\rho$} & \textbf{$p$} \\
+\midrule
+Adapter update ($\mathbf{B}\mathbf{A}$) & LLM embeddings  & 0.76 & $<0.001$ \\
+Adapter col($\mathbf{B}$)               & LLM embeddings  & 0.28 & $<0.001$ \\
+LLM embeddings                          & GNN embeddings  & 0.55 & 0.003 \\
+LLM embeddings                          & GNN predictions & 0.44 & 0.010 \\
+GNN embeddings                          & GNN predictions & 0.25 & 0.113 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{\revone{Complementarity.}}
+\revone{Diversity is useful only if the members make different errors rather than more errors. We therefore relate the diversity of the members to the gain of their ensemble. To isolate the effect of diversity from the trainable ensemble head, all ensembles in this analysis are uniform averages of the class probabilities, so no weights are fitted. For a uniform average the ambiguity decomposition \citep{krogh1995ensemble} is exact: the ensemble error equals the average member error minus the ambiguity (the spread of the members around the ensemble), so larger diversity at equal member quality directly lowers the ensemble error. Over all $k$-member subsets of the pool, the mean pairwise disagreement is strongly correlated with the ensemble gain over the mean member (Spearman $\rho=0.75$, $0.74$, $0.76$ and $0.73$ for $k=2,3,4,5$; all $p<10^{-20}$; Figure~\ref{fig:div_gain}), and for $k=4$ ensembles with four distinct initializations gain more than those with one ($+1.73$ vs.\ $+1.54$ pp), while for the other sizes the gain differs by less than $0.05$ pp across the number of distinct initializations. The pairwise complementarity measures of \citet{kuncheva2003diversity} lead to the same picture: an oracle that picks the correct member is $3.2$--$3.5$ pp more accurate than the better member of a pair.} \revthree{Table~\ref{tab:seed_multi_ensemble} compares ensembles of equal size built from one initialization with four seeds and from four initializations with one seed.}
+
+\begin{table}[htbp]
+\centering\color{green}
+\caption{Uniform-average ensembles of equal size ($k=4$), built from one initialization with four seeds (seed-only) or from four initializations with one seed (multi-init). Mean over the four ensembles of each family; gains in percentage points.}
+\label{tab:seed_multi_ensemble}
+\small
+\begin{tabular}{lccccc}
+\toprule
+\textbf{Family} & \textbf{Ens.\ acc.} & \textbf{Gain vs.\ mean} & \textbf{Gain vs.\ best} & \textbf{Avg.\ member error} & \textbf{Ambiguity} \\
+\midrule
+Seed-only  & 88.76 & +1.54 & +0.62 & 0.2051 & 0.0344 \\
+Multi-init & 88.76 & +1.54 & +0.79 & 0.2051 & 0.0320 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[htbp]
+	\centering\color{red}
+	\includegraphics[width=0.7\textwidth]{images/llama_3.2_1B_cora_diversity_vs_gain_k4.png}
+	\caption{Mean pairwise prediction disagreement vs.\ ensemble gain over the mean member for all 1820 four-member subsets of the Cora pool, coloured by the number of distinct initializations in the subset.}
+	\label{fig:div_gain}
+\end{figure}
+
+\revone{In summary, the initialization determines where in the pretrained weight spectrum each adapter operates, this choice is stable across seeds, and the differences it creates in weight space propagate to the node embeddings and predictions, where they add to the diversity produced by training randomness. The resulting diversity is complementary: the more the members disagree, the more their ensemble improves over them.}
 
 \subsection{Performance Comparison of Trainable Ensemble Learning vs. Simple Averaging}
 
@@ -789,7 +903,121 @@ In Table \ref{tab:ensemble_results}, the performance of the three proposed train
 
 Furthermore, according to the results in the table, the third proposed trainable ensemble method achieves the best overall performance across the majority of the datasets compared to the other two proposed versions.
 
-\subsection{DIVERGE on Diffirent Encoder}
+\subsection{DIVERGE on Diffirent LLM Encoder}
+
+\begin{table}[htbp]
+\centering
+\caption{Accuracy of DIVERGE with different LLM encoders. For each encoder, the first five rows report the GNN trained on the text embeddings obtained with each LoRA initialization approach, followed by the three DIVERGE ensemble methods.}
+\label{tab:diverge_llm_encoders}
+
+\small
+\setlength{\tabcolsep}{3pt}
+\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}} lccccccc @{}}
+\toprule
+\multirow{2}{*}{\textbf{Method}} & \multicolumn{7}{c}{\textbf{Accuracy (\%)}} \\
+\cmidrule(lr){2-8}
+ & \textbf{Cora} & \textbf{CiteSeer} & \textbf{PubMed} & \textbf{WikiCS} & \textbf{ArXiv} & \textbf{Computers} & \textbf{Reddit} \\
+\midrule
+\multicolumn{8}{l}{\textit{LLM encoder: LLaMA-3.2-1B}} \\
+\midrule
+PiSSA                     & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
+Gaussian                  & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
+EVA                       & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
+LoftQ                     & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
+Orthogonal                & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
+\cmidrule(lr){1-8}
+DIVERGE Ensemble Method 1 & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} \\
+DIVERGE Ensemble Method 2 & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} \\
+DIVERGE Ensemble Method 3 & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} \\
+\midrule
+\multicolumn{8}{l}{\textit{LLM encoder: SmolLM2-1.7B}} \\
+\midrule
+PiSSA                     & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
+Gaussian                  & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
+EVA                       & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
+LoftQ                     & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
+Orthogonal                & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
+\cmidrule(lr){1-8}
+DIVERGE Ensemble Method 1 & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} \\
+DIVERGE Ensemble Method 2 & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} \\
+DIVERGE Ensemble Method 3 & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} \\
+\midrule
+\multicolumn{8}{l}{\textit{LLM encoder: Gemma-2-2B}} \\
+\midrule
+PiSSA                     & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
+Gaussian                  & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
+EVA                       & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
+LoftQ                     & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
+Orthogonal                & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
+\cmidrule(lr){1-8}
+DIVERGE Ensemble Method 1 & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} \\
+DIVERGE Ensemble Method 2 & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} \\
+DIVERGE Ensemble Method 3 & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} \\
+\bottomrule
+\end{tabular*}
+\end{table}
+
+
+\subsection{DIVERGE on Diffirent GNN Encoder}
+
+\begin{table}[htbp]
+\centering
+\caption{Accuracy of the three DIVERGE ensemble methods with different GNN encoders.}
+\label{tab:diverge_gnn_encoders}
+
+\small
+\setlength{\tabcolsep}{3pt}
+\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}} lccc @{}}
+\toprule
+\multirow{2}{*}{\textbf{Method}} & \multicolumn{3}{c}{\textbf{GNN Encoder -- Accuracy (\%)}} \\
+\cmidrule(lr){2-4}
+ & \textbf{GCN} & \textbf{GIN} & \textbf{SAGE} \\
+\midrule
+\multicolumn{4}{l}{\textit{Dataset: Cora}} \\
+\midrule
+DIVERGE Ensemble Method 1 & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} \\
+DIVERGE Ensemble Method 2 & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} \\
+DIVERGE Ensemble Method 3 & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} \\
+\midrule
+\multicolumn{4}{l}{\textit{Dataset: CiteSeer}} \\
+\midrule
+DIVERGE Ensemble Method 1 & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} \\
+DIVERGE Ensemble Method 2 & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} \\
+DIVERGE Ensemble Method 3 & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} \\
+\midrule
+\multicolumn{4}{l}{\textit{Dataset: PubMed}} \\
+\midrule
+DIVERGE Ensemble Method 1 & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} \\
+DIVERGE Ensemble Method 2 & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} \\
+DIVERGE Ensemble Method 3 & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} \\
+\midrule
+\multicolumn{4}{l}{\textit{Dataset: WikiCS}} \\
+\midrule
+DIVERGE Ensemble Method 1 & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} \\
+DIVERGE Ensemble Method 2 & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} \\
+DIVERGE Ensemble Method 3 & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} \\
+\midrule
+\multicolumn{4}{l}{\textit{Dataset: ArXiv}} \\
+\midrule
+DIVERGE Ensemble Method 1 & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} \\
+DIVERGE Ensemble Method 2 & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} \\
+DIVERGE Ensemble Method 3 & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} \\
+\midrule
+\multicolumn{4}{l}{\textit{Dataset: Computers}} \\
+\midrule
+DIVERGE Ensemble Method 1 & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} \\
+DIVERGE Ensemble Method 2 & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} \\
+DIVERGE Ensemble Method 3 & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} \\
+\midrule
+\multicolumn{4}{l}{\textit{Dataset: Reddit}} \\
+\midrule
+DIVERGE Ensemble Method 1 & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} \\
+DIVERGE Ensemble Method 2 & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} \\
+DIVERGE Ensemble Method 3 & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} \\
+\bottomrule
+\end{tabular*}
+\end{table}
+
 
 
 \subsection{ABLATION Study}
@@ -896,11 +1124,56 @@ $p$-value & $1.92\times10^{-9}$ & $4.59\times10^{-38}$ & $9.73\times10^{-5}$ & $
 Based on the results in Table \ref{tab:mcnemar}, the $p$-value for all datasets was less than the significance level \(\alpha = 0.05\); therefore, the null hypothesis is rejected in all cases. These findings indicate that fine-tuning the LLM has led to a statistically significant improvement in the downstream performance of the GNN.
 
 \subsubsection{Analysis of the Impact of Number of Finetuned LLM}
-% in this section we analysie the impact of parameter of M
+% TODO: state in the text which M initialization strategies are used for each M < 5.
 
-\subsubsection{Computation Efficiency with Parralisim}
+\begin{table}[htbp]
+\centering
+\caption{Accuracy of the three DIVERGE ensemble methods for different numbers of fine-tuned LLMs $M$.}
+\label{tab:diverge_num_finetuned_llms}
 
-\subsubsection{Comparision of Ensemble Methods}
+\small
+\setlength{\tabcolsep}{3pt}
+\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}} lccccccc @{}}
+\toprule
+\multirow{2}{*}{\textbf{Method}} & \multicolumn{7}{c}{\textbf{Accuracy (\%)}} \\
+\cmidrule(lr){2-8}
+ & \textbf{Cora} & \textbf{CiteSeer} & \textbf{PubMed} & \textbf{WikiCS} & \textbf{ArXiv} & \textbf{Computers} & \textbf{Reddit} \\
+\midrule
+\multicolumn{8}{l}{\textit{$M=2$}} \\
+\midrule
+DIVERGE Ensemble Method 1 & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
+DIVERGE Ensemble Method 2 & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
+DIVERGE Ensemble Method 3 & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
+\midrule
+\multicolumn{8}{l}{\textit{$M=3$}} \\
+\midrule
+DIVERGE Ensemble Method 1 & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
+DIVERGE Ensemble Method 2 & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
+DIVERGE Ensemble Method 3 & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
+\midrule
+\multicolumn{8}{l}{\textit{$M=4$}} \\
+\midrule
+DIVERGE Ensemble Method 1 & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
+DIVERGE Ensemble Method 2 & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
+DIVERGE Ensemble Method 3 & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
+\midrule
+\multicolumn{8}{l}{\textit{$M=5$}} \\
+\midrule
+DIVERGE Ensemble Method 1 & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
+DIVERGE Ensemble Method 2 & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
+DIVERGE Ensemble Method 3 & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
+\bottomrule
+\end{tabular*}
+\end{table}
+
+
+\subsubsection{Computational Efficiency with Parallelism}
+
+\subsubsection{Comparison of Ensemble Methods}
+
+\subsubsection{Analysis of Api Cost}
+
+\subsubsection{Analysis of Privacy Sensitive}
 
 \section{Discussion}\label{sec:Discussion}
 

@@ -1,3 +1,4 @@
+import os
 from train_llm.peft_model import load_llm_model, get_lora_model
 from dataset.dataset_loader import load_dataset, get_tokenizer
 from config import setup_finetuning_cfg
@@ -16,6 +17,11 @@ def main(database_name, llm_name, peft_type, init_weight_approach, split, seed=N
     print("=== Using seed:", cfg.dataset.seed)
     # Train with LLM responses
     adapter_dir = f'{get_semi_supervised_adapter_dir(cfg)}_seed{cfg.dataset.seed}'
+    # Per-run HF Trainer checkpoint dir: with save_strategy=best + load_best_model_at_end a shared
+    # ./outputs/ would let parallel runs overwrite / delete / reload each other's checkpoints.
+    run_name = os.path.basename(adapter_dir.rstrip('/\\'))
+    cfg.training_args.output_dir = os.path.join('outputs', run_name)
+    cfg.training_args.logging_dir = os.path.join('logs', run_name)
     save_dir = f'results/train_info/train_1/{database_name}_{llm_name}_{peft_type}_{init_weight_approach}_seed{cfg.dataset.seed}_semi_supervised_adapter'
     reporter = ReportResults(cfg, save_dir=save_dir, init_approach=init_weight_approach)
     train = Train(cfg, adapter_dir, reporter, split=split)

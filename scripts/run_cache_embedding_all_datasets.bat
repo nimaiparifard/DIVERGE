@@ -31,7 +31,7 @@ set WANDB_MODE=disabled
 set HF_HUB_DISABLE_TELEMETRY=1
 
 REM Datasets
-set DATASETS=cora
+set DATASETS=citeseer
 
 REM LLMs (must match configs/llm_configs/<name>.json and local_models/<name>)
 set LLM_NAMES=llama_3.2_1B smollm2_1.7B gemma2_2B
