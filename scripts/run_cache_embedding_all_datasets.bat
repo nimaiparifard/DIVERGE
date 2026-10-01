@@ -31,16 +31,16 @@ set WANDB_MODE=disabled
 set HF_HUB_DISABLE_TELEMETRY=1
 
 REM Datasets
-set DATASETS=citeseer
+set DATASETS=reddit
 
 REM LLMs (must match configs/llm_configs/<name>.json and local_models/<name>)
-set LLM_NAMES=llama_3.2_1B smollm2_1.7B gemma2_2B
+set LLM_NAMES=llama_3.2_1B smollm2_1.7B
 
 REM LoRA weight initialization approaches
 set INIT_APPROACHES=pissa gaussian eva loftq orthogonal
 
 REM Seeds to cache embeddings for (must match seeds used when training the adapters)
-set SEEDS=42 43 44 45
+set SEEDS=42
 
 REM Status / tracking files
 set STATUS_DIR=results\run_status

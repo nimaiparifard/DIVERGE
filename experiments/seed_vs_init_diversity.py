@@ -33,7 +33,7 @@ import os
 import numpy as np
 
 from experiments.diversity_common import (
-    add_common_args, pool_from_args, cka_distance_matrix, disagreement_matrix, cached_matrix,
+    add_common_args, pool_from_args, cka_distance_matrix, disagreement_matrix, cached_matrix, pair_node_counts,
     within_between_test, permanova, save_pool_heatmap, save_matrix_csv, run_info, append_rows, TextReport,
 )
 
@@ -47,7 +47,7 @@ def main(args):
         report.line(line)
 
     gnn = pool.load_gnn_pool(retrain=args.retrain_gnn)
-    test_mask = gnn['test_mask']
+    test_masks = gnn['test_masks']
 
     levels = {
         'llm_embedding_cka': (
@@ -59,13 +59,20 @@ def main(args):
                                   recompute=args.recompute or args.retrain_gnn),
             '1 - CKA (GNN embeddings, before logits)'),
         'gnn_prediction_disagreement': (
-            lambda: disagreement_matrix(gnn['preds'], test_mask),
+            lambda: disagreement_matrix(gnn['preds'], test_masks),
             'Prediction disagreement (test nodes)'),
     }
 
-    report.section('Individual GNN test accuracy (fixed GNN seed)')
+    report.section('Individual GNN test accuracy (' + ('own split, own test nodes' if pool.own_split
+                                                      else 'fixed GNN seed') + ')')
     for lbl, acc in zip(pool.labels, gnn['test_acc']):
         report.line(f'  {lbl:<16} {acc:.2f}')
+    if pool.own_split:
+        cnt = pair_node_counts(test_masks)
+        same = pool.seeds[:, None] == pool.seeds[None, :]
+        off = ~np.eye(len(pool), dtype=bool)
+        report.line(f'Shared test nodes per pair: same seed {cnt[same & off].mean():.0f}, '
+                    f'different seed {cnt[~same].mean():.0f} (min {cnt[~same].min()})')
 
     rows = []
     rng = np.random.default_rng(0)

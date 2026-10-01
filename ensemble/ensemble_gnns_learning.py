@@ -31,7 +31,7 @@ def ensemble_gnn_learning(model_list: list, dataset_name, weight_approach='unifo
                          num_layers=1, hidden_dim=64, dropout=0.5, learning_rate=0.01, epochs=200,
                          custom_embeddings: list =None, modified_datasets_list : list =None,
                           does_report_training_process: bool= False, predictions_list: list =None,
-                          supervised: bool=True, seed=None, llm_name=None):
+                          supervised: bool=True, seed=None, llm_name=None, select_split='test'):
     """
     Perform ensemble learning using multiple GNN models.
     
@@ -54,6 +54,9 @@ def ensemble_gnn_learning(model_list: list, dataset_name, weight_approach='unifo
         modified_datasets_list: optional list of modified datasets (one per model)
                                If provided, uses each model's corresponding dataset for edge_index
         supervised: True Supervised setting False Semi Supervised Setting
+        select_split: split whose accuracy picks the best training epoch of a learnable
+                      head. 'test' (default) keeps the historical behaviour of the paper runs;
+                      'val' is the leakage-free protocol (test nodes never used for selection).
 
         
     Returns:
@@ -141,6 +144,9 @@ def ensemble_gnn_learning(model_list: list, dataset_name, weight_approach='unifo
             print(f"  Modified dataset split — Train: {n_train}, Val: {n_val}, Test: {n_test}")
 
     num_models = len(model_list)
+    if select_split not in ('val', 'test'):
+        raise ValueError(f"select_split must be 'val' or 'test', got {select_split!r}")
+    sel_mask = graph_data.val_mask if select_split == 'val' else graph_data.test_mask
     
     if weight_approach == 'uniform':
         # Uniform weights: simple average
@@ -166,7 +172,7 @@ def ensemble_gnn_learning(model_list: list, dataset_name, weight_approach='unifo
         criterion = nn.CrossEntropyLoss()
         
         # For tracking best model
-        best_test_acc = 0.0
+        best_sel_acc = 0.0
         best_ensemble_logits = None
         best_weights = None
         best_epoch = 0
@@ -186,30 +192,30 @@ def ensemble_gnn_learning(model_list: list, dataset_name, weight_approach='unifo
             loss.backward()
             optimizer.step()
             
-            # Evaluate on test set
+            # Evaluate on the selection split (validation by default)
             weight_learner.eval()
             with torch.no_grad():
                 # Get predictions on full dataset
                 eval_logits, eval_weights = weight_learner(*predictions_list)
-                test_preds = eval_logits[graph_data.test_mask].argmax(dim=1).cpu().numpy()
-                test_labels = graph_data.y[graph_data.test_mask].cpu().numpy()
-                test_acc, _, _ = compute_acc_and_f1(test_preds, test_labels)
+                sel_preds = eval_logits[sel_mask].argmax(dim=1).cpu().numpy()
+                sel_labels = graph_data.y[sel_mask].cpu().numpy()
+                sel_acc, _, _ = compute_acc_and_f1(sel_preds, sel_labels)
                 
-                # Track best model based on test accuracy
-                if test_acc > best_test_acc:
-                    best_test_acc = test_acc
+                # Track the best epoch by accuracy on the selection split
+                if sel_acc > best_sel_acc:
+                    best_sel_acc = sel_acc
                     best_ensemble_logits = eval_logits.clone()
                     best_weights = eval_weights.clone()
                     best_epoch = epoch
             
             if epoch % max(1, epochs // 5) == 0 and does_report_training_process:  # Report 5 times during training
-                print(f"Epoch {epoch}/{epochs}, loss: {loss.item():.4f}, test_acc: {test_acc:.4f}, weights: {current_weights.detach().cpu().numpy()}")
+                print(f"Epoch {epoch}/{epochs}, loss: {loss.item():.4f}, {select_split}_acc: {sel_acc:.4f}, weights: {current_weights.detach().cpu().numpy()}")
         
         # Use best model
         ensemble_logits = best_ensemble_logits
         weights = best_weights.detach().cpu().numpy().tolist()
         
-        print(f"\nBest model from epoch {best_epoch} with test accuracy: {best_test_acc:.4f}")
+        print(f"\nBest model from epoch {best_epoch} with {select_split} accuracy: {best_sel_acc:.4f}")
         print(f"Best learned weights: {weights}")
     elif weight_approach == 'learnable_per_classes':
         # Separate MLP for each class that learns how to weight different models for that class
@@ -229,7 +235,7 @@ def ensemble_gnn_learning(model_list: list, dataset_name, weight_approach='unifo
         criterion = nn.CrossEntropyLoss()
         
         # For tracking best model
-        best_test_acc = 0.0
+        best_sel_acc = 0.0
         best_ensemble_logits = None
         best_weights = None
         best_epoch = 0
@@ -252,24 +258,24 @@ def ensemble_gnn_learning(model_list: list, dataset_name, weight_approach='unifo
             loss.backward()
             optimizer.step()
             
-            # Evaluate on test set
+            # Evaluate on the selection split (validation by default)
             ensemble_learner.eval()
             with torch.no_grad():
                 # Get predictions on full dataset
                 eval_logits, eval_weights = ensemble_learner(*predictions_list)
-                test_preds = eval_logits[graph_data.test_mask].argmax(dim=1).cpu().numpy()
-                test_labels = graph_data.y[graph_data.test_mask].cpu().numpy()
-                test_acc, _, _ = compute_acc_and_f1(test_preds, test_labels)
+                sel_preds = eval_logits[sel_mask].argmax(dim=1).cpu().numpy()
+                sel_labels = graph_data.y[sel_mask].cpu().numpy()
+                sel_acc, _, _ = compute_acc_and_f1(sel_preds, sel_labels)
                 
-                # Track best model based on test accuracy
-                if test_acc > best_test_acc:
-                    best_test_acc = test_acc
+                # Track the best epoch by accuracy on the selection split
+                if sel_acc > best_sel_acc:
+                    best_sel_acc = sel_acc
                     best_ensemble_logits = eval_logits.clone()
                     best_weights = eval_weights.clone()
                     best_epoch = epoch
             
             if epoch % max(1, epochs // 5) == 0 and does_report_training_process:
-                print(f"Epoch {epoch}/{epochs}, loss: {loss.item():.4f}, test_acc: {test_acc:.4f}")
+                print(f"Epoch {epoch}/{epochs}, loss: {loss.item():.4f}, {select_split}_acc: {sel_acc:.4f}")
                 # Print weight statistics per class
                 with torch.no_grad():
                     print(f"  Weight matrix shape: {current_weights.shape} [num_classes, num_models]")
@@ -281,7 +287,7 @@ def ensemble_gnn_learning(model_list: list, dataset_name, weight_approach='unifo
         ensemble_logits = best_ensemble_logits
         weights = best_weights.detach().cpu().numpy()
         
-        print(f"\nBest model from epoch {best_epoch} with test accuracy: {best_test_acc:.4f}")
+        print(f"\nBest model from epoch {best_epoch} with {select_split} accuracy: {best_sel_acc:.4f}")
         print(f"Learned weight matrix shape: {weights.shape} [num_classes, num_models]")
         print(f"Each class learned separate weights for combining models")
         # Print weights for each class
@@ -307,7 +313,7 @@ def ensemble_gnn_learning(model_list: list, dataset_name, weight_approach='unifo
         criterion = nn.CrossEntropyLoss()
         
         # For tracking best model
-        best_test_acc = 0.0
+        best_sel_acc = 0.0
         best_ensemble_logits = None
         best_weights = None
         best_epoch = 0
@@ -330,24 +336,24 @@ def ensemble_gnn_learning(model_list: list, dataset_name, weight_approach='unifo
             loss.backward()
             optimizer.step()
             
-            # Evaluate on test set
+            # Evaluate on the selection split (validation by default)
             weight_learner.eval()
             with torch.no_grad():
                 # Get predictions on full dataset
                 eval_logits, eval_weights = weight_learner(*predictions_list)
-                test_preds = eval_logits[graph_data.test_mask].argmax(dim=1).cpu().numpy()
-                test_labels = graph_data.y[graph_data.test_mask].cpu().numpy()
-                test_acc, _, _ = compute_acc_and_f1(test_preds, test_labels)
+                sel_preds = eval_logits[sel_mask].argmax(dim=1).cpu().numpy()
+                sel_labels = graph_data.y[sel_mask].cpu().numpy()
+                sel_acc, _, _ = compute_acc_and_f1(sel_preds, sel_labels)
                 
-                # Track best model based on test accuracy
-                if test_acc > best_test_acc:
-                    best_test_acc = test_acc
+                # Track the best epoch by accuracy on the selection split
+                if sel_acc > best_sel_acc:
+                    best_sel_acc = sel_acc
                     best_ensemble_logits = eval_logits.clone()
                     best_weights = eval_weights.clone()
                     best_epoch = epoch
             
             if epoch % max(1, epochs // 5) == 0 and does_report_training_process:
-                print(f"Epoch {epoch}/{epochs}, loss: {loss.item():.4f}, test_acc: {test_acc:.4f}")
+                print(f"Epoch {epoch}/{epochs}, loss: {loss.item():.4f}, {select_split}_acc: {sel_acc:.4f}")
                 # Print weight statistics
                 with torch.no_grad():
                     weight_stats = current_weights.mean(dim=1).cpu().numpy()
@@ -357,7 +363,7 @@ def ensemble_gnn_learning(model_list: list, dataset_name, weight_approach='unifo
         ensemble_logits = best_ensemble_logits
         weights = best_weights.detach().cpu().numpy()
         
-        print(f"\nBest model from epoch {best_epoch} with test accuracy: {best_test_acc:.4f}")
+        print(f"\nBest model from epoch {best_epoch} with {select_split} accuracy: {best_sel_acc:.4f}")
         print(f"Learned weight matrix shape: {weights.shape} (num_models x num_classes)")
         print(f"Average weight per model: {weights.mean(axis=1)}")
         # Store as list for consistency with other approaches
@@ -440,7 +446,8 @@ def tune_ensemble_hyperparameter(dataset_name, model_list: list, custom_embeddin
                                  does_report_training_process: bool= False, title="", reporter=None,
                                  llm_name='llama_3.2_1B', peft_type='lora', title_list=None,
                                  visualize_best=True, ensemble_approaches = 'learnable',save_dir="results/gnn_mistakes_comprehensive", show=False
-                                 , predictions_list: list =None, supervised=True, seed=None):
+                                 , predictions_list: list =None, supervised=True, seed=None,
+                                 select_split='test'):
     """
     Tune hyperparameters for ensemble GNN learning and report best results.
     After finding best hyperparameters, optionally visualize the best ensemble model comprehensively.
@@ -459,6 +466,9 @@ def tune_ensemble_hyperparameter(dataset_name, model_list: list, custom_embeddin
         visualize_best: whether to generate comprehensive visualizations for best model
         save_dir: directory to save visualizations
         show: whether to display plots
+        select_split: split whose accuracy selects the head configuration and its training
+                      epoch. 'test' (default) keeps the historical behaviour of the paper runs;
+                      'val' is the leakage-free protocol (test nodes never used for selection).
     
     Returns:
         best_results: dict with best performance metrics
@@ -479,7 +489,7 @@ def tune_ensemble_hyperparameter(dataset_name, model_list: list, custom_embeddin
         # Uniform averaging has no learnable weights: every combination gives the same result
         num_layers_options, hidden_dim_options, dropout_options, learning_rate_options = [2], [64], [0.3], [0.01]
 
-    best_acc = 0.0
+    best_acc = -1.0
     total_combinations = len(num_layers_options) * len(hidden_dim_options) * len(dropout_options) * len(learning_rate_options)
     successful_runs = 0
     failed_runs = 0
@@ -528,16 +538,17 @@ def tune_ensemble_hyperparameter(dataset_name, model_list: list, custom_embeddin
                                 supervised=supervised,
                                 seed=seed,
                                 llm_name=llm_name,
+                                select_split=select_split,
                             )
 
-                        test_acc = results['test']['accuracy']
+                        sel_acc = results[select_split]['accuracy']
                         successful_runs += 1
                         config_times.append(fit_monitor.time_sec)
 
-                        print(f"  ✓ Success! Test Acc: {test_acc:.4f}")
+                        print(f"  ✓ Success! {select_split} Acc: {sel_acc:.4f} | Test Acc: {results['test']['accuracy']:.4f}")
                         
-                        if test_acc > best_acc:
-                            best_acc = test_acc
+                        if sel_acc > best_acc:
+                            best_acc = sel_acc
                             best_results = results
                             best_hyperparams = {
                                 'num_layers': num_layers,
@@ -546,7 +557,7 @@ def tune_ensemble_hyperparameter(dataset_name, model_list: list, custom_embeddin
                                 'learning_rate': lr
                             }
                             best_fit_cost = fit_monitor.metrics()
-                            print(f"  ★ New best accuracy: {best_acc:.4f}")
+                            print(f"  ★ New best {select_split} accuracy: {best_acc:.4f}")
 
                     except Exception as e:
                         failed_runs += 1
@@ -611,6 +622,7 @@ def tune_ensemble_hyperparameter(dataset_name, model_list: list, custom_embeddin
                     supervised=supervised,
                     seed=seed,
                     llm_name=llm_name,
+                    select_split=select_split,
                 )
 
             best_fit_cost = fallback_monitor.metrics()
@@ -732,6 +744,7 @@ Cost:
             supervised=supervised,
             seed=seed,
             llm_name=llm_name,
+            select_split=select_split,
         )
 
         # Generate comprehensive visualizations (only when graph has same size as original dataset)

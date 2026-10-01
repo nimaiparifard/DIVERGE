@@ -52,8 +52,7 @@ def get_init_dataset_for_gnn(cfg, supervised=True, seed=None):
     # Normalize path to avoid issues with trailing slashes
     cache_dir = os.path.normpath(cache_dir)
     
-    # Build file paths based on supervised flag, with fallback to base names
-    suffix = '_semi_supervised' if not supervised else ''
+    # Build file paths, with fallback to base names
     base_name = f'{cfg.llm.model_name}_{cfg.dataset.name}_seqcls_{cfg.peft.type}'
     resolved_seed = seed if seed is not None else getattr(cfg.dataset, 'seed', None)
 
@@ -67,16 +66,19 @@ def get_init_dataset_for_gnn(cfg, supervised=True, seed=None):
 
     data_paths = {}
     for key, init_name in init_types.items():
-        # Preference order: seed-tagged semi-supervised cache (current format) ->
-        # legacy semi-supervised cache without seed (pre-seed-support caches) ->
-        # supervised base cache (no seed / no semi-supervised suffix at all)
+        # Preference order: seed-tagged semi-supervised cache (current format; the
+        # supervised split reuses these too) -> legacy semi-supervised cache without
+        # seed (pre-seed-support caches) -> supervised base cache (no seed / no suffix)
         candidates = []
-        if not supervised and resolved_seed is not None:
-            candidates.append(os.path.join(cache_dir, f'{base_name}_init-{init_name}_pool-mean_seed{resolved_seed}{suffix}.pt'))
-        candidates.append(os.path.join(cache_dir, f'{base_name}_init-{init_name}_pool-mean{suffix}.pt'))
+        if resolved_seed is not None:
+            candidates.append(os.path.join(cache_dir, f'{base_name}_init-{init_name}_pool-mean_seed{resolved_seed}_semi_supervised.pt'))
+        candidates.append(os.path.join(cache_dir, f'{base_name}_init-{init_name}_pool-mean_semi_supervised.pt'))
         candidates.append(os.path.join(cache_dir, f'{base_name}_init-{init_name}_pool-mean.pt'))
         data_paths[key] = next((p for p in candidates if os.path.exists(p)), candidates[0])
-    
+        if resolved_seed is not None and data_paths[key] != candidates[0] and os.path.exists(data_paths[key]):
+            print(f"WARNING: no seed-{resolved_seed} cache for {init_name}; falling back to the un-seeded "
+                  f"cache {os.path.basename(data_paths[key])}")
+
     data_path_pissa = data_paths['pissa']
     data_path_orthogonal = data_paths['orthogonal']
     data_path_loftq = data_paths['loftq']

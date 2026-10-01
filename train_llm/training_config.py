@@ -34,5 +34,8 @@ def get_training_config(cfg):
         report_to=report_to,
         dataloader_pin_memory=cfg.dataloader_pin_memory,
         use_cpu=cfg.use_cpu,
+        # Data order / dropout seed of the HF Trainer. Unset keeps the HF default (42), which is
+        # what every run trained before --split_seed existed used.
+        seed=int(getattr(cfg.training_args, 'seed', None) or 42),
     )
     return training_args

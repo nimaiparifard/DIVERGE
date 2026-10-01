@@ -22,12 +22,24 @@ from torch.utils.data import DataLoader, Subset
 
 class Train:
     def __init__(self, cfg, save_dir, reporter,  used_llm_responses=False, used_summary_texts=False, used_paraphrased_texts=False, train_with_keywords=False, split=1, 
-                 use_augmented_nodes=False, augmented_dataset=None,):
+                 use_augmented_nodes=False, augmented_dataset=None, split_seed=None, init_seed=None):
+        """
+        split_seed: seed of the train/val/test split. None (default) uses cfg.dataset.seed,
+                    i.e. the split and the training randomness share one seed (the original
+                    behaviour). Set it to train several LoRA seeds on one fixed split.
+        init_seed:  seed of the LoRA adapter initialization (random A/B draw of gaussian,
+                    orthogonal and default-LoRA inits). None (default) draws it from
+                    cfg.dataset.seed. Set it to give several training seeds the identical
+                    starting adapter; the classification head, data order and dropout still
+                    follow cfg.dataset.seed.
+        """
         self.cfg = cfg
         self.reporter= reporter
         self.split = split
         self.dataset_name = cfg.dataset.name
         self.seed = cfg.dataset.seed
+        self.split_seed = split_seed if split_seed is not None else self.seed
+        self.init_seed = init_seed
         set_seed(cfg.dataset.seed)
         self.model_name = cfg.llm.model_name
         self.lora_init = getattr(cfg.peft, "init_lora_weights", "N/A")
@@ -67,19 +79,23 @@ class Train:
                 used_llm_responses=self.used_llm_responses, 
                 used_summary_texts=used_summary_texts, 
                 used_paraphrased_texts=used_paraphrased_texts, 
-                seed=self.seed, 
+                seed=self.split_seed, 
                 path_prefix=path_prefix, 
                 split=self.split
             )
         else:
-            self.train_dataset, self.val_dataset, self.test_dataset = prepare_data_for_finetuning(cfg, used_llm_responses=self.used_llm_responses, used_summary_texts=used_summary_texts, used_paraphrased_texts=used_paraphrased_texts, seed=self.seed, path_prefix=path_prefix, split=self.split)
+            self.train_dataset, self.val_dataset, self.test_dataset = prepare_data_for_finetuning(cfg, used_llm_responses=self.used_llm_responses, used_summary_texts=used_summary_texts, used_paraphrased_texts=used_paraphrased_texts, seed=self.split_seed, path_prefix=path_prefix, split=self.split)
         self.num_classes = cfg.dataset.num_classes
         # Pass tokenizer so pad_token_id is set on the classification model
         self.base_model = load_llm_model(cfg, tokenizer=self.tokenizer)
         if getattr(self.tokenizer, "pad_token_id", None) is not None:
             self.base_model.config.pad_token_id = self.tokenizer.pad_token_id
         self.save_dir = save_dir
+        if self.init_seed is not None:
+            set_seed(self.init_seed)
         self.model = get_lora_model(self.base_model, cfg)
+        if self.init_seed is not None:
+            set_seed(cfg.dataset.seed)
 
     def process(self):
         self.reporter.report_title("Training Process Started")
@@ -89,6 +105,9 @@ class Train:
         self.reporter.report_txt(f"LoRA init: {self.lora_init}")
         self.reporter.report_txt(f"Split: {self.split}")
         self.reporter.report_txt(f"Seed: {self.seed}")
+        self.reporter.report_txt(f"Split seed: {self.split_seed}")
+        if self.init_seed is not None:
+            self.reporter.report_txt(f"LoRA init seed: {self.init_seed}")
         
         self._train()
         save_dir = self.save_model()

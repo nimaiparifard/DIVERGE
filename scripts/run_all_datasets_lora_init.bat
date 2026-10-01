@@ -21,16 +21,16 @@ set WANDB_MODE=disabled
 set HF_HUB_DISABLE_TELEMETRY=1
 
 REM Datasets
-set DATASETS=citeseer pubmed wikics 
+set DATASETS=pubmed 
 
 REM LLMs (must match configs/llm_configs/<name>.json and local_models/<name>)
-set LLM_NAMES=llama_3.2_1B smollm2_1.7B gemma2_2B  
+set LLM_NAMES=gemma2_2B
 
 REM LoRA weight initialization approaches
-set INIT_APPROACHES=pissa gaussian eva loftq orthogonal
+set INIT_APPROACHES=orthogonal
 
 REM Random seeds to sweep (each seed gets its own adapter dir / results)
-set SEEDS=42 43 44 45
+set SEEDS=42 
 
 REM Status / tracking files
 set STATUS_DIR=results\run_status

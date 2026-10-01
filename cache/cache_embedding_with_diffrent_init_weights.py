@@ -49,7 +49,9 @@ class CacheEmbeddingDiffrentInitWeights(CacheEmbedding):
             fname = f"{self.model_name}_{self.dataset_name}_seqcls_lora_init-{self.init_lora_weights}_pool-{self.pooling}_paraphrased.pt"
 
         if split != 1:
-            fname = f"{self.model_name}_{self.dataset_name}_seqcls_lora_init-{self.init_lora_weights}_pool-{self.pooling}_seed{self.seed}_semi_supervised.pt"
+            from adapter_dir import lora_run_tag
+            tag = lora_run_tag(self.seed, getattr(self, 'split_seed', None), getattr(self, 'init_seed', None))
+            fname = f"{self.model_name}_{self.dataset_name}_seqcls_lora_init-{self.init_lora_weights}_pool-{self.pooling}{tag}_semi_supervised.pt"
         save_path = os.path.join(save_root, fname)
         torch.save(self.cache_dict, save_path)
         print(f"[OK] Saved cache with init approach '{self.init_lora_weights}' to: {save_path}")
@@ -57,7 +59,7 @@ class CacheEmbeddingDiffrentInitWeights(CacheEmbedding):
 
 def main(dataset_name, llm_name, peft_type, init_weight_approach, split,
          used_summary_texts, used_paraphrased_texts, used_llm_responses,
-         used_based_model, pooling, seed=None, batch_size=None):
+         used_based_model, pooling, seed=None, batch_size=None, split_seed=None, init_seed=None):
     cfg = setup_finetuning_cfg(dataset_name=dataset_name, llm_name=llm_name, peft_type=peft_type)
     if batch_size is not None:
         cfg.llm.caching_batch_size = batch_size  # inference only: embeddings do not depend on it
@@ -77,7 +79,8 @@ def main(dataset_name, llm_name, peft_type, init_weight_approach, split,
 
     if split != 1:
         # Must match the adapter_dir naming used in train_llm/train_other_lora_init_apporaches.py
-        adapter_dir = f'{get_semi_supervised_adapter_dir(cfg)}_seed{cfg.dataset.seed}'
+        from adapter_dir import lora_run_tag
+        adapter_dir = f'{get_semi_supervised_adapter_dir(cfg)}{lora_run_tag(cfg.dataset.seed, split_seed, init_seed)}'
     print(adapter_dir)
     
     # Use the custom CacheEmbeddingDiffrentInitWeights class
@@ -90,6 +93,8 @@ def main(dataset_name, llm_name, peft_type, init_weight_approach, split,
         used_paraphrased_texts=used_paraphrased_texts,
         used_based_model=used_based_model,
     )
+    cacher.split_seed = split_seed
+    cacher.init_seed = init_seed
     cacher.build_cache()
     cacher.save_cache(split=split)
     print(f"✓ Cache saved for init approach: {init_weight_approach}\n")
@@ -127,6 +132,10 @@ if __name__ == "__main__":
                         help='Seed of the trained adapter to load (must match the --seed used when training it)')
     parser.add_argument('--batch_size', type=int, default=None,
                         help='Override caching_batch_size from configs/llm_configs/<llm>.json (bigger GPU -> bigger batch)')
+    parser.add_argument('--split_seed', type=int, default=None,
+                        help='Split seed of the adapter if it was trained with --split_seed (default: same as --seed)')
+    parser.add_argument('--init_seed', type=int, default=None,
+                        help='LoRA init seed of the adapter if it was trained with --init_seed')
 
     args = parser.parse_args()
 
@@ -144,4 +153,6 @@ if __name__ == "__main__":
         pooling=args.pooling,
         seed=args.seed,
         batch_size=args.batch_size,
+        split_seed=args.split_seed,
+        init_seed=args.init_seed,
     )

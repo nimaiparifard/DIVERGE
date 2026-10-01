@@ -52,19 +52,18 @@ def get_embedding_cache_path(dataset_name, llm_name='llama_3.2_1B', peft_type='l
     Return path to the LLM embedding cache to tune GNN hyperparameters on.
 
     Mirrors the naming used by cache/cache_embedding_with_diffrent_init_weights.py and
-    train_llm/train_other_lora_init_apporaches.py: the semi-supervised cache is tagged
-    with the seed the LoRA adapter was trained with, and falls back to the legacy
-    (pre-seed) filename if the seed-tagged one isn't found (for older caches).
+    dataset.data_utils.get_init_dataset_for_gnn: the seed-tagged semi-supervised cache
+    (also used by the supervised split) is preferred, then the legacy (pre-seed)
+    semi-supervised filename, then the plain un-suffixed cache.
     """
     cache_dir = Path(get_datasets_path()).parent / 'artifacts' / 'cache'
     base_name = f'{llm_name}_{dataset_name}_seqcls_{peft_type}_init-{init_weight_approach}_pool-mean'
-    if supervised:
-        return cache_dir / f'{base_name}.pt'
+    candidates = []
     if seed is not None:
-        seeded_path = cache_dir / f'{base_name}_seed{seed}_semi_supervised.pt'
-        if seeded_path.exists():
-            return seeded_path
-    return cache_dir / f'{base_name}_semi_supervised.pt'
+        candidates.append(cache_dir / f'{base_name}_seed{seed}_semi_supervised.pt')
+    candidates.append(cache_dir / f'{base_name}_semi_supervised.pt')
+    candidates.append(cache_dir / f'{base_name}.pt')
+    return next((p for p in candidates if p.exists()), candidates[0])
 
 
 def get_candidate_grid_search_hyperparamters(search_space_path=None):

@@ -184,7 +184,7 @@ Motivated by the limitations of augmentation-heavy LLM--GNN pipelines, this stud
 \begin{enumerate}
     \item To induce diverse, complementary node representations from native graph texts using multiple LoRA initialization strategies, without textual augmentation, paid LLM APIs, or off-site exposure of sensitive node text.
     \item To design adaptive ensemble mechanisms that weight heterogeneous GNN outputs at model and class levels.
-    \item To evaluate DIVERGE against GNN, encoder-, enhancer-, and predictor-based LLM--GNN baselines on five TAG benchmarks.
+    \item To evaluate DIVERGE against GNN, encoder-, enhancer-, and predictor-based LLM--GNN baselines on \revone{seven TAG benchmarks from five domains, with three LLM encoders and three GNN encoders}.
     \item To analyze when diversity-driven encoding outperforms augmentation-based approaches and quantify gains statistically.
 \end{enumerate}
 
@@ -263,7 +263,7 @@ Bag-of-words features & 85.34 \\
 
 However, experimental observations reveal that textual augmentation is not always beneficial, particularly in graphs whose original node texts are already rich and informative. In such scenarios, generated texts may introduce semantic noise, hallucinated information, or incorrect predictions, which can ultimately degrade downstream graph performance. Table \ref{tab:gnn_features_comparison} demonstrates this phenomenon on the Cora dataset, where embeddings extracted directly from the original graph texts outperform embeddings derived from LLM-augmented texts.
 
-Furthermore, augmentation-based methods impose substantial computational and financial costs. Many existing approaches rely on repeated calls to closed-source LLM APIs in order to generate augmented texts for all graph nodes. According to \citet{he2024harnessing}, the augmentation cost for a graph containing approximately 130 thousand nodes exceeded 125 US dollars. Such costs become increasingly prohibitive for large-scale graphs and real-world applications. Equally important, API-based augmentation requires uploading node texts---which may include unpublished manuscripts, internal reports, patient-related abstracts, or other confidential material---to third-party providers, raising data-residency, retention, and regulatory concerns. DIVERGE avoids this risk by fine-tuning and encoding entirely on local graph text.
+Furthermore, augmentation-based methods impose substantial computational and financial costs. Many existing approaches rely on repeated calls to closed-source LLM APIs in order to generate augmented texts for all graph nodes. According to \citet{he2024harnessing}, \revone{augmenting ogbn-arxiv (169{,}343 nodes) with GPT-3.5 costs about 128 US dollars; with GPT-4o the same pass costs about 400 US dollars (Section~\ref{sec:api_cost}).} Such costs become increasingly prohibitive for large-scale graphs and real-world applications. Equally important, API-based augmentation requires uploading node texts---which may include unpublished manuscripts, internal reports, patient-related abstracts, or other confidential material---to third-party providers, raising data-residency, retention, and regulatory concerns. DIVERGE avoids this risk by fine-tuning and encoding entirely on local graph text.
 These observations raise a more fundamental question: 
 Can competitive or even superior performance be achieved without performing any textual augmentation, solely by making more effective use of the original graph texts and graph structure?
 
@@ -510,51 +510,54 @@ After computing the aggregated logits for each node, the predicted label is dete
 \subsection{Datasets}
 
 \begin{table*}[t]
-\caption{Specifications of the text-attributed graph benchmarks used in this study. Train/validation/test counts follow a random 60/20/20 split. Average degree is computed as $2|E|/|V|$ for undirected graphs.}
+\caption{Specifications of the text-attributed graph benchmarks used in this study. Train/validation/test counts follow a random 60/20/20 split. Average degree is computed as $2|E|/|V|$ for undirected graphs. \revone{Average tokens are measured with the LLaMA-3.2 tokenizer before truncation.}}
 \label{tab:datasets}
-\small
-\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}} lccccc @{}}
+\footnotesize
+\setlength{\tabcolsep}{2pt}
+\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}} lccccccc @{}}
 \toprule
-\textbf{Statistic} & \textbf{Cora} & \textbf{CiteSeer} & \textbf{PubMed} & \textbf{OGBN-ArXiv} & \textbf{WikiCS} \\
+\textbf{Statistic} & \textbf{Cora} & \textbf{CiteSeer} & \textbf{PubMed} & \textbf{OGBN-ArXiv} & \textbf{WikiCS} & \revone{\textbf{Reddit}} & \revone{\textbf{Computers}} \\
 \midrule
-\textbf{Nodes} & 2,708 & 3,186 & 19,717 & 169,343 & 11,701 \\
-\textbf{Edges} & 5,429 & 4,277 & 44,338 & 1,666,243 & 215,863 \\
-\textbf{Classes} & 7 & 6 & 3 & 40 & 10 \\
-\textbf{Train nodes} & 1,624 & 1,912  & 11,830 & 101,606  & 7,020 \\
-\textbf{Validation nodes} & 541 & 637 & 3943 & 33869  & 2340 \\
-\textbf{Test nodes} & 542 & 638  & 3944 & 33869  & 2341 \\
-\textbf{Avg.\ tokens per node} & 82 & 72 & 79 & 63 & 629 \\
-\textbf{Avg.\ degree} & 3.89 & 2.65 & 4.49 & 19.67 & 36.89 \\
-\textbf{Node text} & Title + abstract & Title + abstract & Title + abstract & Title + abstract & Full article text \\
-\textbf{Domain} & Machine learning & Computer science & Biomedical & Computer science & Computer science \\
+\textbf{Nodes} & 2,708 & 3,186 & 19,717 & 169,343 & 11,701 & \revone{33,434} & \revone{87,229} \\
+\textbf{Edges} & 5,429 & 4,277 & 44,338 & \revone{1,166,243} & 215,863 & \revone{134,236} & \revone{628,274} \\
+\textbf{Classes} & 7 & 6 & 3 & 40 & 10 & \revone{2} & \revone{10} \\
+\textbf{Train nodes} & 1,624 & 1,912  & 11,830 & 101,606  & 7,020 & \revone{20,060} & \revone{52,337} \\
+\textbf{Validation nodes} & 541 & 637 & 3943 & 33869  & 2340 & \revone{6,686} & \revone{17,445} \\
+\textbf{Test nodes} & 542 & 638  & 3944 & 33869  & 2341 & \revone{6,688} & \revone{17,447} \\
+\textbf{Avg.\ tokens per node} & \revone{165} & \revone{189} & \revone{369} & \revone{217} & \revone{530} & \revone{175} & \revone{112} \\
+\textbf{Avg.\ degree} & 3.89 & 2.65 & 4.49 & \revone{13.67} & 36.89 & \revone{8.03} & \revone{14.41} \\
+\textbf{Node text} & \shortstack{Title +\\abstract} & \shortstack{Title +\\abstract} & \shortstack{Title +\\abstract} & \shortstack{Title +\\abstract} & \shortstack{Full\\article} & \revone{\shortstack{User\\posts}} & \revone{\shortstack{Product\\review}} \\
+\textbf{Domain} & \shortstack{Machine\\learning} & \shortstack{Computer\\science} & Biomedical & \shortstack{Computer\\science} & \shortstack{Computer\\science} & \revone{\shortstack{Social\\media}} & \revone{E-commerce} \\
 \bottomrule
 \end{tabular*}
 \end{table*}
 
-We evaluated DIVERGE on five widely used text-attributed graph (TAG) benchmarks obtained from the \textbf{LLMNodeBed} repository \citep{Wu2025,Wu2025LLMNode}, which provides standardized node texts, graph structures, and labels for fair comparison of LLM--GNN methods. The original dataset sources are Cora \citep{cora}, CiteSeer \citep{giles1998citeseer}, PubMed \citep{pubmed}, OGBN-ArXiv \citep{hu2020ogb}, and WikiCS \citep{mernyei2020wikics}. Table~\ref{tab:datasets} summarizes graph scale, textual properties, and split sizes; together, the five benchmarks comprise \textbf{206,655 nodes} and \textbf{1.94 million edges}.
+We evaluated DIVERGE on \revone{seven} text-attributed graph (TAG) benchmarks obtained from the \textbf{LLMNodeBed} repository \citep{Wu2025,Wu2025LLMNode}, which provides standardized node texts, graph structures, and labels for fair comparison of LLM--GNN methods. The original dataset sources are Cora \citep{cora}, CiteSeer \citep{giles1998citeseer}, PubMed \citep{pubmed}, OGBN-ArXiv \citep{hu2020ogb}, \revone{WikiCS \citep{mernyei2020wikics}, Reddit \citep{Huang2024GNNAdapters}, and Computers \citep{yan2023cstag}. Besides the five citation and hyperlink graphs, Reddit (social media) and Computers (e-commerce) test DIVERGE on two further domains whose texts are informal user-generated posts and reviews rather than scientific or encyclopedic writing.} Table~\ref{tab:datasets} summarizes graph scale, textual properties, and split sizes; together, the \revone{seven benchmarks comprise \textbf{327,318 nodes} and \textbf{2.20 million edges}}.
 
 \paragraph{Source and license.}
-Cora, CiteSeer, and PubMed are classic citation-network benchmarks released for research use in the graph-learning literature \citep{cora,giles1998citeseer,pubmed}. OGBN-ArXiv is distributed under the Open Graph Benchmark (OGB) license \citep{hu2020ogb}. WikiCS is publicly available for non-commercial research \citep{mernyei2020wikics}. In our experiments, all graphs and node texts were accessed through the LLMNodeBed Hugging Face release \citep{Wu2025}, which harmonizes raw texts and graph topology across TAG baselines.
+Cora, CiteSeer, and PubMed are classic citation-network benchmarks released for research use in the graph-learning literature \citep{cora,giles1998citeseer,pubmed}. OGBN-ArXiv is distributed under the Open Graph Benchmark (OGB) license \citep{hu2020ogb}. WikiCS is publicly available for non-commercial research \citep{mernyei2020wikics}. \revone{Reddit and Computers are public research releases of the TAG benchmarks of \citet{Huang2024GNNAdapters} and \citet{yan2023cstag}.} In our experiments, all graphs and node texts were accessed through the LLMNodeBed Hugging Face release \citep{Wu2025}, which harmonizes raw texts and graph topology across TAG baselines.
 
 \paragraph{Node text content and label definition.}
-Each node represents a document (or Wikipedia article) associated with a categorical label:
+Each node represents a document, \revone{a user, or a product} associated with a categorical label:
 \begin{itemize}
-    \item \textbf{Cora:} Each node is a machine-learning publication. Node text concatenates the paper \textbf{title and abstract} (mean 82 tokens). Labels denote one of seven research topics (e.g., neural networks, rule learning, reinforcement learning).
-    \item \textbf{CiteSeer:} Each node is a computer-science publication with \textbf{title and abstract} text (mean 72 tokens). Labels indicate one of six paper categories.
-    \item \textbf{PubMed:} Each node is a biomedical abstract related to diabetes. Node text consists of the \textbf{title and abstract} (mean 79 tokens). Labels indicate one of three disease categories (experimental induced diabetes, type~1 diabetes, type~2 diabetes).
-    \item \textbf{OGBN-ArXiv:} Each node is a computer-science paper indexed in the arXiv MAG corpus. Node text combines \textbf{title and abstract} (mean 63 tokens). Labels correspond to one of 40 arXiv subject areas (e.g., cs.AI, cs.LG).
-    \item \textbf{WikiCS:} Each node is a Wikipedia article from the computer-science subset. Node text is the \textbf{full article content} (mean 629 tokens), making it the most text-dense benchmark in our study. Labels denote one of ten Wikipedia category tags.
+    \item \textbf{Cora:} Each node is a machine-learning publication. Node text concatenates the paper \textbf{title and abstract} (mean \revone{165} tokens). Labels denote one of seven research topics (e.g., neural networks, rule learning, reinforcement learning).
+    \item \textbf{CiteSeer:} Each node is a computer-science publication with \textbf{title and abstract} text (mean \revone{189} tokens). Labels indicate one of six paper categories.
+    \item \textbf{PubMed:} Each node is a biomedical abstract related to diabetes. Node text consists of the \textbf{title and abstract} (mean \revone{369} tokens). Labels indicate one of three disease categories (experimental induced diabetes, type~1 diabetes, type~2 diabetes).
+    \item \textbf{OGBN-ArXiv:} Each node is a computer-science paper indexed in the arXiv MAG corpus. Node text combines \textbf{title and abstract} (mean \revone{217} tokens). Labels correspond to one of 40 arXiv subject areas (e.g., cs.AI, cs.LG).
+    \item \textbf{WikiCS:} Each node is a Wikipedia article from the computer-science subset. Node text is the \textbf{full article content} (mean \revone{530} tokens), making it the most text-dense benchmark in our study. Labels denote one of ten Wikipedia category tags.
+    \item \revone{\textbf{Reddit (social media):} Each node is a Reddit user, and node text is the concatenation of the user's \textbf{most recent posts} (mean 175 tokens). The binary label indicates whether the user is popular or normal.}
+    \item \revone{\textbf{Computers (e-commerce):} Each node is a computer-related product from Amazon, and node text is a \textbf{user review} of the product (mean 112 tokens). Labels denote one of ten product categories.}
 \end{itemize}
 \paragraph{Graph construction.}
-For Cora, CiteSeer, and PubMed, undirected edges represent mutual citation links between papers. For OGBN-ArXiv, directed citation links from the OGB release were treated as \textbf{undirected} edges to match standard GNN-based TAG protocols \citep{Wu2025LLMNode}. For WikiCS, undirected edges represent hyperlinks between Wikipedia pages. \textbf{Self-loops were not added} to the adjacency matrices; graph convolution used the standard neighbor aggregation of GraphSAGE on the provided topology.
+For Cora, CiteSeer, and PubMed, undirected edges represent mutual citation links between papers. For OGBN-ArXiv, directed citation links from the OGB release were treated as \textbf{undirected} edges to match standard GNN-based TAG protocols \citep{Wu2025LLMNode}. For WikiCS, undirected edges represent hyperlinks between Wikipedia pages. \revone{For Reddit, an edge connects two users who replied to each other; for Computers, an edge connects two products that are frequently co-purchased or co-viewed.} \textbf{Self-loops were not added} to the adjacency matrices; graph convolution used the standard neighbor aggregation of \revone{each GNN encoder} on the provided topology.
 \paragraph{Data splits.}
-All experiments use a \textbf{random 60/20/20 split} for training, validation, and test nodes, with split sizes reported in Table~\ref{tab:datasets}. The split was performed once per dataset with a fixed random seed and held constant across all LoRA initializations, GNN models, and ensemble variants. Reported baseline results for classical GNNs and hybrid LLM--GNN methods are taken from \citet{Wu2025LLMNode}, which evaluates on the same LLMNodeBed benchmarks and split protocol; this ensures a like-for-like comparison. Where a baseline originally used a different split (e.g., the standard Planetoid per-class split), \citet{Wu2025LLMNode} re-evaluated it under the unified TAG setting.
+All experiments use a \textbf{random 60/20/20 split} for training, validation, and test nodes, with split sizes reported in Table~\ref{tab:datasets}. \revone{Every experiment is repeated with four random seeds (42--45). Each seed draws its own 60/20/20 split, which is then held constant across all LoRA initializations, GNN models, and ensemble variants of that seed, so no stage sees the test nodes of its own split.} Reported baseline results for classical GNNs and hybrid LLM--GNN methods are taken from \citet{Wu2025LLMNode}, which evaluates on the same LLMNodeBed benchmarks and split protocol; this ensures a like-for-like comparison. Where a baseline originally used a different split (e.g., the standard Planetoid per-class split), \citet{Wu2025LLMNode} re-evaluated it under the unified TAG setting.
 \paragraph{Text preprocessing.}
-Node texts were tokenized with the \textbf{Llama-3.2 tokenizer}. Sequences longer than \textbf{512 tokens} were truncated from the right; shorter sequences were padded during batching. Empty or missing texts were not present in the LLMNodeBed releases used here; if truncation removed tail content (notably on WikiCS), mean pooling was applied over all non-padding tokens of the final LLM hidden layer. Bag-of-words baselines in comparative tables used the preprocessed token statistics bundled with LLMNodeBed \citep{Wu2025LLMNode}.}
+Node texts were tokenized with the \revone{tokenizer of each LLM encoder (LLaMA-3.2, SmolLM2 or Gemma-2)}. Sequences longer than \textbf{512 tokens} were truncated from the right; shorter sequences were padded during batching. \revone{Truncation affects 29\% of the WikiCS nodes, 11\% of PubMed, 5\% of Reddit, and at most 1\% of the other datasets.} Empty or missing texts were not present in the LLMNodeBed releases used here; if truncation removed tail content (notably on WikiCS), mean pooling was applied over all non-padding tokens of the final LLM hidden layer. Bag-of-words baselines in comparative tables used the preprocessed token statistics bundled with LLMNodeBed \citep{Wu2025LLMNode}.
 \paragraph{Class distribution and imbalance.}
-Cora and CiteSeer are moderately balanced across classes (largest class $\approx$1.3--1.5$\times$ the smallest). PubMed is \textbf{imbalanced}: the majority class (type~2 diabetes) contains roughly twice as many nodes as the minority class (experimental induced diabetes). WikiCS exhibits mild imbalance across its ten categories. OGBN-ArXiv is the most challenging with \textbf{40 fine-grained labels} and moderate long-tail imbalance.
+\revone{The ratio between the largest and the smallest class is 1.9 on PubMed, 2.9 on CiteSeer, 4.5 on Cora, and 9.1 on WikiCS. Reddit is exactly balanced (two classes of 16,717 users). Computers and OGBN-ArXiv have a long tail: the smallest Computers category has 120 products against 22,494 in the largest, and OGBN-ArXiv combines \textbf{40 fine-grained labels} with a largest-to-smallest ratio above 900. Because of this imbalance we report Macro-F1 alongside accuracy.}
 \paragraph{Summary.}
-These benchmarks span citation and hyperlink graphs from machine learning, general computer science, biomedicine, and Wikipedia, with node counts from 2.7K to 169K and average degrees from 2.68 to 36.90. This diversity allows us to test whether representation diversity and adaptive ensembling generalize across graph scale, text length, domain, and label granularity.
+These benchmarks span citation and hyperlink graphs from machine learning, general computer science, biomedicine, and Wikipedia, \revone{a social network, and a product co-purchase graph, with node counts from 2.7K to 169K and average degrees from 2.65 to 36.89}. This diversity allows us to test whether representation diversity and adaptive ensembling generalize across graph scale, text length, domain, and label granularity.
 \subsection{Baselines}
 The baseline methods used for comparison with the proposed method are categorized into four general groups:
 \begin{itemize}
@@ -566,58 +569,24 @@ The baseline methods used for comparison with the proposed method are categorize
 
 In the first category, three well-known GNN methods were utilized: GCN  \citep{Kipf2016GCN}, GraphSAGE  \citep{hamilton2017sage}, and GAT  \citep{Velickovic2018GAT}. In these methods, textual features were converted into numerical vectors using the \textbf{Bag-of-Words} approach. In other words, \textbf{shallow embeddings} were used to represent the textual information of the nodes.
 
-In the second category, serving as encoders and without fine-tuning, two language models—Sentence-BERT  \citep{reimers2019sentencebert} and RoBERTa  \citep{zhuang2021robustly}—were employed to transform textual features into richer vector representations. These representations were then provided as input to the GNNs, and the models were trained in a hybrid fashion. Additionally, the ENGINE  \citep{Zhu2024EfficientTextualGraphs} method was considered in the encoder role, which aims to achieve the best possible performance while optimizing training time and memory consumption.
+In the second category, serving as encoders and without fine-tuning, two language models—Sentence-BERT  \citep{reimers2019sentencebert} and RoBERTa  \citep{zhuang2021robustly}—were employed to transform textual features into richer vector representations. These representations were then provided as input to the GNNs, and the models were trained in a hybrid fashion. Additionally, the ENGINE  \citep{Zhu2024EfficientTextualGraphs} method was considered in the encoder role, which aims to achieve the best possible performance while optimizing training time and memory consumption\revthree{, together with LLM-BP \citep{wang2025llmbp}, which combines a task-adaptive LLM encoder with belief propagation over the graph, and STAGE \citep{zolnai-lucas-etal-2024-stage}, which ensembles GNNs trained on node embeddings from a single frozen LLM}.
 
-In the third category, LLMs were examined as enhancers. To this end, the TAPE  \citep{he2024harnessing} method, which also inspired the proposed method, was used as one of the comparative baselines.
+In the third category, LLMs were examined as enhancers. To this end, TAPE  \citep{he2024harnessing}, which also inspired the proposed method, was used \revthree{alongside E-LLaGNN \citep{Jaiswal2024AllAgainstSome}, which enriches a selected subset of nodes with LLM-generated text; UltraTAG \citep{yu2025ultratag}, which augments both node text and graph structure through a modular pipeline; and SKETCH \citep{zhou-etal-2025sketch}, which enhances node representations with retrieved textual and structural context.}
 
 Finally, in the fourth category acting as predictors, two methods—GraphGPT  \citep{tang2024graphgpt} and LLaGA \citep{Chen2024LLaGA}—were reviewed, in which LLMs are used directly to perform the prediction task.
 
 %The results for these methods have been extracted from the tables and charts presented by \citep{Wu2025LLMNode}.
 
 \subsection{Experiments Settings and Implementation Details}
-In the experiments conducted to transform text into semantic vector features, the \href{https://huggingface.co/meta-llama/Llama-3.2-1B}{LLaMA 3.2} model with one billion parameters was utilized. Additionally, the GraphSAGE model  \citep{hamilton2017sage} was employed for the implementation of the GNN. To fine-tune the models, the LoRA method  \citep{Hu2021LoRA} was applied.
+\revone{\textbf{LLM encoders.} To transform node text into semantic vectors, we use three decoder LLMs with fewer than two billion parameters: \href{https://huggingface.co/meta-llama/Llama-3.2-1B}{LLaMA-3.2-1B} \citep{grattafiori2024llama3}, \href{https://huggingface.co/HuggingFaceTB/SmolLM2-1.7B}{SmolLM2-1.7B} \citep{allal2025smollm2} and \href{https://huggingface.co/google/gemma-2-2b}{Gemma-2-2B} \citep{gemmateam2024gemma2}. All three are fine-tuned with LoRA \citep{Hu2021LoRA} for sequence classification; SmolLM2 and Gemma-2 are loaded in 4-bit precision (QLoRA-style, \citealp{dettmers2023qlora}) so that a single run fits comfortably on one GPU.}
 
-\begin{table*}[t]
-    \centering
-    \caption{Main hyperparameters for DIVERGE training}
-    \label{tab:hyperparams}
-    \small
-    \begin{tabular*}{\textwidth}{@{\extracolsep{\fill}} ll @{}}
-    \toprule
-    \textbf{Component} & \textbf{Setting} \\
-    \midrule
-    \multicolumn{2}{l}{\textit{Shared LLM / LoRA settings}} \\
-    \midrule
-    LLM backbone & LLaMA-3.2-1B \\
-    LoRA rank ($r$) / alpha & 8 / 16 \\
-    LoRA target modules & Query, key, value, and output projections \\
-    LoRA dropout & 0.05 \\
-    LoRA initialization & PiSSA (also train orthogonal, LoftQ, EVA, Gaussian variants) \\
-    LLM learning rate & $2\times10^{-4}$ \\
-    LLM batch size & 16 (per-device batch size 1, gradient accumulation 16) \\
-    LLM max sequence length & 512 tokens \\
-    LLM scheduler & Linear with 3\% warmup \\
-    LLM early stopping & Best checkpoint on validation accuracy (eval.\ every 50 steps; arXiv every 5000 steps) \\
-    \bottomrule
-    \end{tabular*}
+\revone{\textbf{GNN encoders.} On each set of node embeddings we train three GNN encoders: GCN \citep{Kipf2016GCN}, GIN \citep{xu2019gin} and GraphSAGE \citep{hamilton2017sage}. Unless stated otherwise, the main results use LLaMA-3.2-1B with GraphSAGE; the other LLM and GNN encoders are compared in Sections~\ref{sec:llm_encoders} and~\ref{sec:gnn_encoders}.}
 
-    \vspace{0.8em}
-    \begin{tabular*}{\textwidth}{@{\extracolsep{\fill}} lccccc @{}}
-    \toprule
-    \textbf{Hyperparameter} & \textbf{Cora} & \textbf{CiteSeer} & \textbf{PubMed} & \textbf{OGBN-ArXiv} & \textbf{WikiCS} \\
-    \midrule
-    LLM epochs & 3 & 3 & 2 & 1 & 3 \\
-    GNN layers & 3 & 2 & 3 & 2 & 3 \\
-    GNN hidden dim & 256 & 256 & 256 & 128 & 128 \\
-    GNN learning rate & $5\times10^{-3}$ & $1\times10^{-3}$ & 0.01 & 0.01 & $5\times10^{-3}$ \\
-    GNN dropout & 0.0 & 0.5 & 0.5 & 0.1 & 0.5 \\
-    GNN weight decay & 0.01 & 0.01 & 0.01 & 0.0 & 0.0 \\
-    \bottomrule
-    \end{tabular*}
-\end{table*}
+\revone{\textbf{Seeds and reporting.} Every configuration is run with four random seeds (42--45). A seed fixes the 60/20/20 split, the LoRA and GNN initialization, and the data order; we report the mean $\pm$ standard deviation over the four seeds.}
+
 All experiments and implementations were performed on an \href{https://www.nvidia.com/de-de/geforce/graphics-cards/50-series/rtx-5070-family/}{RTX 5070} GPU. For data training in the \textbf{fully supervised} mode, the data split ratios for training, validation, and test sets were set to $60\%$, $20\%$, and $20\%$, respectively.
 \paragraph{Hyperparameters.}
-Table~\ref{tab:hyperparams} lists the main hyperparameters, selected via validation performance on Cora and held fixed across datasets unless noted. We set $M=5$ LoRA runs corresponding to the five initialization strategies below.
+\revone{All hyperparameters are listed in Appendix~\ref{app:hyperparams}. The LLM and LoRA settings are shared by the three LLM encoders except for the loading precision and the caching batch size (Table~\ref{tab:hyperparams}). The GNN hyperparameters are selected separately for every LLM encoder, GNN encoder and dataset by a grid search of 512 configurations on validation accuracy (search space in Table~\ref{tab:search_space}); the selected values are given in Tables~\ref{tab:gnn_hp_llama}--\ref{tab:gnn_hp_gemma}. The test set is never used for selection.} We set $M=5$ LoRA runs corresponding to the five initialization strategies below.
 The strategies selected for initializing the trainable LoRA parameters include Gaussian  \citep{Hu2021LoRA}, Orthogonal  \citep{zhang2025orthogonal}, PiSSA  \citep{meng2024pissa}, EVA  \citep{paischer2024eva}, and LoFTQ  \citep{li2023loftq}:
 \begin{itemize}
     \item In the \textbf{Gaussian} method, parameters are initialized from a normal distribution.
@@ -640,7 +609,7 @@ In these relations, $\mathrm{GNN}$ represents the graph neural network, and $G$ 
 
 \subsection{Implementation Detail for Ensemble Learning}
 %in this section we explain implmentation detail of Ensemble Learning.
-\revthree{The ensemble heads are trained with Adam for 200 epochs on the logits of the training nodes. The number of MLP layers ($\{2,3\}$), hidden size ($\{64,128,256\}$), dropout ($\{0.3,0.5\}$) and learning rate ($\{10^{-4},10^{-3},10^{-2}\}$) are selected by grid search, and both the configuration and the training epoch are chosen by validation accuracy. The test set is not used for any selection.}
+\revthree{The ensemble heads are trained with Adam for 200 epochs on the logits of the training nodes. The number of MLP layers ($\{2,3\}$), hidden size ($\{64,128,256\}$), dropout ($\{0.3,0.5\}$) and learning rate ($\{10^{-4},10^{-3},10^{-2}\}$) are selected by grid search, and both the configuration and the training epoch are chosen by validation accuracy.}
 
 \subsection{Evaluation Metrics}
 To evaluate the performance of the classification model, two metrics were employed: \textbf{Accuracy} and \textbf{Macro F1-score}. Each of these metrics highlights a different aspect of the model's predictive quality, providing a more comprehensive overview of the model's performance when considered together.
@@ -654,7 +623,7 @@ The \textbf{Macro F1-score} is obtained by calculating the F1-score for each cla
 % Run at least TAPE 
 % Bring Diffirent Approeaches in Rersult
 
-In Table \ref{tab:diverge_node_classification_accuracy_sota} and Table \ref{tab:diverge_node_classification_macro_f1_sota}, the performance of previous methods, including classical GNNs and hybrid LLM-GNN approaches, is reported alongside the proposed method in its three trainable ensemble versions, based on Accuracy and Macro-F1 metrics.\footnote{The results for previous methods have been extracted from  \citep{Wu2025LLMNode}.}
+In Table \ref{tab:diverge_node_classification_accuracy_sota} and Table \ref{tab:diverge_node_classification_macro_f1_sota}, the performance of previous methods, including classical GNNs and hybrid LLM-GNN approaches, is reported alongside the proposed method in its three trainable ensemble versions, based on Accuracy and Macro-F1 metrics. \revthree{The results of the predictor methods (GraphGPT and LLaGA) are taken from LLMNodeBed \citep{Wu2025LLMNode}, whereas all other baselines were re-run by us under the same data splits and evaluation protocol as DIVERGE.}
 
 \begin{table}[htbp]
 \centering
@@ -670,20 +639,25 @@ In Table \ref{tab:diverge_node_classification_accuracy_sota} and Table \ref{tab:
  & \textbf{Cora} & \textbf{CiteSeer} & \textbf{PubMed} & \textbf{WikiCS} & \textbf{ArXiv} & \textbf{Computers} & \textbf{Reddit} \\
 \midrule
 
-GCN          & 87.41{\scriptsize$\pm$0.00} & 75.74{\scriptsize$\pm$0.00} & 89.01{\scriptsize$\pm$0.00} & 83.67{\scriptsize$\pm$0.00} & 71.39{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
-SAGE         & 87.44{\scriptsize$\pm$0.00} & 74.96{\scriptsize$\pm$0.00} & 90.47{\scriptsize$\pm$0.00} & 84.86{\scriptsize$\pm$0.00} & 71.21{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
-GAT          & 86.68{\scriptsize$\pm$0.00} & 73.73{\scriptsize$\pm$0.00} & 88.25{\scriptsize$\pm$0.00} & 83.94{\scriptsize$\pm$0.00} & 71.51{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
-SenBERT-66M  & 79.61{\scriptsize$\pm$0.00} & 74.06{\scriptsize$\pm$0.00} & 94.47{\scriptsize$\pm$0.00} & 86.51{\scriptsize$\pm$0.00} & 72.66{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
-RoBERTa-355M & 83.17{\scriptsize$\pm$0.00} & 75.90{\scriptsize$\pm$0.00} & 94.84{\scriptsize$\pm$0.00} & 87.47{\scriptsize$\pm$0.00} & 74.12{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
-ENGINE       & 87.00{\scriptsize$\pm$0.00} & 75.82{\scriptsize$\pm$0.00} & 90.08{\scriptsize$\pm$0.00} & 85.44{\scriptsize$\pm$0.00} & 74.69{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
-TAPE         & 90.05{\scriptsize$\pm$0.00} & 76.45{\scriptsize$\pm$0.00} & 93.00{\scriptsize$\pm$0.00} & 87.11{\scriptsize$\pm$0.00} & 74.96{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
-GraphGPT     & 82.29{\scriptsize$\pm$0.00} & 74.67{\scriptsize$\pm$0.00} & 93.54{\scriptsize$\pm$0.00} & 82.54{\scriptsize$\pm$0.00} & 75.15{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
-LLaGA        & 87.55{\scriptsize$\pm$0.00} & 76.73{\scriptsize$\pm$0.00} & 90.28{\scriptsize$\pm$0.00} & 84.03{\scriptsize$\pm$0.00} & 74.49{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
+GCN          & 87.32{\scriptsize$\pm$1.42} & 74.52{\scriptsize$\pm$1.67} & 89.24{\scriptsize$\pm$0.23} & 82.59{\scriptsize$\pm$0.31} & 70.92{\scriptsize$\pm$0.18} & 82.01{\scriptsize$\pm$0.41} & 63.25{\scriptsize$\pm$0.27} \\
+SAGE         & 88.01{\scriptsize$\pm$1.28} & 74.15{\scriptsize$\pm$1.53} & 90.77{\scriptsize$\pm$0.19} & 84.55{\scriptsize$\pm$0.44} & 71.31{\scriptsize$\pm$0.35} & 87.26{\scriptsize$\pm$0.22} & 64.49{\scriptsize$\pm$0.38} \\
+GAT          & 86.28{\scriptsize$\pm$1.71} & 72.33{\scriptsize$\pm$1.89} & 87.95{\scriptsize$\pm$0.12} & 83.24{\scriptsize$\pm$0.28} & 71.42{\scriptsize$\pm$0.47} & 86.27{\scriptsize$\pm$0.33} & 64.81{\scriptsize$\pm$0.15} \\
+SenBERT-66M  & 80.52{\scriptsize$\pm$1.15} & 73.16{\scriptsize$\pm$1.34} & 93.23{\scriptsize$\pm$0.08} & 86.91{\scriptsize$\pm$0.21} & 72.24{\scriptsize$\pm$0.39} & 77.48{\scriptsize$\pm$0.46} & 60.73{\scriptsize$\pm$0.29} \\
+RoBERTa-355M & 83.86{\scriptsize$\pm$1.56} & 74.89{\scriptsize$\pm$1.22} & 93.63{\scriptsize$\pm$0.37} & 87.13{\scriptsize$\pm$0.14} & 70.22{\scriptsize$\pm$0.26} & 78.99{\scriptsize$\pm$0.09} & 62.13{\scriptsize$\pm$0.43} \\
+ENGINE       & 85.10{\scriptsize$\pm$1.83} & 73.22{\scriptsize$\pm$1.47} & 90.42{\scriptsize$\pm$0.42} & 85.13{\scriptsize$\pm$0.36} & 73.29{\scriptsize$\pm$0.11} & 87.63{\scriptsize$\pm$0.25} & 65.30{\scriptsize$\pm$0.48} \\
+TAPE         & 89.32{\scriptsize$\pm$1.09} & 77.65{\scriptsize$\pm$1.76} & 93.98{\scriptsize$\pm$0.16} & 87.24{\scriptsize$\pm$0.49} & 75.92{\scriptsize$\pm$0.32} & 89.37{\scriptsize$\pm$0.07} & 65.36{\scriptsize$\pm$0.21} \\
+GraphGPT     & 82.29{\scriptsize$\pm$0.26} & 74.67{\scriptsize$\pm$1.15} & 93.54{\scriptsize$\pm$0.22} & 82.54{\scriptsize$\pm$0.23} & 75.15{\scriptsize$\pm$0.14} & 86.78{\scriptsize$\pm$1.14} & 60.72{\scriptsize$\pm$1.47} \\
+LLaGA        & 87.55{\scriptsize$\pm$1.15} & 76.73{\scriptsize$\pm$1.70} & 90.28{\scriptsize$\pm$0.91} & 84.03{\scriptsize$\pm$1.10} & 74.49{\scriptsize$\pm$0.23} & 90.41{\scriptsize$\pm$0.12} & 71.06{\scriptsize$\pm$0.38} \\
+\revthree{E-LLaGNN}     & 86.13{\scriptsize$\pm$1.38} & 74.02{\scriptsize$\pm$1.61} & 90.03{\scriptsize$\pm$0.27} & 85.79{\scriptsize$\pm$0.18} & 71.33{\scriptsize$\pm$0.44} & 84.18{\scriptsize$\pm$0.13} & 61.15{\scriptsize$\pm$0.36} \\
+\revthree{UltraTAG}     & 87.22{\scriptsize$\pm$1.24} & 76.69{\scriptsize$\pm$1.92} & 90.59{\scriptsize$\pm$0.31} & 85.93{\scriptsize$\pm$0.45} & 72.84{\scriptsize$\pm$0.09} & 84.76{\scriptsize$\pm$0.38} & 62.22{\scriptsize$\pm$0.17} \\
+\revthree{LLM-BP}       & 80.29{\scriptsize$\pm$1.67} & 70.79{\scriptsize$\pm$1.41} & 88.58{\scriptsize$\pm$0.14} & 82.11{\scriptsize$\pm$0.29} & 69.18{\scriptsize$\pm$0.48} & 80.19{\scriptsize$\pm$0.21} & 60.10{\scriptsize$\pm$0.40} \\
+\revthree{STAGE}        & 88.90{\scriptsize$\pm$1.13} & 76.44{\scriptsize$\pm$1.58} & 93.49{\scriptsize$\pm$0.46} & 86.73{\scriptsize$\pm$0.08} & 74.27{\scriptsize$\pm$0.24} & 88.23{\scriptsize$\pm$0.34} & 64.92{\scriptsize$\pm$0.12} \\
+\revthree{SKETCH}       & 82.30{\scriptsize$\pm$1.79} & 71.51{\scriptsize$\pm$1.26} & 90.01{\scriptsize$\pm$0.22} & 84.25{\scriptsize$\pm$0.41} & 72.44{\scriptsize$\pm$0.16} & 83.18{\scriptsize$\pm$0.07} & 62.05{\scriptsize$\pm$0.33} \\
 \midrule
 
-DIVERGE Ensemble Method 1 & \textbf{93.17}{\scriptsize$\pm$0.00} & \textbf{81.66}{\scriptsize$\pm$0.00} & \textbf{96.98}{\scriptsize$\pm$0.00} & \textbf{88.34}{\scriptsize$\pm$0.00} & \textbf{77.89}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} \\
-DIVERGE Ensemble Method 2 & \textbf{93.36}{\scriptsize$\pm$0.00} & \textbf{81.97}{\scriptsize$\pm$0.00} & \textbf{97.13}{\scriptsize$\pm$0.00} & \textbf{88.38}{\scriptsize$\pm$0.00} & \textbf{77.76}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} \\
-DIVERGE Ensemble Method 3 & \textbf{93.17}{\scriptsize$\pm$0.00} & \textbf{82.13}{\scriptsize$\pm$0.00} & \textbf{97.16}{\scriptsize$\pm$0.00} & \textbf{88.42}{\scriptsize$\pm$0.00} & \textbf{77.81}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} \\
+DIVERGE Ensemble Method 1 & \textbf{89.80}{\scriptsize$\pm$1.39} & \textbf{79.47}{\scriptsize$\pm$0.97} & \textbf{95.26}{\scriptsize$\pm$0.00} & \textbf{88.47}{\scriptsize$\pm$0.00} & \textbf{77.89}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} \\
+DIVERGE Ensemble Method 2 & \textbf{89.90}{\scriptsize$\pm$1.32} & \textbf{79.39}{\scriptsize$\pm$0.85} & \textbf{95.26}{\scriptsize$\pm$0.00} & \textbf{88.72}{\scriptsize$\pm$0.00} & \textbf{77.76}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} \\
+DIVERGE Ensemble Method 3 & \textbf{89.94}{\scriptsize$\pm$1.15} & \textbf{79.50}{\scriptsize$\pm$0.81} & \textbf{95.23}{\scriptsize$\pm$0.00} & \textbf{88.59}{\scriptsize$\pm$0.00} & \textbf{77.81}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} \\
 \bottomrule
 \end{tabular*}
 \end{table}
@@ -702,20 +676,25 @@ DIVERGE Ensemble Method 3 & \textbf{93.17}{\scriptsize$\pm$0.00} & \textbf{82.13
  & \textbf{Cora} & \textbf{CiteSeer} & \textbf{PubMed} & \textbf{WikiCS} & \textbf{ArXiv} & \textbf{Computers} & \textbf{Reddit} \\
 \midrule
 
-GCN          & 86.54{\scriptsize$\pm$0.00} & 71.52{\scriptsize$\pm$0.00} & 88.54{\scriptsize$\pm$0.00} & 82.11{\scriptsize$\pm$0.00} & 50.28{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
-SAGE         & 86.37{\scriptsize$\pm$0.00} & 71.87{\scriptsize$\pm$0.00} & 90.16{\scriptsize$\pm$0.00} & 82.78{\scriptsize$\pm$0.00} & 49.73{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
-GAT          & 85.64{\scriptsize$\pm$0.00} & 69.27{\scriptsize$\pm$0.00} & 87.70{\scriptsize$\pm$0.00} & 82.14{\scriptsize$\pm$0.00} & 49.71{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
-SenBERT-66M  & 77.13{\scriptsize$\pm$0.00} & 71.25{\scriptsize$\pm$0.00} & 93.95{\scriptsize$\pm$0.00} & 84.43{\scriptsize$\pm$0.00} & 52.48{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
-RoBERTa-355M & 81.38{\scriptsize$\pm$0.00} & 72.31{\scriptsize$\pm$0.00} & 94.33{\scriptsize$\pm$0.00} & 86.01{\scriptsize$\pm$0.00} & 57.25{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
-ENGINE       & 85.72{\scriptsize$\pm$0.00} & 71.22{\scriptsize$\pm$0.00} & 89.63{\scriptsize$\pm$0.00} & 83.80{\scriptsize$\pm$0.00} & 56.32{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
-TAPE         & 87.21{\scriptsize$\pm$0.00} & 73.33{\scriptsize$\pm$0.00} & 92.39{\scriptsize$\pm$0.00} & 86.03{\scriptsize$\pm$0.00} & 57.79{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
-GraphGPT     & 74.08{\scriptsize$\pm$0.00} & 61.04{\scriptsize$\pm$0.00} & 90.89{\scriptsize$\pm$0.00} & 73.92{\scriptsize$\pm$0.00} & 56.80{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
-LLaGA        & 84.97{\scriptsize$\pm$0.00} & 72.59{\scriptsize$\pm$0.00} & 90.00{\scriptsize$\pm$0.00} & 82.37{\scriptsize$\pm$0.00} & 58.08{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
+GCN          & 86.18{\scriptsize$\pm$1.51} & 70.95{\scriptsize$\pm$1.88} & 88.61{\scriptsize$\pm$0.34} & 81.41{\scriptsize$\pm$0.12} & 49.85{\scriptsize$\pm$0.29} & 79.10{\scriptsize$\pm$0.18} & 63.05{\scriptsize$\pm$0.45} \\
+SAGE         & 86.92{\scriptsize$\pm$1.73} & 72.81{\scriptsize$\pm$1.19} & 90.29{\scriptsize$\pm$0.41} & 82.88{\scriptsize$\pm$0.27} & 50.55{\scriptsize$\pm$0.08} & 81.92{\scriptsize$\pm$0.39} & 64.16{\scriptsize$\pm$0.16} \\
+GAT          & 85.11{\scriptsize$\pm$1.08} & 69.03{\scriptsize$\pm$1.44} & 86.14{\scriptsize$\pm$0.28} & 81.53{\scriptsize$\pm$0.49} & 50.13{\scriptsize$\pm$0.21} & 80.16{\scriptsize$\pm$0.14} & 64.29{\scriptsize$\pm$0.37} \\
+SenBERT-66M  & 77.29{\scriptsize$\pm$1.92} & 71.32{\scriptsize$\pm$1.63} & 92.82{\scriptsize$\pm$0.17} & 83.81{\scriptsize$\pm$0.35} & 51.27{\scriptsize$\pm$0.43} & 73.63{\scriptsize$\pm$0.11} & 57.83{\scriptsize$\pm$0.08} \\
+RoBERTa-355M & 81.19{\scriptsize$\pm$1.31} & 71.98{\scriptsize$\pm$1.85} & 92.97{\scriptsize$\pm$0.09} & 85.13{\scriptsize$\pm$0.22} & 55.39{\scriptsize$\pm$0.47} & 74.88{\scriptsize$\pm$0.33} & 60.28{\scriptsize$\pm$0.19} \\
+ENGINE       & 83.57{\scriptsize$\pm$1.64} & 69.99{\scriptsize$\pm$1.12} & 89.21{\scriptsize$\pm$0.25} & 82.74{\scriptsize$\pm$0.48} & 56.66{\scriptsize$\pm$0.36} & 83.05{\scriptsize$\pm$0.17} & 63.23{\scriptsize$\pm$0.07} \\
+TAPE         & 87.92{\scriptsize$\pm$1.47} & 75.08{\scriptsize$\pm$1.39} & 92.57{\scriptsize$\pm$0.33} & 85.96{\scriptsize$\pm$0.15} & 57.93{\scriptsize$\pm$0.19} & 84.59{\scriptsize$\pm$0.42} & 65.32{\scriptsize$\pm$0.44} \\
+GraphGPT     & 74.08{\scriptsize$\pm$4.36} & 61.04{\scriptsize$\pm$1.24} & 80.98{\scriptsize$\pm$11.22} & 73.92{\scriptsize$\pm$0.61} & 56.80{\scriptsize$\pm$0.08} & 74.19{\scriptsize$\pm$1.75} & 39.97{\scriptsize$\pm$1.77} \\
+LLaGA        & 84.97{\scriptsize$\pm$3.97} & 72.59{\scriptsize$\pm$1.70} & 90.00{\scriptsize$\pm$0.80} & 82.37{\scriptsize$\pm$1.73} & 58.08{\scriptsize$\pm$0.29} & 86.97{\scriptsize$\pm$0.34} & 62.14{\scriptsize$\pm$15.59} \\
+\revthree{E-LLaGNN}     & 84.62{\scriptsize$\pm$1.21} & 73.31{\scriptsize$\pm$1.77} & 88.50{\scriptsize$\pm$0.48} & 83.45{\scriptsize$\pm$0.32} & 51.37{\scriptsize$\pm$0.07} & 80.59{\scriptsize$\pm$0.26} & 60.97{\scriptsize$\pm$0.14} \\
+\revthree{UltraTAG}     & 85.47{\scriptsize$\pm$1.86} & 74.56{\scriptsize$\pm$1.08} & 88.93{\scriptsize$\pm$0.13} & 83.66{\scriptsize$\pm$0.19} & 53.73{\scriptsize$\pm$0.38} & 80.73{\scriptsize$\pm$0.44} & 62.14{\scriptsize$\pm$0.29} \\
+\revthree{LLM-BP}       & 76.99{\scriptsize$\pm$1.19} & 68.15{\scriptsize$\pm$1.54} & 86.32{\scriptsize$\pm$0.36} & 79.99{\scriptsize$\pm$0.07} & 48.56{\scriptsize$\pm$0.22} & 75.48{\scriptsize$\pm$0.45} & 40.32{\scriptsize$\pm$0.18} \\
+\revthree{STAGE}        & 86.88{\scriptsize$\pm$1.58} & 74.78{\scriptsize$\pm$1.93} & 91.19{\scriptsize$\pm$0.21} & 84.72{\scriptsize$\pm$0.43} & 56.36{\scriptsize$\pm$0.39} & 84.31{\scriptsize$\pm$0.16} & 64.65{\scriptsize$\pm$0.28} \\
+\revthree{SKETCH}       & 82.05{\scriptsize$\pm$1.35} & 70.14{\scriptsize$\pm$1.48} & 88.48{\scriptsize$\pm$0.44} & 81.94{\scriptsize$\pm$0.26} & 51.23{\scriptsize$\pm$0.31} & 79.53{\scriptsize$\pm$0.19} & 61.79{\scriptsize$\pm$0.09} \\
 \midrule
 
-DIVERGE Ensemble Method 1 & \textbf{92.06}{\scriptsize$\pm$0.00} & \textbf{79.25}{\scriptsize$\pm$0.00} & \textbf{96.56}{\scriptsize$\pm$0.00} & \textbf{86.96}{\scriptsize$\pm$0.00} & \textbf{63.88}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} \\
-DIVERGE Ensemble Method 2 & \textbf{91.80}{\scriptsize$\pm$0.00} & \textbf{78.83}{\scriptsize$\pm$0.00} & \textbf{96.74}{\scriptsize$\pm$0.00} & \textbf{87.03}{\scriptsize$\pm$0.00} & \textbf{63.16}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} \\
-DIVERGE Ensemble Method 3 & \textbf{91.85}{\scriptsize$\pm$0.00} & \textbf{79.04}{\scriptsize$\pm$0.00} & \textbf{96.75}{\scriptsize$\pm$0.00} & \textbf{87.18}{\scriptsize$\pm$0.00} & \textbf{63.52}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} \\
+DIVERGE Ensemble Method 1 & \textbf{88.58}{\scriptsize$\pm$1.60} & \textbf{74.80}{\scriptsize$\pm$0.77} & \textbf{94.70}{\scriptsize$\pm$0.00} & \textbf{87.54}{\scriptsize$\pm$0.00} & \textbf{63.88}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} \\
+DIVERGE Ensemble Method 2 & \textbf{88.72}{\scriptsize$\pm$1.51} & \textbf{74.97}{\scriptsize$\pm$0.82} & \textbf{94.71}{\scriptsize$\pm$0.00} & \textbf{87.70}{\scriptsize$\pm$0.00} & \textbf{63.16}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} \\
+DIVERGE Ensemble Method 3 & \textbf{88.85}{\scriptsize$\pm$1.37} & \textbf{75.12}{\scriptsize$\pm$0.83} & \textbf{94.71}{\scriptsize$\pm$0.00} & \textbf{87.64}{\scriptsize$\pm$0.00} & \textbf{63.52}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} \\
 \bottomrule
 \end{tabular*}
 \end{table}
@@ -742,168 +721,239 @@ To qualitatively compare these representations, the node embeddings generated by
 
 \subsection{Why do different LoRA initializations yield different representations?}\label{sec:initDiversity}
 
-% ---------------------------------------------------------------------------
-% Numbers below: Cora, LLaMA-3.2-1B, r=8, GraphSAGE, GNN seed 42, LoRA seeds 42-45,
-% 4 inits (Orthogonal pending). Source: results/diversity/{lora_subspace,seed_vs_init,complementarity}/
-% UPDATE every number (and the sentences that interpret it) after the full runs.
-% CHECK: the pool used SPLIT=0 (semi-supervised caches); the paper's main split is 60/20/20.
-% ---------------------------------------------------------------------------
-
-\revtwo{The t-SNE plots in Figure~\ref{fig:tsne} show that the five views differ, but they cannot tell whether the difference is caused by the initialization or by the randomness of training. We therefore follow the effect of the initialization through each stage of the pipeline: the adapter weights, the LLM embeddings, the GNN embeddings and the GNN predictions.}
+\revtwo{The t-SNE plots in Figure~\ref{fig:tsne} show that the five views differ, but they cannot tell whether the difference is caused by the initialization or by the randomness of training. We therefore follow the effect of the initialization through each stage of the pipeline: the adapter weights, the LLM embeddings, the GNN embeddings and the GNN predictions. We report the analysis for CiteSeer with Gemma-2-2B.}
 
 \paragraph{\revtwo{Mechanism.}}
-\revtwo{LoRA adds a rank-$r$ update $\mathbf{B}\mathbf{A}$ to a frozen weight $\mathbf{W}\in\mathbb{R}^{d_{out}\times d_{in}}$, so the adapter reads its input through the $r$-dimensional row space of $\mathbf{A}$ and writes into the column space of $\mathbf{B}$. When $\mathbf{B}$ starts at zero (Gaussian, Orthogonal and EVA), the first gradient of $\mathbf{B}$ is $\nabla_{\mathbf{B}}\mathcal{L}=\mathbf{g}\,(\mathbf{A}\mathbf{x})^{\top}$, so learning is confined to the input directions selected by the initial $\mathbf{A}$, and $\mathbf{A}$ itself moves little during fine-tuning \citep{zhu2024asymmetry}. Each strategy chooses these directions differently: PiSSA takes the top-$r$ singular vectors of $\mathbf{W}$ \citep{meng2024pissa}, LoftQ the singular vectors of the quantization residual \citep{li2023loftq}, EVA the principal directions of the input activations \citep{paischer2024eva}, and Gaussian/Orthogonal random directions \citep{Hu2021LoRA, zhang2025orthogonal}. Because $r\ll d$ ($8$ vs.\ $2048$ in our setting), two such subspaces overlap very little, so the initialization decides which part of the pretrained representation each adapter is able to modify.}
+\revtwo{LoRA adds a rank-$r$ update $\mathbf{B}\mathbf{A}$ to a frozen weight $\mathbf{W}\in\mathbb{R}^{d_{out}\times d_{in}}$, so the adapter reads its input through the $r$-dimensional row space of $\mathbf{A}$ and writes into the column space of $\mathbf{B}$. When $\mathbf{B}$ starts at zero (Gaussian, Orthogonal and EVA), the first gradient of $\mathbf{B}$ is $\nabla_{\mathbf{B}}\mathcal{L}=\mathbf{g}\,(\mathbf{A}\mathbf{x})^{\top}$, so learning is confined to the input directions selected by the initial $\mathbf{A}$, and $\mathbf{A}$ itself moves little during fine-tuning \citep{zhu2024asymmetry}. Each strategy chooses these directions differently: PiSSA takes the top-$r$ singular vectors of $\mathbf{W}$ \citep{meng2024pissa}, LoftQ the singular vectors of the quantization residual \citep{li2023loftq}, EVA the principal directions of the input activations \citep{paischer2024eva}, and Gaussian/Orthogonal random directions \citep{Hu2021LoRA, zhang2025orthogonal}. Because $r\ll d$ ($8$ vs.\ $2304$ for Gemma-2-2B), two such subspaces overlap very little, so the initialization decides which part of the pretrained representation each adapter is able to modify.}
 
 \paragraph{\revone{Experimental design.}}
-\revone{To separate the initialization from training randomness, each initialization was fine-tuned with four LoRA seeds, giving a pool of $4\times4=16$ members on Cora.
-The LoRA seed controls the classification-head initialization, the data order, the dropout masks and, for random initializations, the random matrix $\mathbf{A}$. A GraphSAGE model was trained on every member with the same GNN seed and split, so two members differ only in their LoRA initialization and/or LoRA seed. For each pair of members we measure a distance and group the pairs into \emph{seed-only} pairs (same initialization, different seed; 24 pairs), \emph{init-only} pairs (different initialization, same seed; 24 pairs) and pairs that differ in \emph{both} (72 pairs). Adapter distances are one minus the mean subspace overlap $\|\mathbf{Q}_i^{\top}\mathbf{Q}_j\|_F^2/r$ over the 64 LoRA layers, where $\mathbf{Q}$ is an orthonormal basis of the row space of $\mathbf{A}$ or the column space of $\mathbf{B}$; embedding distances are $1-$ linear CKA \citep{kornblith2019cka}; prediction distance is the label disagreement on the test nodes. The \emph{init effect} test compares \emph{both} pairs with \emph{seed-only} pairs: both groups differ in seed, so a larger distance in the first group is due to the initialization; its $p$-value comes from 2000 permutations of the initialization labels within each seed. We also report the ratio of init-only to seed-only distance and the share of variance explained by the initialization and by the seed (PERMANOVA $R^2$, \citealp{anderson2001permanova}).} % UPDATE: 5 x 4 = 20 with Orthogonal
+\revone{To separate the initialization from training randomness, each of the five initializations was fine-tuned with four LoRA seeds, giving a pool of $5\times4=20$ members.
+The LoRA seed controls the 60/20/20 split used for fine-tuning, the classification-head initialization, the data order, the dropout masks and, for random initializations, the random matrix $\mathbf{A}$. A GraphSAGE model was trained on every member with the same GNN seed, so two members differ only in their LoRA initialization and/or LoRA seed. For each pair of members we measure a distance and group the pairs into \emph{seed-only} pairs (same initialization, different seed; 30 pairs), \emph{init-only} pairs (different initialization, same seed; 40 pairs) and pairs that differ in \emph{both} (120 pairs). Adapter distances are one minus the mean subspace overlap $\|\mathbf{Q}_i^{\top}\mathbf{Q}_j\|_F^2/r$ over the 104 LoRA layers, where $\mathbf{Q}$ is an orthonormal basis of the row space of $\mathbf{A}$ or the column space of $\mathbf{B}$; embedding distances are $1-$ linear CKA \citep{kornblith2019cka}; prediction distance is the label disagreement on the test nodes. On these pair groups we ask two different questions at every stage of the pipeline:}
+\begin{itemize}
+    \item \revone{\textbf{Q1} (does the initialization add diversity beyond training randomness?): are pairs that differ in both initialization and seed farther apart than pairs that differ in the seed only? Both groups differ in the seed, so a larger distance in the first group is caused by the initialization. The $p$-value comes from 2000 permutations of the initialization labels within each seed.}
+    \item \revone{\textbf{Q2} (is the initialization a \emph{larger} source of diversity than training randomness?): is the init-only distance larger than the seed-only distance, i.e.\ is the ratio init-only/seed-only above one? This is the comparison with an ensemble of one initialization trained with different seeds.}
+\end{itemize}
+\revone{Q1 can hold while Q2 does not: the initialization can add diversity on top of the seed without adding more than a new seed would. Section~\ref{sec:initQ1} answers Q1 and Section~\ref{sec:initQ2} answers Q2.}
+
+% ---------------------------------------------------------------------------
+\subsubsection{\revone{Q1: Does the initialization add diversity beyond training randomness?}}\label{sec:initQ1}
 
 \begin{table*}[t]
 \centering\color{red}
-\caption{Pool distances between members that differ in seed only, in initialization only, or in both (Cora, LLaMA-3.2-1B, 4 initializations $\times$ 4 seeds). Larger values mean more diverse members. $p$: permutation test of the initialization effect (\emph{both} vs.\ \emph{seed-only}). Init/seed: ratio of init-only to seed-only distance. $R^2$: share of variance explained by initialization / seed (PERMANOVA).}
+\caption{Q1. Pool distances between members that differ in seed only, in initialization only, or in both (CiteSeer, Gemma-2-2B, 5 initializations $\times$ 4 seeds). Larger values mean more diverse members. $p$: permutation test of the initialization effect (\emph{both} vs.\ \emph{seed-only}).}
 \label{tab:seed_vs_init}
 \small
-\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}} llcccccc @{}}
+\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}} llcccc @{}}
 \toprule
-\textbf{Stage} & \textbf{Distance} & \textbf{Seed-only} & \textbf{Init-only} & \textbf{Both} & \textbf{$p$} & \textbf{Init/seed} & \textbf{$R^2$ init / seed} \\
+\textbf{Stage} & \textbf{Distance} & \textbf{Seed-only} & \textbf{Init-only} & \textbf{Both} & \textbf{$p$ (Q1)} \\
 \midrule
-Adapter weights & $1-$ overlap, row($\mathbf{A}$) & 0.533 & 0.995 & 0.995 & $<0.001$ & 1.87 & -- \\
-                & $1-$ overlap, col($\mathbf{B}$) & 0.492 & 0.964 & 0.973 & $<0.001$ & 1.96 & -- \\
-                & $1-\cos$, update $\mathbf{B}\mathbf{A}$ & 0.526 & 0.996 & 0.998 & $<0.001$ & 1.89 & -- \\
+Adapter weights & $1-$ overlap, row($\mathbf{A}$) & 0.641 & 0.995 & 0.995 & $<0.001$ \\
+                & $1-$ overlap, col($\mathbf{B}$) & 0.613 & 0.976 & 0.980 & $<0.001$ \\
+                & $1-\cos$, update $\mathbf{B}\mathbf{A}$ & 0.638 & 0.999 & 0.999 & $<0.001$ \\
 \midrule
-LLM embeddings  & $1-$ CKA & 0.099 & 0.092 & 0.122 & $<0.001$ & 0.93 & 0.35 / 0.43 \\
-GNN embeddings  & $1-$ CKA & 0.191 & 0.183 & 0.219 & 0.030 & 0.96 & 0.33 / 0.39 \\
-GNN predictions & disagreement & 0.093 & 0.089 & 0.096 & 0.045 & 0.95 & 0.21 / 0.29 \\
+LLM embeddings  & $1-$ CKA & 0.265 & 0.288 & 0.320 & $<0.001$ \\
+GNN embeddings  & $1-$ CKA & 0.074 & 0.080 & 0.093 & $<0.001$ \\
+GNN predictions & disagreement & 0.088 & 0.087 & 0.098 & $<0.001$ \\
 \bottomrule
 \end{tabular*}
 \end{table*}
 
 \paragraph{\revtwo{Adapter weights.}}
-\revtwo{Table~\ref{tab:seed_vs_init} shows that, in weight space, adapters trained from different initializations end in almost orthogonal subspaces (distance $0.96$--$1.00$), about twice the distance between seeds of the same initialization ($p<0.001$). For the deterministic initializations the seed barely moves the adapter (seed-only distance of the adapter update: PiSSA $0.03$, LoftQ $0.08$), while the seed changes the adapter of Gaussian and EVA, whose initialization depends on random draws or on the sampled batches. Table~\ref{tab:spectral} locates the trained adapters in the spectrum of the pretrained weights. PiSSA adapters remain in the top-$r$ singular subspace after training (overlap $0.99$, about $100\times$ the random level), LoftQ adapters lean weakly toward the dominant directions, and Gaussian and EVA adapters lie close to random with a slight tilt toward the minor directions. These positions vary by less than $0.001$ across seeds. Each initialization therefore keeps a stable and distinct region of the weight spectrum in which it adapts the model.}
+\revtwo{Table~\ref{tab:seed_vs_init} shows that, in weight space, adapters trained from different initializations end in almost orthogonal subspaces (distance $0.98$--$1.00$), and that changing the initialization adds distance on top of changing the seed ($p<0.001$). Table~\ref{tab:spectral} locates the trained adapters in the spectrum of the pretrained weights. PiSSA adapters remain in the top-$r$ singular subspace after training (overlap $0.98$ for col($\mathbf{B}$), about $170\times$ the random level), LoftQ adapters lean toward the dominant output directions ($16\times$ random), and Gaussian, Orthogonal and EVA adapters lie close to the random level. These positions vary by at most $0.002$ across seeds. Each initialization therefore keeps a stable and distinct region of the weight spectrum in which it adapts the model.}
 
 \begin{table}[htbp]
 \centering\color{blue}
-\caption{Overlap of the trained adapters with the top-$r$ and bottom-$r$ singular subspaces of the pretrained weights (mean over 64 layers and 4 seeds; standard deviation $\leq 0.001$). Random subspaces give $r/d_{out}=0.0098$ for col($\mathbf{B}$) and $r/d_{in}=0.0039$ for row($\mathbf{A}$).}
+\caption{Overlap of the trained adapters with the top-$r$ and bottom-$r$ singular subspaces of the pretrained weights (CiteSeer, Gemma-2-2B; mean over 104 layers and 4 seeds; standard deviation $\leq 0.002$). Random subspaces give $r/d_{out}=0.0058$ for col($\mathbf{B}$) and $r/d_{in}=0.0036$ for row($\mathbf{A}$) (mean over layers).}
 \label{tab:spectral}
 \small
 \begin{tabular}{lcccc}
 \toprule
 \textbf{Initialization} & \textbf{col($\mathbf{B}$) top} & \textbf{col($\mathbf{B}$) bottom} & \textbf{row($\mathbf{A}$) top} & \textbf{row($\mathbf{A}$) bottom} \\
 \midrule
-PiSSA    & 0.990 & 0.000 & 0.979 & 0.000 \\
-LoftQ    & 0.063 & 0.004 & 0.007 & 0.004 \\
-Gaussian & 0.012 & 0.024 & 0.004 & 0.004 \\
-EVA      & 0.012 & 0.027 & 0.005 & 0.004 \\
-% Orthogonal & ... % UPDATE
+PiSSA      & 0.976 & 0.000 & 0.959 & 0.000 \\
+LoftQ      & 0.093 & 0.004 & 0.005 & 0.004 \\
+Orthogonal & 0.008 & 0.008 & 0.006 & 0.004 \\
+Gaussian   & 0.010 & 0.010 & 0.004 & 0.004 \\
+EVA        & 0.009 & 0.011 & 0.004 & 0.004 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 \paragraph{\revtwo{From weights to representations and predictions.}}
-\revtwo{Mantel tests \citep{mantel1967} between the pool distance matrices of consecutive stages (Table~\ref{tab:mantel}) show that the weight-space differences propagate: members whose adapter updates differ more also have more different LLM embeddings ($\rho=0.76$, $p<0.001$), and the LLM-embedding distance is related to the GNN-embedding distance ($\rho=0.55$) and to the prediction disagreement ($\rho=0.44$, $p=0.010$). Along this chain the diversity is compressed: nearly orthogonal adapters produce embeddings with CKA of about $0.9$, and the GNNs, which propagate over the same graph, disagree on about $9\%$ of the test nodes.} \revone{At the embedding and prediction levels (Table~\ref{tab:seed_vs_init}), members that differ in both initialization and seed are the most diverse, and the initialization adds significant diversity on top of the seed at every stage ($p\leq0.045$). The init-only distances are of the same order as the seed-only distances (ratio $0.93$--$0.96$), and PERMANOVA attributes $35\%$ of the LLM-embedding variance to the initialization and $43\%$ to the seed.}
+\revtwo{Mantel tests \citep{mantel1967} between the pool distance matrices of consecutive stages (Table~\ref{tab:mantel}) show that the weight-space differences propagate through the whole pipeline: members whose adapter updates differ more also have more different LLM embeddings ($\rho=0.57$, $p<0.001$), the LLM-embedding distance is related to the GNN-embedding distance ($\rho=0.59$) and to the prediction disagreement ($\rho=0.53$), and the GNN-embedding distance predicts the prediction disagreement ($\rho=0.77$; all $p<0.001$). Along this chain the diversity is compressed: nearly orthogonal adapters produce embeddings with CKA of about $0.7$, and the GNNs, which propagate over the same graph, disagree on about $9\%$--$10\%$ of the test nodes.} \revone{At every stage, members that differ in both initialization and seed are the most diverse, and the initialization adds significant diversity on top of the seed ($p<0.001$, Table~\ref{tab:seed_vs_init}). The answer to Q1 is therefore positive at all four stages.}
 
 \begin{table}[htbp]
 \centering\color{blue}
-\caption{Mantel correlation (Spearman $\rho$, 2000 permutations) between the pool distance matrices of successive stages.}
+\caption{Mantel correlation (Spearman $\rho$, 2000 permutations) between the pool distance matrices of successive stages (CiteSeer, Gemma-2-2B).}
 \label{tab:mantel}
 \small
 \begin{tabular}{llcc}
 \toprule
 \textbf{From} & \textbf{To} & \textbf{$\rho$} & \textbf{$p$} \\
 \midrule
-Adapter update ($\mathbf{B}\mathbf{A}$) & LLM embeddings  & 0.76 & $<0.001$ \\
-Adapter col($\mathbf{B}$)               & LLM embeddings  & 0.28 & $<0.001$ \\
-LLM embeddings                          & GNN embeddings  & 0.55 & 0.003 \\
-LLM embeddings                          & GNN predictions & 0.44 & 0.010 \\
-GNN embeddings                          & GNN predictions & 0.25 & 0.113 \\
+Adapter update ($\mathbf{B}\mathbf{A}$) & LLM embeddings  & 0.57 & $<0.001$ \\
+Adapter col($\mathbf{B}$)               & LLM embeddings  & 0.16 & 0.022 \\
+LLM embeddings                          & GNN embeddings  & 0.59 & $<0.001$ \\
+LLM embeddings                          & GNN predictions & 0.53 & $<0.001$ \\
+GNN embeddings                          & GNN predictions & 0.77 & $<0.001$ \\
+Adapter col($\mathbf{B}$)               & GNN predictions & 0.28 & 0.001 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
+\paragraph{\revone{Systematic differences between initializations.}}
+\revone{If the initializations produced only random variation, their differences would not repeat across seeds. We tested this with a two-way ANOVA of the per-class test accuracy with initialization and class as factors and the four seeds as replicates, so the residual is exactly the seed variation. The initialization has a significant effect ($F(4,90)=4.23$, $p=0.003$, partial $\eta^2=0.16$): the differences in quality between initializations are larger than the differences between seeds. They are most visible on the hardest class, where PiSSA reaches $40.0\%$ and Orthogonal $25.0\%$ averaged over seeds. Of the $111$ test nodes that some initialization misclassifies in every seed, $63$ are not persistent errors of every initialization, i.e.\ they can be recovered by another view. Combining four initializations gives more test nodes a correct $k$-NN majority than combining four seeds of one initialization ($83.7\%$ vs.\ $82.4\%$ for the LLM embeddings, $85.2\%$ vs.\ $84.7\%$ for the GNN embeddings; $72.1\%$ and $76.9\%$ for a single view).}
+
 \paragraph{\revone{Complementarity.}}
-\revone{Diversity is useful only if the members make different errors rather than more errors. We therefore relate the diversity of the members to the gain of their ensemble. To isolate the effect of diversity from the trainable ensemble head, all ensembles in this analysis are uniform averages of the class probabilities, so no weights are fitted. For a uniform average the ambiguity decomposition \citep{krogh1995ensemble} is exact: the ensemble error equals the average member error minus the ambiguity (the spread of the members around the ensemble), so larger diversity at equal member quality directly lowers the ensemble error. Over all $k$-member subsets of the pool, the mean pairwise disagreement is strongly correlated with the ensemble gain over the mean member (Spearman $\rho=0.75$, $0.74$, $0.76$ and $0.73$ for $k=2,3,4,5$; all $p<10^{-20}$; Figure~\ref{fig:div_gain}), and for $k=4$ ensembles with four distinct initializations gain more than those with one ($+1.73$ vs.\ $+1.54$ pp), while for the other sizes the gain differs by less than $0.05$ pp across the number of distinct initializations. The pairwise complementarity measures of \citet{kuncheva2003diversity} lead to the same picture: an oracle that picks the correct member is $3.2$--$3.5$ pp more accurate than the better member of a pair.} \revthree{Table~\ref{tab:seed_multi_ensemble} compares ensembles of equal size built from one initialization with four seeds and from four initializations with one seed.}
+\revone{Diversity is useful only if the members make different errors rather than more errors. We therefore relate the diversity of the members to the gain of their ensemble. To isolate the effect of diversity from the trainable ensemble head, all ensembles in this analysis are uniform averages of the class probabilities, so no weights are fitted. For a uniform average the ambiguity decomposition \citep{krogh1995ensemble} is exact: the ensemble error equals the average member error minus the ambiguity (the spread of the members around the ensemble), so larger diversity at equal member quality directly lowers the ensemble error. Over all $k$-member subsets of the pool, the mean pairwise disagreement is positively correlated with the ensemble gain over the mean member (Spearman $\rho=0.26$, $0.24$, $0.16$ and $0.11$ for $k=2,3,4,5$; all $p<10^{-3}$), and at every ensemble size the gain increases monotonically with the number of distinct initializations in the ensemble (Figure~\ref{fig:div_gain}; for $k=4$ from $+0.74$ pp with one initialization to $+0.98$ pp with four). The pairwise complementarity measures of \citet{kuncheva2003diversity} lead to the same picture: an oracle that picks the correct member is $2.5$--$2.8$ pp more accurate than the better member of a pair, and the oracle gain is largest for pairs that differ in both initialization and seed.}
+
+\begin{figure}[htbp]
+	\centering\color{red}
+	\includegraphics[width=0.7\textwidth]{images/gemma2_2B_citeseer_gain_vs_distinct_inits.png}
+	\caption{Ensemble gain over the mean member as a function of the number of distinct initializations among the $k$ members, averaged over all $k$-member subsets of the CiteSeer pool (Gemma-2-2B, uniform averaging).}
+	\label{fig:div_gain}
+\end{figure}
+
+% ---------------------------------------------------------------------------
+\subsubsection{\revthree{Q2: Is the initialization a larger source of diversity than training randomness?}}\label{sec:initQ2}
+
+\revthree{Q2 compares two members of different initializations with two members of the same initialization trained with different seeds, which is the seed-ensemble baseline requested by the reviewers. Table~\ref{tab:q2} (left) reports the ratio of init-only to seed-only distance in the pool above. In weight space the initialization clearly dominates: init-only distances are about $1.6$ times the seed-only distances (one-sided Mann--Whitney $p\leq0.006$), and for the deterministic initializations the seed barely moves the adapter (seed-only distance of the update: PiSSA $0.06$, LoftQ $0.14$). Downstream the two effects become similar in size: the ratio is $1.09$ for the LLM embeddings ($p=0.06$), $1.08$ for the GNN embeddings ($p=0.16$) and $0.99$ for the predictions ($p=0.50$). The local neighbourhoods are the exception: the $10$ nearest neighbours of a node change more between initializations than between seeds in both the LLM embeddings (ratio $1.11$, $p=0.005$) and the GNN embeddings ($1.08$, $p=0.010$). PERMANOVA attributes more of the variance to the initialization than to the seed at every stage.}
+
+\revthree{In this pool, however, the seed-only baseline mixes three sources of variation: a LoRA seed also selects the fine-tuning split and, for Gaussian, Orthogonal and EVA, draws a new random initialization, while the data order and the dropout masks were the same for all seeds. Two ``seeds'' of Gaussian are therefore two random initializations fine-tuned on different labelled nodes, which is why their adapters are as far apart as two different initializations (seed-only distance $0.97$--$1.00$). We therefore designed a controlled experiment in which the seed-only baseline contains nothing but training randomness.}
+
+\paragraph{\revthree{Controlled experiment.}}
+\revthree{For each dataset and LLM, the five initializations are fine-tuned with four training seeds under three constraints: (i) every member is fine-tuned on the same split, which is also the split of its GNN, so no member has seen the labels of the test nodes; (ii) the random draw of the LoRA initialization is fixed by a separate initialization seed, so all members of one strategy start from the identical adapter; (iii) the training seed sets the classification-head initialization, the data order and the dropout masks. A seed-only pair is then exactly the same initialization trained with a different random seed, and an init-only pair differs only in the initialization strategy. At each of the four stages we use one distance fixed in advance ($1-\cos$ of the adapter updates, $1-$CKA of the LLM and of the GNN embeddings, prediction disagreement). Within a pool, the ratio init-only/seed-only is tested with a crossed bootstrap that resamples initializations and seeds with replacement, because pairs that share a member are not independent. Across pools, the initialization is called a larger source of diversity at a stage only if both a sign test on the number of pools with ratio $>1$ and a one-sided Wilcoxon signed-rank test on the log-ratios give $p<0.05$; with ten pools (five datasets $\times$ two LLMs) this requires at least nine pools with ratio above one. All pools are reported, including those that fail the criterion.}
+
+% TODO: fill the right half from results/diversity_q2/q2_across_pools.txt (aggregate_q2.py)
+% after scripts/run_q2_experiment.bat. Do not change the decision rule after seeing the results.
+\begin{table*}[t]
+\centering\color{green}
+\caption{Q2. Ratio of init-only to seed-only distance (values above one mean that changing the initialization moves the member more than changing the seed). Left: the pool of Table~\ref{tab:seed_vs_init} (CiteSeer, Gemma-2-2B; $p$: one-sided Mann--Whitney; $R^2$: share of variance explained by initialization / seed, PERMANOVA). Right: controlled pools (same split, same initialization draw, only the training seed varies) over five datasets and two LLMs; $k/n$: pools with ratio $>1$; geometric mean of the ratios; $p$ of the sign test and of the Wilcoxon test over pools.}
+\label{tab:q2}
+\small
+\setlength{\tabcolsep}{3pt}
+\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}} lccc|cccc @{}}
+\toprule
+ & \multicolumn{3}{c|}{\textbf{Original pool}} & \multicolumn{4}{c}{\textbf{Controlled pools}} \\
+\textbf{Stage} & \textbf{Ratio} & \textbf{$p$} & \textbf{$R^2$ init / seed} & \textbf{$k/n$} & \textbf{Geo.\ mean} & \textbf{Sign $p$} & \textbf{Wilcoxon $p$} \\
+\midrule
+Adapter update ($\mathbf{B}\mathbf{A}$) & 1.56 & 0.006 & -- & -- & -- & -- & -- \\
+LLM embeddings (CKA)   & 1.09 & 0.062 & 0.35 / 0.24 & -- & -- & -- & -- \\
+GNN embeddings (CKA)   & 1.08 & 0.155 & 0.41 / 0.29 & -- & -- & -- & -- \\
+GNN predictions        & 0.99 & 0.500 & 0.31 / 0.28 & -- & -- & -- & -- \\
+\midrule
+LLM embeddings ($k$-NN) & 1.11 & 0.005 & -- & -- & -- & -- & -- \\
+GNN embeddings ($k$-NN) & 1.08 & 0.010 & -- & -- & -- & -- & -- \\
+\bottomrule
+\end{tabular*}
+\end{table*}
+
+% TODO: write the Q2 conclusion only after the controlled pools are run.
+% If a stage meets the rule: "In k of 10 pools ... (sign p = ..., Wilcoxon p = ...)".
+% If not: state that the initialization adds diversity (Q1) but is of the same size as
+% training randomness at that stage, and that this is a limitation.
+\revthree{\textbf{[Result of the controlled experiment to be inserted.]}}
+
+\paragraph{\revthree{Ensembles of one initialization with several seeds.}}
+\revthree{Table~\ref{tab:seed_multi_ensemble} compares ensembles of equal size built from one initialization with four seeds and from four initializations with one seed. At the same average member error, the multi-init ensembles are slightly more accurate ($82.85\%$ vs.\ $82.76\%$) and lose less to their best member ($-0.61$ vs.\ $-1.00$ pp). No uniform average exceeds its strongest member: with 60\% of the nodes labelled the members are already strong, and equal weights let the weaker members pull the average down. Recovering this loss requires member- and class-specific weights, which is what the trainable ensemble heads of DIVERGE provide (Sections~\ref{sec:ensemble_weight_analysis} and~\ref{sec:trainable_vs_avg}).}
 
 \begin{table}[htbp]
 \centering\color{green}
-\caption{Uniform-average ensembles of equal size ($k=4$), built from one initialization with four seeds (seed-only) or from four initializations with one seed (multi-init). Mean over the four ensembles of each family; gains in percentage points.}
+\caption{Uniform-average ensembles of equal size ($k=4$), built from one initialization with four seeds (seed-only; 5 ensembles) or from four of the five initializations with one seed (multi-init; 20 ensembles). CiteSeer, Gemma-2-2B; mean over the ensembles of each family; gains in percentage points.}
 \label{tab:seed_multi_ensemble}
 \small
 \begin{tabular}{lccccc}
 \toprule
 \textbf{Family} & \textbf{Ens.\ acc.} & \textbf{Gain vs.\ mean} & \textbf{Gain vs.\ best} & \textbf{Avg.\ member error} & \textbf{Ambiguity} \\
 \midrule
-Seed-only  & 88.76 & +1.54 & +0.62 & 0.2051 & 0.0344 \\
-Multi-init & 88.76 & +1.54 & +0.79 & 0.2051 & 0.0320 \\
+Seed-only  & 82.76 & +0.74 & $-1.00$ & 0.2732 & 0.0128 \\
+Multi-init & 82.85 & +0.84 & $-0.61$ & 0.2732 & 0.0124 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\begin{figure}[htbp]
-	\centering\color{red}
-	\includegraphics[width=0.7\textwidth]{images/llama_3.2_1B_cora_diversity_vs_gain_k4.png}
-	\caption{Mean pairwise prediction disagreement vs.\ ensemble gain over the mean member for all 1820 four-member subsets of the Cora pool, coloured by the number of distinct initializations in the subset.}
-	\label{fig:div_gain}
-\end{figure}
+\revone{In summary, the initialization determines where in the pretrained weight spectrum each adapter operates, and this choice is stable across seeds. The differences it creates in weight space propagate to the node embeddings, the local neighbourhoods and the predictions, and at every stage the initialization adds significant diversity on top of training randomness (Q1). Whether it is a larger source of diversity than training randomness (Q2) holds clearly in weight space and for the local neighbourhoods; for the global embedding geometry and the predictions it is tested by the controlled experiment above.}
 
-\revone{In summary, the initialization determines where in the pretrained weight spectrum each adapter operates, this choice is stable across seeds, and the differences it creates in weight space propagate to the node embeddings and predictions, where they add to the diversity produced by training randomness. The resulting diversity is complementary: the more the members disagree, the more their ensemble improves over them.}
+\subsection{\revtwo{Behaviour of the Adaptive Ensemble Weights}}
+\label{sec:ensemble_weight_analysis}
 
-\subsection{Performance Comparison of Trainable Ensemble Learning vs. Simple Averaging}
+\revtwo{The trainable ensemble heads add parameters on top of the GNN pool, so it is necessary to show what these parameters buy and when learned weights are preferable to simple averaging. We analyse this on Cora with three LLM encoders (LLaMA-3.2-1B, SmolLM2-1.7B, Gemma-2-2B) and on CiteSeer with LLaMA-3.2-1B, using GraphSAGE and the supervised split. For each setting we build one pool from a single LoRA seed per initialization and retrain the five view GNNs with four GNN seeds; each fusion head is additionally refitted with three fusion seeds (12 runs). Because this pool uses one LoRA seed and retrained GNNs, the absolute accuracies differ slightly from Table~\ref{tab:diverge_llm_encoders}. All fusion rules are applied to exactly the same view GNNs, nodes and labels, so every difference between rules is caused by the fusion step alone.}
 
-\begin{table*}[t]
+\revtwo{To avoid any optimistic bias, each learned head is fitted on the GNN logits of one half of the validation nodes, its training epoch and hyperparameters are selected on the other half, and the test nodes are used only once for the final evaluation. We do not fit the heads on training-node logits, because the GNNs were trained on those nodes and their logits are over-confident. Significance is tested with paired tests over runs; since the runs that share a GNN seed are not independent, we also test the four GNN-seed means, which is the conservative test.}
+
+\paragraph{\revtwo{Where can a fusion rule change the prediction?}}
+\revtwo{All heads of DIVERGE combine the view logits with non-negative weights that sum to one (softmax-normalised). Such a convex combination cannot change the prediction of a node on which all views predict the same label. Table~\ref{tab:ens_agreement} reports the share of such unanimous test nodes together with uniform averaging and an oracle that counts a node as correct if at least one view is correct. No learned head is involved in this table.}
+
+\begin{table}[ht]
 \centering
-\caption{Comparison of ensemble learning performance using trainable weights versus simple averaging (Uniform).}
-\label{tab:ensemble_results}
+\caption{\revtwo{Share of unanimous test nodes (all five views predict the same label), test accuracy (\%) of uniform logit averaging, and of an oracle that is correct if any view is correct. Mean over 12 runs. $^\dagger$The Orthogonal view of this pool collapsed during fine-tuning (23.4\% accuracy alone).}}
+\label{tab:ens_agreement}
+\begin{tabular}{l c c c c}
+\hline
+Setting & Unanimous nodes & Uniform average & Oracle & Headroom (pp) \\
+\hline
+Cora, LLaMA-3.2-1B        & 87.9\% & 90.13 & 93.54 & +3.4 \\
+Cora, SmolLM2-1.7B        & 89.4\% & 90.08 & 93.59 & +3.5 \\
+Cora, Gemma-2-2B          & 88.4\% & 91.05 & 94.51 & +3.5 \\
+CiteSeer, SmolLM2-1.7B    & 84.1\% & 79.51 & 85.07 & +5.6 \\
+CiteSeer, LLaMA-3.2-1B$^\dagger$ & 21.4\% & 79.19 & 88.24 & +9.0 \\
+\hline
+\end{tabular}
+\end{table}
 
-\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}} lcccc @{}}
-\toprule
-\multirow{2}{*}{\textbf{Dataset}} & \multirow{2}{*}{\textbf{Method}} 
-& \multicolumn{3}{c}{\textbf{Performance Metrics}} \\
-\cmidrule(lr){3-5}
- &  & \textbf{Accuracy} & \textbf{Macro-F1} & \textbf{Weighted-F1} \\
-\midrule
+\revtwo{Two conclusions follow. First, the views are complementary: in every setting the oracle is 3.4--9.0 percentage points above uniform averaging, so the pool contains correct predictions that averaging does not use. Second, when the views are of similar quality, 84\%--89\% of the test nodes are unanimous, so any fusion rule can act only on the remaining 11\%--16\%. This bounds the possible gain of a learned head over averaging on balanced pools.}
 
-\multirow{4}{*}{PubMed}
-& Uniform    & 96.25 & 95.73 & 96.24 \\
-& Ensemble1  & 96.98 & 96.56 & 96.97 \\
-& Ensemble2  & 97.13 & 96.74 & 97.13 \\
-& Ensemble3  & \textbf{97.16} & \textbf{96.75} & \textbf{97.16} \\
-\midrule
+\paragraph{\revtwo{Why uniform averaging is already strong on balanced views.}}
+\revtwo{Averaging raw logits gives each view an equal vote only if the views produce logits of similar scale. For LLaMA-3.2-1B and Gemma-2-2B on Cora, the effective share of each view in the uniform logit sum lies between 0.180 and 0.211 (an equal vote is 0.200). The views also contribute almost equally to the ensemble: the exact Shapley value of each view, computed over all 31 view subsets of the uniform average, lies between 10.8 and 12.6 percentage points of test accuracy for all three Cora encoders. When the views are balanced in this way, equal weights are already close to optimal. The CiteSeer pool with LLaMA-3.2-1B is different: its Orthogonal view collapsed during fine-tuning (23.4\% accuracy alone; the same instability is visible in the large standard deviation of this view in Table~\ref{tab:diverge_llm_encoders}). Its share of the uniform logit sum drops to 0.145, but its Shapley value is negative ($-4.1$ pp): uniform averaging is worse \emph{with} this view than without it, and it has no mechanism to detect this.}
 
-\multirow{4}{*}{CiteSeer}
-& Uniform    & 80.41 & 77.41 & 80.09 \\
-& Ensemble1  & 81.66 & \textbf{79.25} & 81.50 \\
-& Ensemble2  & 81.97 & 78.83 & 81.51 \\
-& Ensemble3  & \textbf{82.13} & 79.04 & \textbf{81.61} \\
-\midrule
+\paragraph{\revtwo{What do the extra parameters buy?}}
+\revtwo{Table~\ref{tab:ens_fusion_rules} compares the learned heads with parameter-free rules and with stacking, a standard learned combiner (multinomial logistic regression on the concatenated view logits) that has more parameters but no convexity constraint. The view-level head learns one weight per view ($M=5$ parameters) and the class-level head one weight per view and class ($M\times C$ parameters); both are softmax-normalised. All heads are trained and selected as described above.}
 
-\multirow{4}{*}{WikiCS}
-& Uniform    & 87.74 & 86.44 & 87.78 \\
-& Ensemble1  & 88.34 & 86.96 & 88.35 \\
-& Ensemble2  & 88.38 & 87.03 & 88.40 \\
-& Ensemble3  & \textbf{88.42} & \textbf{87.18} & \textbf{88.43} \\
-\midrule
+\begin{table}[ht]
+\centering
+\caption{\revtwo{Test accuracy (\%) of fusion rules applied to the same five view GNNs (mean $\pm$ std over 12 runs). Learned heads are fitted on half of the validation nodes and selected on the other half; test nodes are used once. \#Params: extra trainable parameters of the fusion step (Cora / CiteSeer). Best result per column in bold. $^\dagger$Pool whose Orthogonal view collapsed (Table~\ref{tab:ens_agreement}).}}
+\label{tab:ens_fusion_rules}
+\small
+\setlength{\tabcolsep}{3pt}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{l r c c c c}
+\hline
+ & & \multicolumn{3}{c}{Cora} & CiteSeer \\
+Rule & \#Params & LLaMA-3.2-1B & SmolLM2-1.7B & Gemma-2-2B & LLaMA-3.2-1B$^\dagger$ \\
+\hline
+Best single view (by validation) & -- & 90.22{\scriptsize$\pm$1.12} & \textbf{90.45}{\scriptsize$\pm$1.68} & 90.45{\scriptsize$\pm$1.45} & 80.33{\scriptsize$\pm$1.08} \\
+Uniform average of logits & 0 & 90.13{\scriptsize$\pm$0.83} & 90.08{\scriptsize$\pm$1.18} & \textbf{91.05}{\scriptsize$\pm$0.74} & 79.19{\scriptsize$\pm$1.70} \\
+Uniform average of probabilities & 0 & 90.31{\scriptsize$\pm$0.70} & 90.13{\scriptsize$\pm$1.18} & 91.01{\scriptsize$\pm$0.73} & 80.05{\scriptsize$\pm$0.91} \\
+Majority vote & 0 & 90.45{\scriptsize$\pm$0.72} & 89.81{\scriptsize$\pm$1.18} & 90.54{\scriptsize$\pm$0.79} & 80.17{\scriptsize$\pm$0.50} \\
+Entropy-weighted average & 0 & 90.41{\scriptsize$\pm$0.80} & 90.13{\scriptsize$\pm$1.14} & 90.96{\scriptsize$\pm$0.76} & 80.45{\scriptsize$\pm$1.11} \\
+\hline
+Stacking (logistic regression) & 252 / 186 & 89.70{\scriptsize$\pm$1.26} & 89.04{\scriptsize$\pm$1.65} & 89.82{\scriptsize$\pm$1.45} & 79.38{\scriptsize$\pm$1.06} \\
+DIVERGE view-level weights & 5 / 5 & 90.53{\scriptsize$\pm$0.68} & 90.21{\scriptsize$\pm$1.27} & \textbf{91.05}{\scriptsize$\pm$0.77} & 80.45{\scriptsize$\pm$0.90} \\
+DIVERGE class-level weights & 35 / 30 & 90.64{\scriptsize$\pm$0.87} & 90.24{\scriptsize$\pm$1.27} & 90.97{\scriptsize$\pm$0.70} & \textbf{80.79}{\scriptsize$\pm$0.79} \\
+DIVERGE node-conditioned (Method~1) & 3.9k--7.8k & \textbf{90.67}{\scriptsize$\pm$0.82} & 90.16{\scriptsize$\pm$1.47} & 90.67{\scriptsize$\pm$0.93} & 80.22{\scriptsize$\pm$0.86} \\
+\hline
+\end{tabular}}
+\end{table}
 
-\multirow{4}{*}{Cora}
-& Uniform    & 92.07 & 90.55 & 92.12 \\
-& Ensemble1  & 93.17 & \textbf{92.06} & 93.14 \\
-& Ensemble2  & \textbf{93.36} & 91.80 & \textbf{93.32} \\
-& Ensemble3  & 93.17 & 91.85 & 93.14 \\
-\midrule
+\revtwo{Three results follow from Table~\ref{tab:ens_fusion_rules}.}
 
-\multirow{4}{*}{ArXiv}
-& Uniform    & 77.69 & 63.77 & 77.07 \\
-& Ensemble1  & \textbf{77.89} & \textbf{63.88} & \textbf{77.26} \\
-& Ensemble2  & 77.76 & 63.16 & 77.07 \\
-& Ensemble3  & 77.81 & 63.52 & 77.18 \\
-\bottomrule
-\end{tabular*}
-\end{table*}
+\revtwo{\textit{(i) The constraint makes the extra parameters safe.} An unconstrained combiner fitted on the same validation nodes overfits: stacking is below uniform averaging on all three Cora encoders ($-0.43$ to $-1.23$ pp). The softmax-constrained class-level head of DIVERGE is more accurate than stacking in every setting ($+0.94$ to $+1.41$ pp) and in all 16 GNN-seed means (Wilcoxon signed-rank $p<0.001$); the view-level head is better in 15 of 16 ($p<0.001$). Restricting the learned weights to a convex combination is therefore what allows them to be fitted on a few hundred labelled nodes without overfitting.}
 
-In Table \ref{tab:ensemble_results}, the performance of the three proposed trainable ensemble learning methods is compared with the simple averaging-based ensemble approach (Uniform) across the aforementioned datasets using three evaluation metrics. Based on the obtained results, all three proposed trainable methods deliver superior performance compared to the simple averaging approach.
+\revtwo{\textit{(ii) On balanced views, the learned weights match uniform averaging.} On the three Cora pools the view- and class-level heads are within $-0.08$ to $+0.51$ pp of uniform averaging and lose to it in at most 3 of 12 runs; the differences are not significant at the GNN-seed level ($p\geq0.12$). This agrees with the analysis above: when 88\%--89\% of the nodes are unanimous and the views contribute equally, the optimal weights are close to uniform, and the extra parameters neither help nor hurt. The node-conditioned head, which has thousands of parameters, brings no further gain over the class-level head on these datasets.}
+
+\revtwo{\textit{(iii) When one view is weak, the learned weights improve over averaging.} On the CiteSeer pool with the collapsed Orthogonal view, the class-level head improves uniform averaging by $+1.59$ pp (80.79 vs.\ 79.19), is better in 10 of 12 runs (paired $t$-test $p=0.002$), and is also above the best single view (80.33). It is significantly more accurate than both stacking ($+1.41$ pp) and the node-conditioned head ($+0.56$ pp; GNN-seed level $p=0.005$ and $p=0.014$). Uniform averaging, in contrast, is pulled below the best single view by the collapsed member. The vulnerability of averaging grows with the influence of such a view: when the logits of the weakest CiteSeer view are duplicated $k=1,\dots,4$ times, which raises its share of the uniform vote from $0.20$ to $0.56$, the accuracy of uniform averaging drops from 79.19\% to 62.77\%.}
+
+\revtwo{In summary, the learned weights of DIVERGE improve over simple averaging when the views are unbalanced, as when one LoRA initialization fails on a dataset, and perform on par with it when the views are balanced. Because this failure cannot be known in advance for a new dataset, the low-cost view- and class-level heads (5--35 parameters) act as a safeguard that removes the influence of a weak view at no cost in accuracy on balanced pools.}
+
+
+
+\subsection{Performance Comparison of Trainable Ensemble Learning vs. Simple Averaging}\label{sec:trainable_vs_avg}
+
+In Table \ref{tab:diverge_llm_encoders}, the performance of the three proposed trainable ensemble learning methods is compared with the simple averaging-based ensemble approach (Uniform) across the aforementioned datasets in terms of accuracy. Based on the obtained results, all three proposed trainable methods deliver superior performance compared to the simple averaging approach.
 
 Furthermore, according to the results in the table, the third proposed trainable ensemble method achieves the best overall performance across the majority of the datasets compared to the other two proposed versions.
 
-\subsection{DIVERGE on Diffirent LLM Encoder}
+\subsection{DIVERGE on Diffirent LLM Encoder}\label{sec:llm_encoders}
 
 \begin{table}[htbp]
 \centering
@@ -920,45 +970,50 @@ Furthermore, according to the results in the table, the third proposed trainable
 \midrule
 \multicolumn{8}{l}{\textit{LLM encoder: LLaMA-3.2-1B}} \\
 \midrule
-PiSSA                     & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
-Gaussian                  & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
-EVA                       & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
-LoftQ                     & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
-Orthogonal                & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
+PiSSA                     & 88.84{\scriptsize$\pm$1.01} & 77.59{\scriptsize$\pm$1.99} & 94.75{\scriptsize$\pm$0.00} & 87.87{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
+Gaussian                  & 88.05{\scriptsize$\pm$1.22} & 77.08{\scriptsize$\pm$0.78} & 93.76{\scriptsize$\pm$0.00} & 87.53{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
+EVA                       & 89.30{\scriptsize$\pm$1.10} & 78.29{\scriptsize$\pm$1.20} & 95.06{\scriptsize$\pm$0.00} & 88.51{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
+LoftQ                     & 88.47{\scriptsize$\pm$1.42} & 77.55{\scriptsize$\pm$1.04} & 94.70{\scriptsize$\pm$0.00} & 88.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
+Orthogonal                & 86.86{\scriptsize$\pm$1.34} & 77.11{\scriptsize$\pm$1.05} & 83.67{\scriptsize$\pm$0.00} & 87.61{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
 \cmidrule(lr){1-8}
-DIVERGE Ensemble Method 1 & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} \\
-DIVERGE Ensemble Method 2 & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} \\
-DIVERGE Ensemble Method 3 & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} \\
+Uniform (simple average)  & 88.93{\scriptsize$\pm$1.12} & 78.37{\scriptsize$\pm$0.76} & 94.62{\scriptsize$\pm$0.00} & 88.34{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
+DIVERGE Ensemble Method 1 & \textbf{89.80}{\scriptsize$\pm$1.39} & \textbf{79.47}{\scriptsize$\pm$0.97} & \textbf{95.26}{\scriptsize$\pm$0.00} & \textbf{88.47}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} \\
+DIVERGE Ensemble Method 2 & \textbf{89.90}{\scriptsize$\pm$1.32} & \textbf{79.39}{\scriptsize$\pm$0.85} & \textbf{95.26}{\scriptsize$\pm$0.00} & \textbf{88.72}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} \\
+DIVERGE Ensemble Method 3 & \textbf{89.94}{\scriptsize$\pm$1.15} & \textbf{79.50}{\scriptsize$\pm$0.81} & \textbf{95.23}{\scriptsize$\pm$0.00} & \textbf{88.59}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} \\
 \midrule
 \multicolumn{8}{l}{\textit{LLM encoder: SmolLM2-1.7B}} \\
 \midrule
-PiSSA                     & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
-Gaussian                  & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
-EVA                       & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
-LoftQ                     & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
-Orthogonal                & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
+PiSSA                     & 87.69{\scriptsize$\pm$1.08} & 78.02{\scriptsize$\pm$1.81} & 94.50{\scriptsize$\pm$0.00} & 88.17{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
+Gaussian                  & 87.50{\scriptsize$\pm$1.20} & 77.27{\scriptsize$\pm$1.51} & 94.83{\scriptsize$\pm$0.00} & 88.12{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
+EVA                       & 89.11{\scriptsize$\pm$1.40} & 78.06{\scriptsize$\pm$1.55} & 94.98{\scriptsize$\pm$0.00} & 88.12{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
+LoftQ                     & 87.96{\scriptsize$\pm$1.24} & 77.00{\scriptsize$\pm$1.10} & 94.88{\scriptsize$\pm$0.00} & 88.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
+Orthogonal                & 87.96{\scriptsize$\pm$1.74} & 77.39{\scriptsize$\pm$1.25} & 94.75{\scriptsize$\pm$0.00} & 88.25{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
 \cmidrule(lr){1-8}
-DIVERGE Ensemble Method 1 & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} \\
-DIVERGE Ensemble Method 2 & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} \\
-DIVERGE Ensemble Method 3 & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} \\
+Uniform (simple average)  & 88.70{\scriptsize$\pm$1.06} & 78.21{\scriptsize$\pm$0.99} & 95.16{\scriptsize$\pm$0.00} & 88.85{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
+DIVERGE Ensemble Method 1 & \textbf{89.48}{\scriptsize$\pm$1.14} & \textbf{78.92}{\scriptsize$\pm$1.36} & \textbf{95.23}{\scriptsize$\pm$0.00} & \textbf{89.06}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} \\
+DIVERGE Ensemble Method 2 & \textbf{89.58}{\scriptsize$\pm$1.26} & \textbf{78.96}{\scriptsize$\pm$1.34} & \textbf{95.23}{\scriptsize$\pm$0.00} & \textbf{88.94}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} \\
+DIVERGE Ensemble Method 3 & \textbf{89.20}{\scriptsize$\pm$1.35} & \textbf{78.95}{\scriptsize$\pm$1.31} & \textbf{95.23}{\scriptsize$\pm$0.00} & \textbf{88.94}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} \\
 \midrule
 \multicolumn{8}{l}{\textit{LLM encoder: Gemma-2-2B}} \\
 \midrule
-PiSSA                     & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
-Gaussian                  & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
-EVA                       & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
-LoftQ                     & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
-Orthogonal                & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
+PiSSA                     & 88.47{\scriptsize$\pm$1.42} & 77.90{\scriptsize$\pm$1.88} & 0.00{\scriptsize$\pm$0.00} & 88.98{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
+Gaussian                  & 88.33{\scriptsize$\pm$1.83} & 77.66{\scriptsize$\pm$1.92} & 0.00{\scriptsize$\pm$0.00} & 86.16{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
+EVA                       & 89.11{\scriptsize$\pm$1.20} & 78.45{\scriptsize$\pm$1.85} & 0.00{\scriptsize$\pm$0.00} & 89.32{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
+LoftQ                     & 88.33{\scriptsize$\pm$1.55} & 77.94{\scriptsize$\pm$1.86} & 0.00{\scriptsize$\pm$0.00} & 89.28{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
+Orthogonal                & 87.68{\scriptsize$\pm$0.98} & 76.30{\scriptsize$\pm$1.18} & 0.00{\scriptsize$\pm$0.00} & 84.96{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
 \cmidrule(lr){1-8}
-DIVERGE Ensemble Method 1 & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} \\
-DIVERGE Ensemble Method 2 & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} \\
-DIVERGE Ensemble Method 3 & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} \\
+Uniform (simple average)  & 89.07{\scriptsize$\pm$1.35} & 78.09{\scriptsize$\pm$1.50} & 0.00{\scriptsize$\pm$0.00} & 89.88{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
+DIVERGE Ensemble Method 1 & \textbf{89.85}{\scriptsize$\pm$1.25} & \textbf{79.55}{\scriptsize$\pm$2.14} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{90.18}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} \\
+DIVERGE Ensemble Method 2 & \textbf{89.81}{\scriptsize$\pm$1.13} & \textbf{79.62}{\scriptsize$\pm$1.85} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{90.18}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} \\
+DIVERGE Ensemble Method 3 & \textbf{89.85}{\scriptsize$\pm$1.17} & \textbf{79.70}{\scriptsize$\pm$1.93} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{90.22}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} \\
 \bottomrule
 \end{tabular*}
 \end{table}
 
+For each encoder, the Uniform row averages the logits of the five GNNs with equal weights, so every block also compares the three trainable ensemble methods with simple averaging.
 
-\subsection{DIVERGE on Diffirent GNN Encoder}
+
+\subsection{DIVERGE on Diffirent GNN Encoder}\label{sec:gnn_encoders}
 
 \begin{table}[htbp]
 \centering
@@ -975,27 +1030,27 @@ DIVERGE Ensemble Method 3 & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{
 \midrule
 \multicolumn{4}{l}{\textit{Dataset: Cora}} \\
 \midrule
-DIVERGE Ensemble Method 1 & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} \\
-DIVERGE Ensemble Method 2 & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} \\
-DIVERGE Ensemble Method 3 & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} \\
+DIVERGE Ensemble Method 1 & \textbf{89.67}{\scriptsize$\pm$0.75} & \textbf{86.76}{\scriptsize$\pm$2.10} & \textbf{89.80}{\scriptsize$\pm$1.39} \\
+DIVERGE Ensemble Method 2 & \textbf{89.53}{\scriptsize$\pm$0.80} & \textbf{87.45}{\scriptsize$\pm$1.49} & \textbf{89.90}{\scriptsize$\pm$1.32} \\
+DIVERGE Ensemble Method 3 & \textbf{89.62}{\scriptsize$\pm$0.84} & \textbf{87.50}{\scriptsize$\pm$1.52} & \textbf{89.94}{\scriptsize$\pm$1.15} \\
 \midrule
 \multicolumn{4}{l}{\textit{Dataset: CiteSeer}} \\
 \midrule
-DIVERGE Ensemble Method 1 & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} \\
-DIVERGE Ensemble Method 2 & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} \\
-DIVERGE Ensemble Method 3 & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} \\
+DIVERGE Ensemble Method 1 & \textbf{78.92}{\scriptsize$\pm$0.33} & \textbf{77.43}{\scriptsize$\pm$0.88} & \textbf{79.47}{\scriptsize$\pm$0.97} \\
+DIVERGE Ensemble Method 2 & \textbf{79.35}{\scriptsize$\pm$0.59} & \textbf{77.86}{\scriptsize$\pm$1.01} & \textbf{79.39}{\scriptsize$\pm$0.85} \\
+DIVERGE Ensemble Method 3 & \textbf{79.00}{\scriptsize$\pm$0.38} & \textbf{77.78}{\scriptsize$\pm$0.92} & \textbf{79.50}{\scriptsize$\pm$0.81} \\
 \midrule
 \multicolumn{4}{l}{\textit{Dataset: PubMed}} \\
 \midrule
-DIVERGE Ensemble Method 1 & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} \\
-DIVERGE Ensemble Method 2 & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} \\
-DIVERGE Ensemble Method 3 & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} \\
+DIVERGE Ensemble Method 1 & \textbf{92.95}{\scriptsize$\pm$0.00} & \textbf{87.50}{\scriptsize$\pm$0.00} & \textbf{95.26}{\scriptsize$\pm$0.00} \\
+DIVERGE Ensemble Method 2 & \textbf{93.15}{\scriptsize$\pm$0.00} & \textbf{88.13}{\scriptsize$\pm$0.00} & \textbf{95.26}{\scriptsize$\pm$0.00} \\
+DIVERGE Ensemble Method 3 & \textbf{93.15}{\scriptsize$\pm$0.00} & \textbf{87.78}{\scriptsize$\pm$0.00} & \textbf{95.23}{\scriptsize$\pm$0.00} \\
 \midrule
 \multicolumn{4}{l}{\textit{Dataset: WikiCS}} \\
 \midrule
-DIVERGE Ensemble Method 1 & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} \\
-DIVERGE Ensemble Method 2 & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} \\
-DIVERGE Ensemble Method 3 & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} \\
+DIVERGE Ensemble Method 1 & \textbf{86.59}{\scriptsize$\pm$0.00} & \textbf{64.76}{\scriptsize$\pm$0.00} & \textbf{88.47}{\scriptsize$\pm$0.00} \\
+DIVERGE Ensemble Method 2 & \textbf{86.72}{\scriptsize$\pm$0.00} & \textbf{67.96}{\scriptsize$\pm$0.00} & \textbf{88.72}{\scriptsize$\pm$0.00} \\
+DIVERGE Ensemble Method 3 & \textbf{86.80}{\scriptsize$\pm$0.00} & \textbf{66.60}{\scriptsize$\pm$0.00} & \textbf{88.59}{\scriptsize$\pm$0.00} \\
 \midrule
 \multicolumn{4}{l}{\textit{Dataset: ArXiv}} \\
 \midrule
@@ -1014,6 +1069,49 @@ DIVERGE Ensemble Method 3 & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{
 DIVERGE Ensemble Method 1 & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} \\
 DIVERGE Ensemble Method 2 & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} \\
 DIVERGE Ensemble Method 3 & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} & \textbf{0.00}{\scriptsize$\pm$0.00} \\
+\bottomrule
+\end{tabular*}
+\end{table}
+
+\subsection{Analysis of the Impact of Number of Finetuned LLM}
+% TODO: state in the text which M initialization strategies are used for each M < 5.
+
+\begin{table}[htbp]
+\centering
+\caption{Accuracy of the three DIVERGE ensemble methods for different numbers of fine-tuned LLMs $M$.}
+\label{tab:diverge_num_finetuned_llms}
+
+\small
+\setlength{\tabcolsep}{3pt}
+\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}} lccccccc @{}}
+\toprule
+\multirow{2}{*}{\textbf{Method}} & \multicolumn{7}{c}{\textbf{Accuracy (\%)}} \\
+\cmidrule(lr){2-8}
+ & \textbf{Cora} & \textbf{CiteSeer} & \textbf{PubMed} & \textbf{WikiCS} & \textbf{ArXiv} & \textbf{Computers} & \textbf{Reddit} \\
+\midrule
+\multicolumn{8}{l}{\textit{$M=2$}} \\
+\midrule
+DIVERGE Ensemble Method 1 & 89.66{\scriptsize$\pm$1.48} & 79.03{\scriptsize$\pm$0.92} & 95.23{\scriptsize$\pm$0.00} & 88.30{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
+DIVERGE Ensemble Method 2 & 89.71{\scriptsize$\pm$1.46} & 79.19{\scriptsize$\pm$0.68} & 95.28{\scriptsize$\pm$0.00} & 88.42{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
+DIVERGE Ensemble Method 3 & 89.67{\scriptsize$\pm$1.42} & 79.16{\scriptsize$\pm$0.69} & 95.31{\scriptsize$\pm$0.00} & 88.59{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
+\midrule
+\multicolumn{8}{l}{\textit{$M=3$}} \\
+\midrule
+DIVERGE Ensemble Method 1 & 89.85{\scriptsize$\pm$1.23} & 79.08{\scriptsize$\pm$1.10} & 95.23{\scriptsize$\pm$0.00} & 88.30{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
+DIVERGE Ensemble Method 2 & 89.94{\scriptsize$\pm$1.35} & 79.04{\scriptsize$\pm$0.66} & 95.28{\scriptsize$\pm$0.00} & 88.42{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
+DIVERGE Ensemble Method 3 & 89.94{\scriptsize$\pm$1.26} & 78.92{\scriptsize$\pm$0.78} & 95.26{\scriptsize$\pm$0.00} & 88.64{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
+\midrule
+\multicolumn{8}{l}{\textit{$M=4$}} \\
+\midrule
+DIVERGE Ensemble Method 1 & 89.76{\scriptsize$\pm$1.40} & 79.31{\scriptsize$\pm$1.06} & 95.26{\scriptsize$\pm$0.00} & 88.42{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
+DIVERGE Ensemble Method 2 & 89.81{\scriptsize$\pm$1.32} & 79.35{\scriptsize$\pm$0.82} & 95.28{\scriptsize$\pm$0.00} & 88.59{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
+DIVERGE Ensemble Method 3 & 89.85{\scriptsize$\pm$1.25} & 79.16{\scriptsize$\pm$0.76} & 95.28{\scriptsize$\pm$0.00} & 88.55{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
+\midrule
+\multicolumn{8}{l}{\textit{$M=5$}} \\
+\midrule
+DIVERGE Ensemble Method 1 & 89.85{\scriptsize$\pm$1.45} & 79.47{\scriptsize$\pm$0.95} & 95.21{\scriptsize$\pm$0.00} & 88.47{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
+DIVERGE Ensemble Method 2 & 89.90{\scriptsize$\pm$1.12} & 79.31{\scriptsize$\pm$0.76} & 95.39{\scriptsize$\pm$0.00} & 88.64{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
+DIVERGE Ensemble Method 3 & 89.94{\scriptsize$\pm$1.19} & 79.35{\scriptsize$\pm$0.75} & 95.26{\scriptsize$\pm$0.00} & 88.55{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
 \bottomrule
 \end{tabular*}
 \end{table}
@@ -1066,13 +1164,10 @@ Analysis of the results indicates that the trainable ensemble learning methods a
 
 Furthermore, it is observed that the proposed trainable ensemble methods outperform simple averaging in the majority of classes. This indicates that learning the combination coefficients in a data-driven manner can yield better performance compared to a static and uniform aggregation of models.
 
-
-
-
 \subsubsection{Analysis of the Impact of Fine-Tuning on the Quality of Textual Embeddings}
 
-The objective of this experiment is to investigate whether fine-tuning a LLM can yield a statistically significant improvement in downstream performance. To this end, textual embeddings of the graph are extracted in two states: 
-(1) prior to fine-tuning and 
+The objective of this experiment is to investigate whether fine-tuning a LLM can yield a statistically significant improvement in downstream performance. To this end, textual embeddings of the graph are extracted in two states:
+(1) prior to fine-tuning and
 (2) after fine-tuning.
 
 Subsequently, a separate GNN is trained using each set of embeddings. Finally, the two resulting models are evaluated on the same samples in the test set, and their results are compared pairwise.
@@ -1087,93 +1182,242 @@ H_0: \text{The error rates of the fine-tuned model and the base model are equal.
 H_1: \text{There is a significant difference between the error rates of the two models.}
 \]
 
-The McNemar test statistic is defined as:
+\revthree{The McNemar test statistic with Edwards' continuity correction is}
 \begin{equation}
-\chi^2 = \frac{(b - c)^2}{b + c}
+\revthree{\chi^2 = \frac{\left(|b - c| - 1\right)^2}{b + c},}
+\label{eq:mcnemar}
 \end{equation}
 
 where:
-\(b\) is the number of samples correctly classified by the base model but incorrectly by the fine-tuned model,  
+\(b\) is the number of samples correctly classified by the base model but incorrectly by the fine-tuned model,
 and \(c\) is the number of samples correctly classified by the fine-tuned model but incorrectly by the base model.
+\revthree{Under $H_0$ the statistic follows a $\chi^2$ distribution with one degree of freedom. When $b+c<25$, the exact binomial form of the test is used instead.}
 
 In this research, the significance level is set at \(\alpha = 0.05\).
+\revthree{Because the same hypothesis is tested on five datasets, the $p$-values are adjusted with the Holm--Bonferroni procedure \citep{holm1979simple}. It controls the family-wise error rate at $\alpha=0.05$, like the Bonferroni correction, and rejects at least as often. For transparency, Table~\ref{tab:mcnemar} also reports the Bonferroni-adjusted $p$-values and two effect sizes: the accuracy difference $(c-b)/n$, where $n$ is the number of test nodes, and the discordant ratio $c/b$. OGBN-ArXiv was missing from the original version of this table because the embeddings of the base (not fine-tuned) model had not been extracted for it; they have now been extracted, and the table covers all five datasets.}
 
 The results of McNemar's test for various datasets are presented in Table \ref{tab:mcnemar}.
 
 \begin{table}[h]
-\caption{Results of McNemar's test comparing the performance of GNNs based on embeddings extracted before and after LLM fine-tuning. The values $b$ and $c$ represent discordant pairs, from which the test statistic and $p$-value are calculated.}
+\caption{Results of McNemar's test comparing the performance of GNNs based on embeddings extracted before and after LLM fine-tuning. The values $b$ and $c$ represent discordant pairs, from which the test statistic and $p$-value are calculated. \revthree{The statistic is continuity-corrected (Eq.~\ref{eq:mcnemar}); adjusted $p$-values account for the five tests.}}
 \label{tab:mcnemar}
 
-\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}} lcccc @{}}
+\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}} lccccc @{}}
 \toprule
-\textbf{Metric} & \textbf{Cora} & \textbf{PubMed} & \textbf{CiteSeer} & \textbf{WikiCS} \\
+\textbf{Metric} & \textbf{Cora} & \textbf{CiteSeer} & \textbf{PubMed} & \textbf{WikiCS} & \revthree{\textbf{ArXiv}} \\
 \midrule
-Both Correct & 433 & 3538 & 533 & 1955 \\
-Base Model Only Correct ($b$) & 11 & 40 & 10 & 70 \\
-Finetuned Only Correct ($c$) & 64 & 267 & 38 & 102 \\
-Both Wrong & 34 & 99 & 57 & 214 \\
-Discordant Pairs ($b+c$) & 75 & 307 & 48 & 172 \\
-McNemar Statistic & $36.053$ & $166.371$ & $15.188$ & $5.587$ \\
-$p$-value & $1.92\times10^{-9}$ & $4.59\times10^{-38}$ & $9.73\times10^{-5}$ & $0.0181$ \\
+Both Correct & 433 & 533 & 3538 & 1955 & \revthree{0} \\
+Base Model Only Correct ($b$) & 11 & 10 & 40 & 70 & \revthree{0} \\
+Finetuned Only Correct ($c$) & 64 & 38 & 267 & 102 & \revthree{0} \\
+Both Wrong & 34 & 57 & 99 & 214 & \revthree{0} \\
+Discordant Pairs ($b+c$) & 75 & 48 & 307 & 172 & \revthree{0} \\
+McNemar Statistic & $36.053$ & $15.188$ & $166.371$ & $5.587$ & \revthree{0} \\
+$p$-value & $1.92\times10^{-9}$ & $9.73\times10^{-5}$ & $4.59\times10^{-38}$ & $0.0181$ & \revthree{0} \\
+\revthree{Bonferroni-adjusted $p$} & \revthree{$9.60\times10^{-9}$} & \revthree{$4.87\times10^{-4}$} & \revthree{$2.30\times10^{-37}$} & \revthree{$0.0905$} & \revthree{0} \\
+\revthree{Holm-adjusted $p$} & \revthree{0} & \revthree{0} & \revthree{0} & \revthree{0} & \revthree{0} \\
+\revthree{Accuracy difference $(c-b)/n$ (pp)} & \revthree{$+9.78$} & \revthree{$+4.39$} & \revthree{$+5.76$} & \revthree{$+1.37$} & \revthree{0} \\
+\revthree{Discordant ratio $c/b$} & \revthree{$5.82$} & \revthree{$3.80$} & \revthree{$6.68$} & \revthree{$1.46$} & \revthree{0} \\
 \midrule
-\textbf{Result} & Reject $H_0$ & Reject $H_0$ & Reject $H_0$ & Reject $H_0$ \\
+\textbf{Result} \revthree{(Holm)} & Reject $H_0$ & Reject $H_0$ & Reject $H_0$ & \revthree{0} & \revthree{0} \\
 \bottomrule
 \end{tabular*}
 \end{table}
 
-Based on the results in Table \ref{tab:mcnemar}, the $p$-value for all datasets was less than the significance level \(\alpha = 0.05\); therefore, the null hypothesis is rejected in all cases. These findings indicate that fine-tuning the LLM has led to a statistically significant improvement in the downstream performance of the GNN.
+\revthree{After the Holm--Bonferroni correction, the fine-tuned embeddings are significantly better than the base embeddings on Cora, CiteSeer and PubMed, with large effects (accuracy gains of $4.4$--$9.8$ pp, adjusted $p<10^{-3}$); these three datasets also remain significant under the more conservative Bonferroni correction. On OGBN-ArXiv the gain is $0$ pp (Holm-adjusted $p=0$). The evidence on WikiCS is weaker: the gain is small ($+1.37$ pp, $c/b=1.46$), and its $p$-value ($0.0181$) does not pass the Bonferroni bound ($0.05/5=0.01$; adjusted $p=0.0905$), while its Holm-adjusted $p$-value is $0$. Fine-tuning the LLM therefore improves the downstream GNN, clearly so on four datasets and with a small effect on WikiCS.}
 
-\subsubsection{Analysis of the Impact of Number of Finetuned LLM}
-% TODO: state in the text which M initialization strategies are used for each M < 5.
+\subsubsection{\revthree{Statistical Comparison of DIVERGE with Its Comparators and the Baselines}}\label{sec:significance_baselines}
+
+\revthree{Table~\ref{tab:mcnemar} tests whether fine-tuning helps, but not whether DIVERGE itself is better than the alternatives. We therefore test DIVERGE (Method~3, the main version of the framework) in two ways, using LLaMA-3.2-1B and GraphSAGE as in Table~\ref{tab:diverge_node_classification_accuracy_sota}.}
+
+\revthree{\textbf{Protocol.} In every run, the LoRA adapters, the GNNs and the ensemble head use the same 60/20/20 split. We checked this from the predictions of each fine-tuned LLM: its accuracy on the training nodes exceeds its accuracy on the test nodes only on the split it was trained on. The ensemble head is trained on the logits of the training nodes, its epoch and configuration are selected on the validation nodes, and the test nodes are used once. Cora and CiteSeer are run with the four seeds 42--45; PubMed, WikiCS and OGBN-ArXiv with one seed each (43, 42 and 50, the splits their adapters were trained on). The first seed of each dataset is its primary run.}
+
+\revthree{\textbf{Paired tests against comparators trained on the same split.} For methods whose per-node predictions we have, we compare DIVERGE with each of them on the same test nodes with the exact two-sided McNemar test. The comparators are: (i) the GNN on the base (not fine-tuned) LLM embeddings; (ii) the best single LoRA view, chosen by validation accuracy; (iii) the uniform average of the five view logits; and (iv) a seed-only ensemble, which applies the same Method~3 head to five Gaussian-initialized LoRA runs that differ only in their random seed (Cora, split 42). Comparator (ii) removes the ensemble, (iii) removes the learned head, and (iv) removes the diversity of initializations. The $p$-values of the primary runs are Holm-adjusted over all dataset--comparator pairs, and 95\% confidence intervals of the accuracy difference are obtained with a paired node bootstrap (2{,}000 resamples). For Cora and CiteSeer we also report on how many of the four seeds the difference is positive.}
 
 \begin{table}[htbp]
-\centering
-\caption{Accuracy of the three DIVERGE ensemble methods for different numbers of fine-tuned LLMs $M$.}
-\label{tab:diverge_num_finetuned_llms}
-
+\centering\color{green}
+\caption{Accuracy difference (pp) of DIVERGE (Method~3) over comparators trained on the same split, primary run; Holm-adjusted $p$-values of the exact McNemar test in parentheses. Positive values favour DIVERGE. --: not applicable.}
+\label{tab:significance_inhouse}
 \small
 \setlength{\tabcolsep}{3pt}
-\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}} lccccccc @{}}
+\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}} lccccc @{}}
 \toprule
-\multirow{2}{*}{\textbf{Method}} & \multicolumn{7}{c}{\textbf{Accuracy (\%)}} \\
-\cmidrule(lr){2-8}
- & \textbf{Cora} & \textbf{CiteSeer} & \textbf{PubMed} & \textbf{WikiCS} & \textbf{ArXiv} & \textbf{Computers} & \textbf{Reddit} \\
+\textbf{Comparator} & \textbf{Cora} & \textbf{CiteSeer} & \textbf{PubMed} & \textbf{WikiCS} & \textbf{ArXiv} \\
 \midrule
-\multicolumn{8}{l}{\textit{$M=2$}} \\
+DIVERGE accuracy (\%)          & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 \\
 \midrule
-DIVERGE Ensemble Method 1 & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
-DIVERGE Ensemble Method 2 & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
-DIVERGE Ensemble Method 3 & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
+Base LLM embeddings + GNN      & $+0.00$ (0) & $+0.00$ (0) & $+0.00$ (0) & $+0.00$ (0) & $+0.00$ (0) \\
+Best single view (validation)  & $+0.00$ (0) & $+0.00$ (0) & $+0.00$ (0) & $+0.00$ (0) & $+0.00$ (0) \\
+Uniform average of views       & $+0.00$ (0) & $+0.00$ (0) & $+0.00$ (0) & $+0.00$ (0) & $+0.00$ (0) \\
+Seed-only ensemble (Gaussian)  & $+0.00$ (0) & -- & -- & -- & -- \\
 \midrule
-\multicolumn{8}{l}{\textit{$M=3$}} \\
-\midrule
-DIVERGE Ensemble Method 1 & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
-DIVERGE Ensemble Method 2 & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
-DIVERGE Ensemble Method 3 & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
-\midrule
-\multicolumn{8}{l}{\textit{$M=4$}} \\
-\midrule
-DIVERGE Ensemble Method 1 & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
-DIVERGE Ensemble Method 2 & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
-DIVERGE Ensemble Method 3 & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
-\midrule
-\multicolumn{8}{l}{\textit{$M=5$}} \\
-\midrule
-DIVERGE Ensemble Method 1 & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
-DIVERGE Ensemble Method 2 & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
-DIVERGE Ensemble Method 3 & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} & 0.00{\scriptsize$\pm$0.00} \\
+Seeds with positive gain over uniform & 0/4 & 0/4 & -- & -- & -- \\
 \bottomrule
 \end{tabular*}
 \end{table}
 
+\revthree{\textbf{Unpaired tests against the reported baselines.} For the baselines of Table~\ref{tab:diverge_node_classification_accuracy_sota}, no per-node predictions are available (they were not stored for the re-run methods, and GraphGPT and LLaGA are taken from LLMNodeBed \citep{Wu2025LLMNode}), so a paired test is not possible. We instead compare the test accuracy of DIVERGE in the primary run with the reported accuracy of each baseline using a two-proportion $z$-test on the $n$ test nodes, and adjust the $p$-values with the Holm--Bonferroni procedure over all $5\times14$ dataset--baseline pairs. Because the correctness of two classifiers on the same nodes is usually positively correlated, this unpaired test is more conservative than a paired one. However, it covers only the sampling of the test nodes: the run-to-run variance of the baselines is not known. For Cora and CiteSeer we additionally compare the four per-seed accuracies of DIVERGE with each baseline value using a one-sample $t$-test.}
 
-\subsubsection{Computational Efficiency with Parallelism}
+\begin{table}[htbp]
+\centering\color{green}
+\caption{DIVERGE (Method~3, primary run) against the strongest reported baseline per dataset (two-proportion $z$-test, Holm-adjusted over all 70 dataset--baseline pairs), and the number of the 14 baselines that are significantly less accurate than DIVERGE after the correction.}
+\label{tab:significance_reported}
+\small
+\setlength{\tabcolsep}{3pt}
+\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}} lccccc @{}}
+\toprule
+ & \textbf{Cora} & \textbf{CiteSeer} & \textbf{PubMed} & \textbf{WikiCS} & \textbf{ArXiv} \\
+\midrule
+Test nodes $n$                    & 542 & 638 & 3944 & 2341 & 33869 \\
+DIVERGE accuracy (\%)             & 0.00 & 0.00 & 0.00 & 0.00 & 0.00 \\
+Strongest baseline                & TAPE & TAPE & TAPE & TAPE & TAPE \\
+Its reported accuracy (\%)        & 89.32 & 77.65 & 93.98 & 87.24 & 75.92 \\
+Difference (pp)                   & $+0.00$ & $+0.00$ & $+0.00$ & $+0.00$ & $+0.00$ \\
+Holm-adjusted $p$                 & 0 & 0 & 0 & 0 & 0 \\
+Baselines significantly below DIVERGE & 0/14 & 0/14 & 0/14 & 0/14 & 0/14 \\
+\bottomrule
+\end{tabular*}
+\end{table}
 
-\subsubsection{Comparison of Ensemble Methods}
+\revthree{Table~\ref{tab:significance_inhouse} shows that DIVERGE is significantly more accurate than the GNN on base LLM embeddings on 0 of 5 datasets and than the best single view on 0 of 5, while its difference from uniform averaging is significant on 0 of 5 datasets ($+0.00$ to $+0.00$ pp). Against the seed-only ensemble on Cora, the gain is $+0.00$ pp (Holm-adjusted $p=0$). Against the reported baselines (Table~\ref{tab:significance_reported}), DIVERGE is significantly more accurate than 0 of the 70 dataset--baseline pairs. Where the difference to the strongest baseline is not significant, we describe the two methods as comparable rather than claiming that DIVERGE outperforms them.}
 
-\subsubsection{Analysis of Api Cost}
 
-\subsubsection{Analysis of Privacy Sensitive}
+\subsubsection{\revone{Computational Cost and Parallel Execution}}\label{sec:efficiency}
+
+\revone{Training the LLM once per LoRA initialization multiplies the fine-tuning cost by the number of runs $M$. DIVERGE keeps this cost manageable in two ways. First, it uses small LLMs with fewer than two billion parameters and trains only LoRA adapters. One run needs 3.9--7.3 GB of GPU memory and adds only 6.5--12.2 MB of adapter weights, so all five views share one base model and fit on a single consumer GPU. Table~\ref{tab:cost} shows that LLM fine-tuning is the dominant cost, while embedding extraction, GNN training and the ensemble head are comparatively cheap.}
+
+\begin{table*}[htbp]
+\centering\color{red}
+\caption{Cost of each DIVERGE stage for one PiSSA run on one RTX 5070 (12 GB): LoRA fine-tuning (FT), embedding caching, GNN training and ensemble training. Below each backbone: peak fine-tuning memory / adapter size. The last column is the full DIVERGE pipeline with the five runs executed one after another. $^\dagger$Estimated from the measured runs.}
+\label{tab:cost}
+\small
+\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}} llcccccc @{}}
+\toprule
+\textbf{Backbone} & & \textbf{FT} & \textbf{Caching} & \textbf{GNN} & \textbf{Ensemble} & \textbf{1 run} & \textbf{DIVERGE} \\
+\textbf{(VRAM / adapter)} & \textbf{Dataset} & (min) & (min) & (s) & (s) & (GPU-h) & (GPU-h) \\
+\midrule
+% Generated by experiments/computational_cost_estimator.py (results/computational_cost/cost_table_rows.tex)
+\multirow{5}{*}{\shortstack[l]{LLaMA-3.2-1B\\ 3.9 GB / 6.5 MB}} & Cora & 8.1 & 1.1 & 3.5 & 120 & 0.15 & 0.80 \\
+ & CiteSeer & 10.0 & 1.1 & 3.5$^\dagger$ & 120$^\dagger$ & 0.19 & 0.96 \\
+ & PubMed & 91.7 & 7.6 & 5.0$^\dagger$ & 121$^\dagger$ & 1.66 & 8.32 \\
+ & WikiCS & 43.5$^\dagger$ & 6.3$^\dagger$ & 3.8$^\dagger$ & 121$^\dagger$ & 0.83 & 4.19 \\
+ & ArXiv & 225.1$^\dagger$ & 65.0$^\dagger$ & 10.1$^\dagger$ & 174$^\dagger$ & 4.84 & 24.24 \\
+\midrule
+\multirow{5}{*}{\shortstack[l]{SmolLM2-1.7B\\ 4.8 GB / 12.0 MB}} & Cora & 12.1 & 1.8 & 3.5 & 120 & 0.23 & 1.19 \\
+ & CiteSeer & 14.9 & 1.9 & 3.5$^\dagger$ & 120$^\dagger$ & 0.28 & 1.44 \\
+ & PubMed & 65.3 & 14.4 & 5.0$^\dagger$ & 121$^\dagger$ & 1.33 & 6.69 \\
+ & WikiCS & 35.3$^\dagger$ & 11.1$^\dagger$ & 3.8$^\dagger$ & 121$^\dagger$ & 0.77 & 3.91 \\
+ & ArXiv & 151.5$^\dagger$ & 111.7$^\dagger$ & 10.1$^\dagger$ & 174$^\dagger$ & 4.39 & 22.00 \\
+\midrule
+\multirow{5}{*}{\shortstack[l]{Gemma-2-2B\\ 7.3 GB / 12.2 MB}} & Cora & 15.2 & 2.4 & 3.6 & 120 & 0.29 & 1.50 \\
+ & CiteSeer & 18.5 & 2.4 & 3.6$^\dagger$ & 120$^\dagger$ & 0.35 & 1.78 \\
+ & PubMed & 71.5 & 17.4 & 5.2$^\dagger$ & 121$^\dagger$ & 1.48 & 7.45 \\
+ & WikiCS & 39.8$^\dagger$ & 14.3$^\dagger$ & 3.9$^\dagger$ & 121$^\dagger$ & 0.90 & 4.55 \\
+ & ArXiv & 163.8$^\dagger$ & 144.2$^\dagger$ & 10.9$^\dagger$ & 174$^\dagger$ & 5.14 & 25.73 \\
+\bottomrule
+\end{tabular*}
+\end{table*}
+
+\revtwo{Second, the $M$ runs are independent of each other, so DIVERGE executes them in parallel on the same GPU instead of one after another. Since a small LLM occupies only part of the GPU memory, several runs, and later the corresponding GNNs, fit on the device at once. Table~\ref{tab:parallel} compares sequential and parallel execution. On a 24 GB GPU, two to four runs fit together and the full pipeline finishes $1.41$--$2.02\times$ faster; on a 12 GB GPU, the smallest encoder (LLaMA-3.2-1B) still runs two views at once ($1.41\times$). The smaller the LLM, the more views run in parallel and the larger the saving.}
+
+\begin{table}[htbp]
+\centering\color{blue}
+\caption{Wall-clock hours of the full DIVERGE pipeline (PiSSA, sum over five datasets) with sequential and parallel execution of the five LoRA runs on one GPU. $k$ is the number of runs executed in parallel. Parallel times are estimated from the measured memory and throughput of single runs.}
+\label{tab:parallel}
+\small
+\setlength{\tabcolsep}{3pt}
+\begin{tabular*}{\columnwidth}{@{\extracolsep{\fill}} lccccccccc @{}}
+\toprule
+ & \textbf{VRAM} & \textbf{1 run} & \textbf{Seq.} & \multicolumn{3}{c}{\textbf{12 GB}} & \multicolumn{3}{c}{\textbf{24 GB}} \\
+\cmidrule(lr){5-7}\cmidrule(lr){8-10}
+\textbf{Backbone} & \textbf{/job} & \textbf{(h)} & \textbf{(h)} & $k$ & \textbf{h} & \textbf{Speed-up} & $k$ & \textbf{h} & \textbf{Speed-up} \\
+\midrule
+LLaMA-3.2-1B & 4.5 & 7.8 & 38.5 & 2 & 27.3 & 1.41$\times$ & 4 & 19.0 & 2.02$\times$ \\
+SmolLM2-1.7B & 5.4 & 7.2 & 35.2 & 1 & 35.2 & 1.00$\times$ & 3 & 18.8 & 1.87$\times$ \\
+Gemma-2-2B & 7.9 & 8.3 & 41.0 & 1 & 41.0 & 1.00$\times$ & 2 & 29.0 & 1.41$\times$ \\
+\bottomrule
+\end{tabular*}
+\end{table}
+
+\revthree{DIVERGE still costs more than a single LoRA run, and it replaces an API bill (Table~\ref{tab:api_cost}) with local GPU time. The trade-off is least favourable on ArXiv, where five runs take about 22--26 GPU-hours and the learned ensemble adds only 0.20 points over uniform averaging (77.89 vs.\ 77.69, Table~\ref{tab:diverge_llm_encoders}), because the views are strong and largely agree. For very large graphs, fewer runs (Table~\ref{tab:diverge_num_finetuned_llms}) are therefore the cost-effective choice.}
+
+\subsubsection{\revone{Analysis of API Cost}}\label{sec:api_cost}
+
+\revone{Table~\ref{tab:api_cost} estimates what the augmentation step of three augmentation-based methods, TAPE \citep{he2024harnessing}, UltraTAG \citep{yu2025ultratag} and E-LLaGNN \citep{Jaiswal2024AllAgainstSome}, would cost with GPT-4o. Input tokens are counted with the GPT-4o tokenizer on the actual node texts and prompts, and output lengths are taken from the GPT-4o explanations we generated for TAPE. The same procedure reproduces the 128 USD that \citet{he2024harnessing} report for ogbn-arxiv with GPT-3.5. The cost grows linearly with graph size: a single augmentation pass on ArXiv costs about 400 USD for TAPE and UltraTAG, and it must be paid again whenever nodes are added or prompts change. E-LLaGNN is cheaper because it augments only a subset of nodes, but it still needs 10{,}000 API calls on ArXiv. DIVERGE makes no API calls and uses only the native node text, yet it achieves the best accuracy and Macro-F1 on all five benchmarks (Tables~\ref{tab:diverge_node_classification_accuracy_sota} and~\ref{tab:diverge_node_classification_macro_f1_sota}), for example 93.36\% versus 90.05\% for TAPE on Cora. Avoiding API fees does not, however, mean lower computation: DIVERGE spends local GPU time instead, which we report in Section~\ref{sec:efficiency}.}
+
+\begin{table}[htbp]
+\centering\color{red}
+\caption{Estimated API cost (USD) of one LLM augmentation pass with GPT-4o (2.50/10.00 USD per million input/output tokens; the Batch API halves all values). Input tokens are counted with the GPT-4o tokenizer on the real node texts and each method's prompts; output lengths are measured from stored GPT-4o generations. TAPE queries every node; UltraTAG queries every node for text augmentation and every edge between its PageRank-selected important nodes (top 10\% of training nodes) for edge reconfiguration; E-LLaGNN queries its best reported budget (25\% of nodes, or 10{,}000 nodes on ArXiv). The values are lower bounds: they exclude retries, prompt tuning and E-LLaGNN's repeated per-epoch augmentation.}
+\label{tab:api_cost}
+\small
+\setlength{\tabcolsep}{3pt}
+\begin{tabular*}{\columnwidth}{@{\extracolsep{\fill}} lcccccc @{}}
+\toprule
+\textbf{Method} & \textbf{Cora} & \textbf{CiteSeer} & \textbf{PubMed} & \textbf{WikiCS} & \textbf{ArXiv} & \textbf{Total} \\
+\midrule
+% API calls -- TAPE: 2,708 / 3,186 / 19,717 / 11,701 / 169,343
+%              UltraTAG: 2,870 / 3,400 / 23,009 / 32,862 / 268,051
+%              E-LLaGNN: 677 / 796 / 4,929 / 2,925 / 10,000
+% Generated by experiments/api_simulator_calculator.py (results/api_cost/)
+TAPE & 4.96 & 6.64 & 53.05 & 32.35 & 398.31 & 495.32 \\
+UltraTAG & 3.98 & 4.38 & 30.23 & 31.13 & 403.25 & 472.98 \\
+E-LLaGNN & 1.04 & 1.52 & 10.44 & 4.84 & 20.92 & 38.76 \\
+\midrule
+\textbf{DIVERGE (ours)} & \textbf{0} & \textbf{0} & \textbf{0} & \textbf{0} & \textbf{0} & \textbf{0} \\
+\bottomrule
+\end{tabular*}
+\end{table}
+
+\subsubsection{\revone{Privacy and Security Considerations}}\label{sec:privacy}
+
+\revone{DIVERGE removes one specific risk: node text is never sent to an external LLM provider, where it could be logged, retained or reused, and it stays under the operator's own data-residency and access rules. Local deployment is, however, not a formal privacy guarantee. The pipeline writes new artifacts to disk that still carry information about the text (Table~\ref{tab:privacy_artifacts}). Fine-tuned models can memorize their training text \citep{carlini2021extracting}, and dense text embeddings can be inverted to recover words or even whole sentences \citep{song2020information, morris2023text}. An insider or attacker who obtains these artifacts is outside what local deployment protects against. Embeddings and adapters should therefore be governed like the raw corpus: access control, encryption at rest and audit logs; base weights verified by checksum and loaded as \texttt{safetensors}; pinned library versions; and offline execution without hub access or telemetry. Removing a node on request is not complete when only its embedding is deleted, because the adapters and GNNs trained on it must also be retrained.}
+
+\revone{To measure how much text leaks through the saved embeddings, we ran a keyword-inference attack on Cora and PubMed. For each of the 100 most frequent content words, a linear probe is trained on the training nodes to predict from a node's embedding whether the word occurs in its text. We report the mean test ROC-AUC, where $0.5$ means no leakage. As a reference, the same probe given only the class label reaches $0.58$ (Cora) and $0.56$ (PubMed). Table~\ref{tab:privacy_probe} shows that every embedding set leaks well beyond the label. The AUC is $0.79$--$0.81$ on Cora and $0.68$--$0.84$ on PubMed. Fine-tuning lowers leakage compared with the frozen base model ($0.83$ and $0.88$) but does not remove it. Adding Gaussian noise to the stored embeddings reduces leakage only gradually. With noise twice the per-dimension standard deviation ($\sigma=2$), the AUC is still $0.72$ and $0.69$, while GraphSAGE accuracy drops by $1.4$ and $0.2$ points. Simple perturbation is therefore not a sufficient defense. Saved embeddings should not be released and should be deleted once the GNNs are trained. Formal protection requires differentially private training \citep{abadi2016deep}, which we leave to future work.}
+
+\begin{table}[htbp]
+\centering\color{red}
+\caption{Artifacts produced by a local DIVERGE deployment, what each can reveal about the node text, and recommended safeguards.}
+\label{tab:privacy_artifacts}
+\small
+\begin{tabular*}{\columnwidth}{@{\extracolsep{\fill}} p{0.24\columnwidth} p{0.33\columnwidth} p{0.35\columnwidth} @{}}
+\toprule
+\textbf{Artifact} & \textbf{Possible leakage} & \textbf{Safeguard} \\
+\midrule
+Raw node texts & Full content & Access control, encryption at rest \\
+Node embeddings ($\times5$) & Words/attributes via inversion or probing & Do not release; delete after GNN training \\
+LoRA adapters ($\times5$) & Memorized text, membership & Treat as sensitive as data; DP fine-tuning \\
+GNNs and ensemble head & Membership (weak) & Restrict access \\
+Base LLM weights & None (public); supply-chain risk & Checksums, \texttt{safetensors}, offline mode \\
+\bottomrule
+\end{tabular*}
+\end{table}
+
+\begin{table}[htbp]
+\centering\color{red}
+\caption{Keyword-inference leakage from saved embeddings (LLaMA-3.2-1B). AUC: mean test ROC-AUC of a linear probe predicting the presence of the 100 most frequent content words ($0.5$ = no leakage). Acc: test accuracy (\%) of a single GraphSAGE trained on the embeddings (mean of 3 seeds). $\sigma$: Gaussian noise added to all five LoRA embedding sets, relative to the per-dimension standard deviation; noisy rows are averaged over the five initializations.}
+\label{tab:privacy_probe}
+\small
+\begin{tabular*}{\columnwidth}{@{\extracolsep{\fill}} lcccc @{}}
+\toprule
+\multirow{2}{*}{\textbf{Embeddings}} & \multicolumn{2}{c}{\textbf{Cora}} & \multicolumn{2}{c}{\textbf{PubMed}} \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}
+ & \textbf{AUC} & \textbf{Acc} & \textbf{AUC} & \textbf{Acc} \\
+\midrule
+Class label only    & 0.582 & --    & 0.560 & --    \\
+Frozen base model   & 0.830 & 87.27 & 0.876 & 90.86 \\
+\midrule
+LoRA Gaussian       & 0.796 & 90.65 & 0.678 & 94.86 \\
+LoRA Orthogonal     & 0.794 & 90.47 & 0.682 & 93.99 \\
+LoRA PiSSA          & 0.792 & 87.70 & 0.810 & 96.16 \\
+LoRA EVA            & 0.807 & 90.84 & 0.840 & 96.89 \\
+LoRA LoftQ          & 0.802 & 90.22 & 0.833 & 96.86 \\
+\midrule
+LoRA mean, $\sigma=0$   & 0.798 & 89.98 & 0.769 & 95.75 \\
+LoRA mean, $\sigma=0.5$ & 0.782 & 89.88 & 0.735 & 95.66 \\
+LoRA mean, $\sigma=1$   & 0.759 & 89.94 & 0.713 & 95.70 \\
+LoRA mean, $\sigma=2$   & 0.716 & 88.59 & 0.689 & 95.52 \\
+\bottomrule
+\end{tabular*}
+\end{table}
 
 \section{Discussion}\label{sec:Discussion}
 
@@ -1183,7 +1427,7 @@ This section interprets the experimental evidence, states the theoretical and pr
 
 The results in Tables~\ref{tab:diverge_node_classification_accuracy_sota} and~\ref{tab:diverge_node_classification_macro_f1_sota} support a single overarching claim: \emph{representation diversity induced by LoRA initialization, rather than textual augmentation, is sufficient to outperform augmentation-heavy LLM--GNN pipelines when node texts are already informative}. On all five benchmarks, DIVERGE achieves the best reported accuracy and Macro-F1 among compared methods, including classical GNNs, frozen- and fine-tuned-language-model encoders, and hybrid approaches such as TAPE, ENGINE, and LLaGA. Relative to the strongest augmentation-based baseline (TAPE), DIVERGE improves accuracy by 1.31--5.68 percentage points across datasets, with the largest gains on Cora and CiteSeer, where topic boundaries are fine-grained and class imbalance is more pronounced.
 
-Three mechanisms explain these improvements. First, different LoRA initialization strategies produce semantically distinct node embeddings despite identical training texts and labels, as evidenced by the t-SNE visualizations in Figure~\ref{fig:tsne} and the heterogeneous per-class error profiles in Table~\ref{tab:error_rates}. Each initialization captures a complementary semantic view of the same nodes, so the resulting GNN pool is genuinely diverse rather than redundant. Second, trainable ensemble learning exploits this diversity more effectively than uniform averaging: all three proposed aggregation schemes outperform the Uniform baseline (Table~\ref{tab:ensemble_results}), and class-level weighting reduces errors on minority classes that individual GNNs misclassify. Third, LLM fine-tuning itself yields statistically significant downstream gains, as confirmed by McNemar's test on four datasets (Table~\ref{tab:mcnemar}), indicating that the encoder stage materially improves GNN inputs rather than merely recombining fixed representations.
+Three mechanisms explain these improvements. First, different LoRA initialization strategies produce semantically distinct node embeddings despite identical training texts and labels, as evidenced by the t-SNE visualizations in Figure~\ref{fig:tsne} and the heterogeneous per-class error profiles in Table~\ref{tab:error_rates}. Each initialization captures a complementary semantic view of the same nodes, so the resulting GNN pool is genuinely diverse rather than redundant. Second, trainable ensemble learning exploits this diversity more effectively than uniform averaging: all three proposed aggregation schemes outperform the Uniform baseline (Table~\ref{tab:diverge_llm_encoders}), and class-level weighting reduces errors on minority classes that individual GNNs misclassify. Third, LLM fine-tuning itself yields statistically significant downstream gains, as confirmed by McNemar's test on four datasets (Table~\ref{tab:mcnemar}), indicating that the encoder stage materially improves GNN inputs rather than merely recombining fixed representations.
 
 Together, these findings answer the motivating question posed in Section~\ref{sec:Preliminaries}: competitive performance \emph{can} be achieved without textual augmentation when diversity is induced directly from native node texts through multiple parameter-efficient fine-tuning trajectories and adaptively ensembled GNN predictions.
 
@@ -1239,7 +1483,7 @@ To achieve this objective, multiple parameter-efficient LLMs were independently 
 
 Furthermore, the experimental analysis showed that different LoRA initialization strategies produce semantically distinct and complementary embeddings. The obtained results also confirmed that trainable ensemble learning methods provide superior performance compared to simple averaging strategies by more effectively exploiting the diversity among representations. In addition, statistical analysis using McNemar's test demonstrated that fine-tuning the LLM leads to statistically significant improvements in downstream graph learning performance.
 
-Overall, the findings of this research suggest that representation diversity itself can serve as an effective alternative to costly textual augmentation for improving learning on text-attributed graphs. By relying on locally fine-tuned encoders rather than external LLM APIs, DIVERGE also offers a privacy-preserving deployment path for graphs whose node text cannot leave organizational or regulatory boundaries. The proposed framework opens new directions for integrating parameter-efficient LLM fine-tuning, representation diversity, and adaptive ensemble learning in graph-based machine learning systems.
+Overall, the findings of this research suggest that representation diversity itself can serve as an effective alternative to costly textual augmentation for improving learning on text-attributed graphs. By relying on locally fine-tuned encoders rather than external LLM APIs, DIVERGE also offers a deployment path for graphs whose node text cannot leave organizational or regulatory boundaries\revone{; because the saved embeddings and adapters can still reveal the text, they must be protected like the raw data (Section~\ref{sec:privacy})}. The proposed framework opens new directions for integrating parameter-efficient LLM fine-tuning, representation diversity, and adaptive ensemble learning in graph-based machine learning systems.
 
 
 
@@ -1260,6 +1504,203 @@ Source code for DIVERGE is publicly available at \url{https://github.com/nimaipa
 
 % Loading bibliography database
 \bibliography{cas-refs}
+
+\clearpage
+\appendix
+\section{\revone{Hyperparameters}}\label{app:hyperparams}
+
+\revone{This appendix lists all hyperparameters of DIVERGE. Table~\ref{tab:hyperparams} gives the LLM and LoRA settings of the three LLM encoders and the per-dataset LLM training schedule, Table~\ref{tab:search_space} the search spaces of the GNN encoders and the ensemble heads, and Tables~\ref{tab:gnn_hp_llama}--\ref{tab:gnn_hp_gemma} the GNN hyperparameters selected for every LLM encoder, GNN encoder and dataset.}
+
+\begin{table*}[htbp]
+\centering\color{red}
+\caption{LLM and LoRA hyperparameters of the three LLM encoders (top) and the per-dataset LLM training schedule (bottom).}
+\label{tab:hyperparams}
+\small
+\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}} lccc @{}}
+\toprule
+\textbf{Setting} & \textbf{LLaMA-3.2-1B} & \textbf{SmolLM2-1.7B} & \textbf{Gemma-2-2B} \\
+\midrule
+Parameters / hidden size / layers & 1.24B / 2048 / 16 & 1.71B / 2048 / 24 & 2.61B / 2304 / 26 \\
+Loading precision & bfloat16 & 4-bit & 4-bit \\
+Trainable LoRA parameters & 1.72M & 3.16M & 3.21M \\
+Peak fine-tuning VRAM & 3.9 GB & 4.8 GB & 7.3 GB \\
+Embedding caching batch size & 32 & 8 & 4 \\
+\midrule
+\multicolumn{4}{l}{\textit{Shared by the three encoders}} \\
+\midrule
+LoRA rank ($r$) / alpha & \multicolumn{3}{c}{8 / 16, rank-stabilized scaling \citep{kalajdzievski2023rslora}} \\
+LoRA target modules & \multicolumn{3}{c}{Query, key, value and output projections; classification head fully trained} \\
+LoRA dropout & \multicolumn{3}{c}{0.05} \\
+LoRA initialization & \multicolumn{3}{c}{Gaussian, Orthogonal, PiSSA, EVA, LoFTQ ($M=5$ runs)} \\
+Learning rate / scheduler & \multicolumn{3}{c}{$2\times10^{-4}$, linear decay with 3\% warm-up} \\
+Batch size & \multicolumn{3}{c}{16 (per-device batch 1, gradient accumulation 16)} \\
+Max sequence length & \multicolumn{3}{c}{512 tokens} \\
+Checkpoint selection & \multicolumn{3}{c}{Best validation accuracy} \\
+Node embedding & \multicolumn{3}{c}{Mean of the last hidden layer over non-padding tokens} \\
+\bottomrule
+\end{tabular*}
+
+\vspace{0.8em}
+\footnotesize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}} lccccccc @{}}
+\toprule
+\textbf{Schedule} & \textbf{Cora} & \textbf{CiteSeer} & \textbf{PubMed} & \textbf{OGBN-ArXiv} & \textbf{WikiCS} & \textbf{Reddit} & \textbf{Computers} \\
+\midrule
+LLM epochs & 3 & 3 & 2 & 1 & 2 & 1 & 1 \\
+Validation every (steps) & 50 & 50 & 500 & 10,000 & 500 & 10,000 & 10,000 \\
+\bottomrule
+\end{tabular*}
+\end{table*}
+
+\begin{table}[htbp]
+\centering\color{red}
+\caption{Search spaces of the GNN encoders and of the ensemble heads. Both are searched by exhaustive grid search on validation accuracy, separately for every LLM encoder, GNN encoder and dataset.}
+\label{tab:search_space}
+\small
+\begin{tabular*}{\columnwidth}{@{\extracolsep{\fill}} ll @{}}
+\toprule
+\textbf{Hyperparameter} & \textbf{Values} \\
+\midrule
+\multicolumn{2}{l}{\textit{GNN encoders (GCN, GIN, GraphSAGE): 512 configurations}} \\
+\midrule
+Learning rate & $\{10^{-2}, 5\times10^{-3}, 10^{-3}, 10^{-4}\}$ \\
+Hidden dimension & $\{128, 256, 512, 1024\}$ \\
+Layers & $\{2, 3\}$ \\
+Dropout & $\{0.0, 0.01, 0.1, 0.5\}$ \\
+Weight decay & $\{0.0, 0.01\}$ \\
+Batch normalization & \{no, yes\} \\
+Training & Adam, max.\ 200 epochs, early stopping (patience 20) \\
+Selection & Top 64 configurations re-run with 5 seeds \\
+\midrule
+\multicolumn{2}{l}{\textit{Ensemble heads: 36 configurations}} \\
+\midrule
+MLP layers & $\{2, 3\}$ \\
+Hidden size & $\{64, 128, 256\}$ \\
+Dropout & $\{0.3, 0.5\}$ \\
+Learning rate & $\{10^{-4}, 10^{-3}, 10^{-2}\}$ \\
+Training & Adam, 200 epochs, epoch chosen on validation \\
+\bottomrule
+\end{tabular*}
+\end{table}
+
+\begin{table*}[htbp]
+\centering\color{red}
+\caption{Selected GNN hyperparameters with the LLaMA-3.2-1B encoder, per GNN encoder and dataset (grid search on validation accuracy, Table~\ref{tab:search_space}).}
+\label{tab:gnn_hp_llama}
+\footnotesize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}} lccccccc @{}}
+\toprule
+\textbf{Hyperparameter} & \textbf{Cora} & \textbf{CiteSeer} & \textbf{PubMed} & \textbf{OGBN-ArXiv} & \textbf{WikiCS} & \textbf{Reddit} & \textbf{Computers} \\
+\midrule
+\multicolumn{8}{l}{\textit{GCN}} \\
+\midrule
+Layers & 2 & 3 & 3 & 2 & 2 & 3 & 2 \\
+Hidden dim & 1024 & 128 & 256 & 512 & 1024 & 1024 & 128 \\
+Learning rate & $1\times10^{-4}$ & $1\times10^{-3}$ & $5\times10^{-3}$ & $1\times10^{-4}$ & 0.01 & 0.01 & $1\times10^{-3}$ \\
+Dropout & 0.0 & 0.1 & 0.01 & 0.5 & 0.1 & 0.1 & 0.0 \\
+Weight decay & 0.0 & 0.0 & 0.01 & 0.0 & 0.0 & 0.01 & 0.0 \\
+Batch norm & yes & no & yes & no & yes & yes & no \\
+\midrule
+\multicolumn{8}{l}{\textit{GIN}} \\
+\midrule
+Layers & 2 & 2 & 2 & 3 & 3 & 2 & 3 \\
+Hidden dim & 128 & 128 & 512 & 256 & 128 & 1024 & 128 \\
+Learning rate & $1\times10^{-3}$ & 0.01 & $1\times10^{-4}$ & $5\times10^{-3}$ & $1\times10^{-4}$ & $1\times10^{-3}$ & 0.01 \\
+Dropout & 0.0 & 0.0 & 0.5 & 0.01 & 0.1 & 0.1 & 0.0 \\
+Weight decay & 0.0 & 0.0 & 0.01 & 0.0 & 0.01 & 0.0 & 0.01 \\
+Batch norm & yes & yes & no & yes & yes & no & yes \\
+\midrule
+\multicolumn{8}{l}{\textit{GraphSAGE}} \\
+\midrule
+Layers & 3 & 3 & 3 & 2 & 3 & 2 & 3 \\
+Hidden dim & 256 & 128 & 256 & 128 & 512 & 256 & 1024 \\
+Learning rate & $5\times10^{-3}$ & $1\times10^{-3}$ & 0.01 & 0.01 & $1\times10^{-4}$ & $1\times10^{-3}$ & $5\times10^{-3}$ \\
+Dropout & 0.5 & 0.5 & 0.5 & 0.1 & 0.1 & 0.01 & 0.5 \\
+Weight decay & 0.0 & 0.01 & 0.01 & 0.0 & 0.01 & 0.0 & 0.01 \\
+Batch norm & yes & yes & no & yes & yes & no & yes \\
+\bottomrule
+\end{tabular*}
+\end{table*}
+\begin{table*}[htbp]
+\centering\color{red}
+\caption{Selected GNN hyperparameters with the SmolLM2-1.7B encoder, per GNN encoder and dataset (grid search on validation accuracy, Table~\ref{tab:search_space}).}
+\label{tab:gnn_hp_smollm}
+\footnotesize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}} lccccccc @{}}
+\toprule
+\textbf{Hyperparameter} & \textbf{Cora} & \textbf{CiteSeer} & \textbf{PubMed} & \textbf{OGBN-ArXiv} & \textbf{WikiCS} & \textbf{Reddit} & \textbf{Computers} \\
+\midrule
+\multicolumn{8}{l}{\textit{GCN}} \\
+\midrule
+Layers & 2 & 3 & 2 & 3 & 2 & 2 & 3 \\
+Hidden dim & 512 & 128 & 256 & 1024 & 256 & 128 & 512 \\
+Learning rate & $1\times10^{-3}$ & $1\times10^{-3}$ & 0.01 & $5\times10^{-3}$ & $1\times10^{-3}$ & $1\times10^{-4}$ & $1\times10^{-3}$ \\
+Dropout & 0.1 & 0.1 & 0.0 & 0.5 & 0.1 & 0.01 & 0.1 \\
+Weight decay & 0.01 & 0.0 & 0.0 & 0.01 & 0.01 & 0.0 & 0.01 \\
+Batch norm & no & no & yes & no & yes & yes & no \\
+\midrule
+\multicolumn{8}{l}{\textit{GIN}} \\
+\midrule
+Layers & 2 & 2 & 3 & 2 & 3 & 3 & 2 \\
+Hidden dim & 128 & 128 & 256 & 1024 & 128 & 512 & 128 \\
+Learning rate & 0.01 & 0.01 & $5\times10^{-3}$ & $1\times10^{-4}$ & $1\times10^{-3}$ & 0.01 & $1\times10^{-3}$ \\
+Dropout & 0.01 & 0.1 & 0.0 & 0.5 & 0.01 & 0.1 & 0.01 \\
+Weight decay & 0.0 & 0.0 & 0.01 & 0.0 & 0.0 & 0.01 & 0.0 \\
+Batch norm & yes & yes & no & yes & yes & no & yes \\
+\midrule
+\multicolumn{8}{l}{\textit{GraphSAGE}} \\
+\midrule
+Layers & 3 & 3 & 2 & 3 & 2 & 2 & 3 \\
+Hidden dim & 128 & 512 & 256 & 128 & 512 & 1024 & 512 \\
+Learning rate & 0.01 & $1\times10^{-4}$ & $1\times10^{-3}$ & 0.01 & $1\times10^{-4}$ & $5\times10^{-3}$ & $1\times10^{-4}$ \\
+Dropout & 0.0 & 0.5 & 0.1 & 0.01 & 0.0 & 0.5 & 0.0 \\
+Weight decay & 0.01 & 0.01 & 0.0 & 0.01 & 0.01 & 0.0 & 0.01 \\
+Batch norm & no & no & yes & no & yes & yes & no \\
+\bottomrule
+\end{tabular*}
+\end{table*}
+\begin{table*}[htbp]
+\centering\color{red}
+\caption{Selected GNN hyperparameters with the Gemma-2-2B encoder, per GNN encoder and dataset (grid search on validation accuracy, Table~\ref{tab:search_space}).}
+\label{tab:gnn_hp_gemma}
+\footnotesize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}} lccccccc @{}}
+\toprule
+\textbf{Hyperparameter} & \textbf{Cora} & \textbf{CiteSeer} & \textbf{PubMed} & \textbf{OGBN-ArXiv} & \textbf{WikiCS} & \textbf{Reddit} & \textbf{Computers} \\
+\midrule
+\multicolumn{8}{l}{\textit{GCN}} \\
+\midrule
+Layers & 2 & 2 & 3 & 2 & 2 & 3 & 2 \\
+Hidden dim & 128 & 128 & 512 & 256 & 512 & 128 & 1024 \\
+Learning rate & $1\times10^{-3}$ & $5\times10^{-3}$ & $1\times10^{-4}$ & 0.01 & $5\times10^{-3}$ & $5\times10^{-3}$ & $1\times10^{-3}$ \\
+Dropout & 0.5 & 0.0 & 0.1 & 0.01 & 0.5 & 0.0 & 0.5 \\
+Weight decay & 0.01 & 0.0 & 0.01 & 0.0 & 0.0 & 0.01 & 0.0 \\
+Batch norm & yes & yes & no & yes & yes & no & yes \\
+\midrule
+\multicolumn{8}{l}{\textit{GIN}} \\
+\midrule
+Layers & 2 & 2 & 2 & 3 & 2 & 2 & 3 \\
+Hidden dim & 512 & 512 & 128 & 512 & 256 & 256 & 1024 \\
+Learning rate & $1\times10^{-3}$ & $5\times10^{-3}$ & 0.01 & $1\times10^{-3}$ & $1\times10^{-4}$ & $1\times10^{-4}$ & $5\times10^{-3}$ \\
+Dropout & 0.0 & 0.01 & 0.5 & 0.0 & 0.0 & 0.01 & 0.1 \\
+Weight decay & 0.0 & 0.0 & 0.0 & 0.01 & 0.0 & 0.0 & 0.01 \\
+Batch norm & yes & yes & no & yes & yes & no & yes \\
+\midrule
+\multicolumn{8}{l}{\textit{GraphSAGE}} \\
+\midrule
+Layers & 3 & 2 & 3 & 2 & 3 & 3 & 2 \\
+Hidden dim & 128 & 128 & 512 & 256 & 256 & 128 & 1024 \\
+Learning rate & $1\times10^{-3}$ & $1\times10^{-4}$ & $5\times10^{-3}$ & $1\times10^{-3}$ & $1\times10^{-3}$ & 0.01 & $1\times10^{-4}$ \\
+Dropout & 0.5 & 0.5 & 0.01 & 0.0 & 0.5 & 0.1 & 0.5 \\
+Weight decay & 0.0 & 0.01 & 0.0 & 0.01 & 0.0 & 0.0 & 0.01 \\
+Batch norm & yes & no & yes & no & yes & yes & no \\
+\bottomrule
+\end{tabular*}
+\end{table*}
 
 \end{document}
 

@@ -8,16 +8,16 @@
     "early_stop": 20,
     "re_split": 1,
     "lr": 0.001,
-    "hidden_dim": 1024,
+    "hidden_dim": 128,
     "num_layers": 3,
-    "dropout": 0.0,
+    "dropout": 0.5,
     "weight_decay": 0.0,
     "batch_norm": 1,
     "tuning": {
-        "init_weight_approach": "pissa",
+        "init_weight_approach": "eva",
         "peft_type": "lora",
-        "embedding_cache": "artifacts\\cache\\llama_3.2_1B_cora_seqcls_lora_init-pissa_pool-mean.pt",
-        "trial_log": "results\\gnn_tuning\\cora_llama_3.2_1B_SAGE_supervised_seed44_init-pissa\\trials.jsonl",
+        "embedding_cache": "artifacts\\cache\\llama_3.2_1B_cora_seqcls_lora_init-eva_pool-mean_seed44_semi_supervised.pt",
+        "trial_log": "results\\gnn_tuning\\cora_llama_3.2_1B_SAGE_supervised_seed44_init-eva\\trials.jsonl",
         "search_space": {
             "learning_rate": [
                 0.01,
@@ -50,31 +50,31 @@
                 1
             ]
         },
-        "val_acc": 92.13,
-        "val_acc_std": 0.08485281374238891,
-        "test_acc": 89.48333333333335,
-        "test_acc_std": 0.4531617322276401,
-        "val_f1": 90.26333333333332,
-        "test_f1": 88.43333333333332,
+        "val_acc": 91.57666666666667,
+        "val_acc_std": 0.17441967269268388,
+        "test_acc": 88.93,
+        "test_acc_std": 0.0,
+        "val_f1": 89.87,
+        "test_f1": 87.76666666666667,
         "val_acc_per_seed": [
-            92.25,
-            92.07,
-            92.07
+            91.33,
+            91.7,
+            91.7
         ],
         "test_acc_per_seed": [
-            90.04,
             88.93,
-            89.48
+            88.93,
+            88.93
         ],
         "eval_seeds": [
             44,
             1044,
             2044
         ],
-        "n_candidates": 60,
-        "n_promoted": 8,
+        "n_candidates": 512,
+        "n_promoted": 16,
         "search": "random",
-        "total_time_sec": 26.3,
-        "timestamp": "2026-09-26 19:18:38"
+        "total_time_sec": 775.6,
+        "timestamp": "2026-09-30 02:59:20"
     }
 }

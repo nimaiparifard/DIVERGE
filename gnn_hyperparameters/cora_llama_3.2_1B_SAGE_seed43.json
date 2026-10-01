@@ -7,17 +7,17 @@
     "epochs": 200,
     "early_stop": 20,
     "re_split": 1,
-    "lr": 0.001,
-    "hidden_dim": 1024,
+    "lr": 0.005,
+    "hidden_dim": 128,
     "num_layers": 3,
-    "dropout": 0.5,
-    "weight_decay": 0.0,
+    "dropout": 0.01,
+    "weight_decay": 0.01,
     "batch_norm": 1,
     "tuning": {
-        "init_weight_approach": "pissa",
+        "init_weight_approach": "eva",
         "peft_type": "lora",
-        "embedding_cache": "artifacts\\cache\\llama_3.2_1B_cora_seqcls_lora_init-pissa_pool-mean.pt",
-        "trial_log": "results\\gnn_tuning\\cora_llama_3.2_1B_SAGE_supervised_seed43_init-pissa\\trials.jsonl",
+        "embedding_cache": "artifacts\\cache\\llama_3.2_1B_cora_seqcls_lora_init-eva_pool-mean_seed43_semi_supervised.pt",
+        "trial_log": "results\\gnn_tuning\\cora_llama_3.2_1B_SAGE_supervised_seed43_init-eva\\trials.jsonl",
         "search_space": {
             "learning_rate": [
                 0.01,
@@ -50,31 +50,31 @@
                 1
             ]
         },
-        "val_acc": 92.68333333333334,
-        "val_acc_std": 0.22895899681432338,
-        "test_acc": 88.74333333333334,
-        "test_acc_std": 0.5185449728701322,
-        "val_f1": 91.97666666666667,
-        "test_f1": 87.08999999999999,
+        "val_acc": 92.62,
+        "val_acc_std": 0.30210373494325654,
+        "test_acc": 87.88666666666667,
+        "test_acc_std": 0.17441967269268388,
+        "val_f1": 91.90333333333335,
+        "test_f1": 86.78333333333335,
         "val_acc_per_seed": [
-            92.44,
+            92.25,
             92.99,
             92.62
         ],
         "test_acc_per_seed": [
-            89.11,
             88.01,
-            89.11
+            88.01,
+            87.64
         ],
         "eval_seeds": [
             43,
             1043,
             2043
         ],
-        "n_candidates": 60,
-        "n_promoted": 8,
+        "n_candidates": 512,
+        "n_promoted": 16,
         "search": "random",
-        "total_time_sec": 21.1,
-        "timestamp": "2026-09-26 19:18:03"
+        "total_time_sec": 919.6,
+        "timestamp": "2026-09-30 02:26:57"
     }
 }

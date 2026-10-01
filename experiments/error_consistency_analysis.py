@@ -19,6 +19,11 @@ Uses the shared GNN pool (one GNN per init x seed, fixed GNN seed/split):
      the seed noise, so a significant init x class interaction means the
      inits have class-specific strengths that exceed seed variance.
 
+Own-split mode (--gnn_seed -1): a) compares each pair on the test nodes shared by
+both members, d) uses every member's own test nodes, and b)/c) (which follow the
+same nodes across all seeds) run on the nodes that are test nodes for every
+member of the grid, and are skipped when there are fewer than --min_eval_nodes.
+
 Outputs (under --out_dir, default results/diversity/error_consistency/):
   error_consistency_summary.csv      one row per run
   error_consistency_per_class.csv    per (run, init, class) mean/std accuracy
@@ -37,14 +42,18 @@ from experiments.diversity_common import (
 )
 
 
-def error_jaccard_distance(correct):
-    """[M, M] 1 - Jaccard overlap of the error sets (rows of `correct` are bool per node)."""
+def error_jaccard_distance(correct, masks):
+    """
+    [M, M] 1 - Jaccard overlap of the error sets. `correct` [M, n] bool per node,
+    `masks` [M, n] test nodes per member; a pair is compared on masks[i] & masks[j].
+    """
     err = ~correct
     M = err.shape[0]
     D = np.zeros((M, M))
     for i in range(M):
-        inter = (err[i] & err).sum(axis=1)
-        union = (err[i] | err).sum(axis=1)
+        m = masks[i] & masks                                       # [M, n]
+        inter = (err[i] & err & m).sum(axis=1)
+        union = ((err[i] | err) & m).sum(axis=1)
         D[i] = 1.0 - np.where(union > 0, inter / np.maximum(union, 1), 1.0)
     return D
 
@@ -81,14 +90,13 @@ def main(args):
         report.line(line)
 
     gnn = pool.load_gnn_pool(retrain=args.retrain_gnn)
-    test = gnn['test_mask'].numpy()
-    y = gnn['y'].numpy()[test]
-    preds = gnn['preds'].numpy()[:, test]
-    correct = preds == y[None, :]
+    y_all = gnn['y'].numpy()
+    test_masks = gnn['test_masks'].numpy()                          # [M, n] own test nodes
+    correct_all = gnn['preds'].numpy() == y_all[None, :]            # [M, n]
     info = run_info(pool)
 
     # a) error-set distance
-    D = error_jaccard_distance(correct)
+    D = error_jaccard_distance(correct_all, test_masks)
     wb = within_between_test(D, pool.inits, pool.seeds, n_perm=args.n_perm)
     report.section('a) Error-set distance (1 - Jaccard of misclassified test nodes)')
     report.within_between('Error-set distance', wb)
@@ -106,8 +114,72 @@ def main(args):
         append_rows([dict(info, **TextReport.within_between_row(wb, 'error_jaccard_'))],
                     os.path.join(out_dir, 'error_consistency_summary.csv'))
         return
+    # b) + c) follow the same nodes across seeds: nodes that are test nodes for the whole grid
+    test = test_masks[idx].all(axis=0)
+    n_test = int(test.sum())
+    correct = correct_all[:, test]
     grid = {init: np.stack([correct[pool.labels.index(f'{TITLES[init]}-{s}')] for s in seeds]) for init in inits}
+    run_bc = not (pool.own_split and n_test < args.min_eval_nodes)
+    persistence, rescue_rows = {}, []
+    persistent_any = persistent_shared = np.zeros(0, dtype=bool)
+    if pool.own_split:
+        report.line(f'Own split: b) and c) use the {n_test} nodes that are test nodes for every grid member'
+                    + ('' if run_bc else f' (< {args.min_eval_nodes}: skipped)'))
 
+    if run_bc:
+        persistence, rescue_rows, persistent_any, persistent_shared = _persistence_and_rescues(
+            report, grid, inits, info, n_test)
+
+    # d) per-class two-way ANOVA (each member on its own test nodes)
+    classes = np.unique(y_all[test_masks.any(axis=0)])
+    Y = np.zeros((len(inits), len(classes), len(seeds)))
+    for ai, init in enumerate(inits):
+        for si, s in enumerate(seeds):
+            k = pool.labels.index(f'{TITLES[init]}-{s}')
+            for ci, c in enumerate(classes):
+                m = test_masks[k] & (y_all == c)
+                Y[ai, ci, si] = correct_all[k, m].mean() * 100.0 if m.any() else np.nan
+    anova = two_way_anova(Y)
+    report.section('d) Per-class test accuracy, two-way ANOVA (init x class, seeds = replicates)')
+    for k in ('init', 'class', 'init_x_class'):
+        r = anova[k]
+        report.line(f"  {k:<13} F({r['df']},{anova['residual_seed']['df']})={r['F']:.2f} p={r['p']:.4g} "
+                    f"partial eta2={r['partial_eta2']:.3f}")
+    report.line('')
+    report.line(f"{'class':<8}" + ''.join(f'{TITLES[i]:>16}' for i in inits) + '   best (wins/seeds)')
+    per_class_rows = []
+    for ci, c in enumerate(classes):
+        means, stds = Y[:, ci, :].mean(axis=1), Y[:, ci, :].std(axis=1)
+        best = int(np.argmax(means))
+        wins = int((Y[:, ci, :].argmax(axis=0) == best).sum())
+        report.line(f'{int(c):<8}' + ''.join(f'{m:>10.1f}+/-{s:<4.1f}' for m, s in zip(means, stds)) +
+                    f'   {TITLES[inits[best]]} ({wins}/{len(seeds)})')
+        n_c = int(np.mean([(test_masks[k] & (y_all == c)).sum() for k in idx]))
+        for ai, init in enumerate(inits):
+            per_class_rows.append(dict(info, init=TITLES[init], class_id=int(c), n_test_nodes=n_c,
+                                       acc_mean=means[ai], acc_std=stds[ai], is_best_init=ai == best,
+                                       best_wins_over_seeds=wins if ai == best else ''))
+    if not args.no_plots:
+        mean_mat = Y.mean(axis=2) - Y.mean(axis=(0, 2))[None, :]  # deviation from the class mean
+        _per_class_plot(mean_mat, inits, classes, os.path.join(out_dir, f'{pool.tag}_per_class_heatmap.png'), pool)
+
+    summary = dict(info, n_test_nodes=n_test, balanced_seeds=','.join(map(str, seeds)),
+                   **TextReport.within_between_row(wb, 'error_jaccard_'),
+                   **{f'persistence_{TITLES[i]}': persistence[i] for i in persistence},
+                   persistent_errors_any_init=int(persistent_any.sum()) if run_bc else '',
+                   persistent_errors_all_inits=int(persistent_shared.sum()) if run_bc else '',
+                   anova_init_F=anova['init']['F'], anova_init_p=anova['init']['p'],
+                   anova_class_F=anova['class']['F'], anova_class_p=anova['class']['p'],
+                   anova_interaction_F=anova['init_x_class']['F'], anova_interaction_p=anova['init_x_class']['p'],
+                   anova_interaction_partial_eta2=anova['init_x_class']['partial_eta2'])
+    append_rows([summary], os.path.join(out_dir, 'error_consistency_summary.csv'))
+    append_rows(per_class_rows, os.path.join(out_dir, 'error_consistency_per_class.csv'))
+    if rescue_rows:
+        append_rows(rescue_rows, os.path.join(out_dir, 'error_consistency_rescue.csv'))
+    report.line(f'\nReport: {report.path}')
+
+
+def _persistence_and_rescues(report, grid, inits, info, n_test):
     report.section('b) Error persistence (wrong in every seed / wrong in at least one seed)')
     persistence = {}
     for init in inits:
@@ -119,7 +191,6 @@ def main(args):
 
     report.section('c) Systematic rescues: nodes init A always gets wrong but init B always gets right')
     rescue_rows = []
-    n_test = int(test.sum())
     report.line('A (always wrong) / B (always right)'.ljust(36) + ''.join(f'{TITLES[b]:>12}' for b in inits))
     for a in inits:
         a_wrong = (~grid[a]).all(axis=0)
@@ -139,48 +210,7 @@ def main(args):
                 f'{persistent_shared.sum()} -> {persistent_any.sum() - persistent_shared.sum()} persistent errors are '
                 f'init-specific (fixable by another view)')
 
-    # d) per-class two-way ANOVA
-    classes = np.unique(y)
-    Y = np.zeros((len(inits), len(classes), len(seeds)))
-    for ai, init in enumerate(inits):
-        for ci, c in enumerate(classes):
-            Y[ai, ci] = grid[init][:, y == c].mean(axis=1) * 100.0
-    anova = two_way_anova(Y)
-    report.section('d) Per-class test accuracy, two-way ANOVA (init x class, seeds = replicates)')
-    for k in ('init', 'class', 'init_x_class'):
-        r = anova[k]
-        report.line(f"  {k:<13} F({r['df']},{anova['residual_seed']['df']})={r['F']:.2f} p={r['p']:.4g} "
-                    f"partial eta2={r['partial_eta2']:.3f}")
-    report.line('')
-    report.line(f"{'class':<8}" + ''.join(f'{TITLES[i]:>16}' for i in inits) + '   best (wins/seeds)')
-    per_class_rows = []
-    for ci, c in enumerate(classes):
-        means, stds = Y[:, ci, :].mean(axis=1), Y[:, ci, :].std(axis=1)
-        best = int(np.argmax(means))
-        wins = int((Y[:, ci, :].argmax(axis=0) == best).sum())
-        report.line(f'{int(c):<8}' + ''.join(f'{m:>10.1f}+/-{s:<4.1f}' for m, s in zip(means, stds)) +
-                    f'   {TITLES[inits[best]]} ({wins}/{len(seeds)})')
-        for ai, init in enumerate(inits):
-            per_class_rows.append(dict(info, init=TITLES[init], class_id=int(c), n_test_nodes=int((y == c).sum()),
-                                       acc_mean=means[ai], acc_std=stds[ai], is_best_init=ai == best,
-                                       best_wins_over_seeds=wins if ai == best else ''))
-    if not args.no_plots:
-        mean_mat = Y.mean(axis=2) - Y.mean(axis=(0, 2))[None, :]  # deviation from the class mean
-        _per_class_plot(mean_mat, inits, classes, os.path.join(out_dir, f'{pool.tag}_per_class_heatmap.png'), pool)
-
-    summary = dict(info, n_test_nodes=n_test, balanced_seeds=','.join(map(str, seeds)),
-                   **TextReport.within_between_row(wb, 'error_jaccard_'),
-                   **{f'persistence_{TITLES[i]}': persistence[i] for i in inits},
-                   persistent_errors_any_init=int(persistent_any.sum()),
-                   persistent_errors_all_inits=int(persistent_shared.sum()),
-                   anova_init_F=anova['init']['F'], anova_init_p=anova['init']['p'],
-                   anova_class_F=anova['class']['F'], anova_class_p=anova['class']['p'],
-                   anova_interaction_F=anova['init_x_class']['F'], anova_interaction_p=anova['init_x_class']['p'],
-                   anova_interaction_partial_eta2=anova['init_x_class']['partial_eta2'])
-    append_rows([summary], os.path.join(out_dir, 'error_consistency_summary.csv'))
-    append_rows(per_class_rows, os.path.join(out_dir, 'error_consistency_per_class.csv'))
-    append_rows(rescue_rows, os.path.join(out_dir, 'error_consistency_rescue.csv'))
-    report.line(f'\nReport: {report.path}')
+    return persistence, rescue_rows, persistent_any, persistent_shared
 
 
 def _per_class_plot(mean_mat, inits, classes, save_path, pool):

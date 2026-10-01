@@ -7,16 +7,16 @@
     "epochs": 200,
     "early_stop": 20,
     "re_split": 1,
-    "lr": 0.001,
-    "hidden_dim": 128,
+    "lr": 0.005,
+    "hidden_dim": 256,
     "num_layers": 3,
     "dropout": 0.5,
     "weight_decay": 0.0,
-    "batch_norm": 0,
+    "batch_norm": 1,
     "tuning": {
         "init_weight_approach": "eva",
         "peft_type": "lora",
-        "embedding_cache": "artifacts\\cache\\llama_3.2_1B_cora_seqcls_lora_init-eva_pool-mean.pt",
+        "embedding_cache": "artifacts\\cache\\llama_3.2_1B_cora_seqcls_lora_init-eva_pool-mean_seed42_semi_supervised.pt",
         "trial_log": "results\\gnn_tuning\\cora_llama_3.2_1B_SAGE_supervised_seed42_init-eva\\trials.jsonl",
         "search_space": {
             "learning_rate": [
@@ -50,37 +50,31 @@
                 1
             ]
         },
-        "val_acc": 89.482,
-        "val_acc_std": 0.348906864363539,
-        "test_acc": 89.63000000000001,
-        "test_acc_std": 0.1389964028311491,
-        "val_f1": 88.648,
-        "test_f1": 89.02,
+        "val_acc": 89.91333333333334,
+        "val_acc_std": 0.38230296304835715,
+        "test_acc": 89.73,
+        "test_acc_std": 0.3779770716150214,
+        "val_f1": 89.01666666666667,
+        "test_f1": 88.73666666666668,
         "val_acc_per_seed": [
-            88.93,
             89.85,
-            89.48,
-            89.3,
-            89.85
+            90.41,
+            89.48
         ],
         "test_acc_per_seed": [
-            89.85,
             89.67,
-            89.48,
-            89.67,
-            89.48
+            89.3,
+            90.22
         ],
         "eval_seeds": [
             42,
             1042,
-            2042,
-            3042,
-            4042
+            2042
         ],
         "n_candidates": 512,
-        "n_promoted": 64,
-        "search": "grid",
-        "total_time_sec": 1340.1,
-        "timestamp": "2026-09-26 20:42:29"
+        "n_promoted": 16,
+        "search": "random",
+        "total_time_sec": 472.2,
+        "timestamp": "2026-09-30 01:47:57"
     }
 }

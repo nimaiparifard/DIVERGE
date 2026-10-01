@@ -16,6 +16,7 @@ Contents
  10. What to put in the paper, and which claims to change
  11. Draft response to the reviewers
  12. Work to finish before resubmission
+ 13. Supervised setting: Cora vs CiteSeer (3 LLMs), and which to use
 
 All numbers below come from the runs already in results/ (Cora, LLaMA-3.2-1B,
 LoRA r=8, semi-supervised split, GraphSAGE, GNN seed 42, LoRA seeds 42-45).
@@ -640,3 +641,350 @@ Comment 2 (meaningful and complementary views vs random training variance)
      init x class effect (eta2 = 0.24, p = 0.12) is close.
   6. Aggregate all runs from the *_summary.csv files into one table per
      experiment (mean over datasets + per-dataset rows) for the paper.
+
+
+
+---------------------------------------------------------------------
+13. SUPERVISED SETTING: CORA vs CITESEER (3 LLMs), AND WHICH TO USE
+---------------------------------------------------------------------
+
+Source: results/diversity/*/<dataset>_<llm>_lora_sup_SAGE_gnnseed42_report.txt
+(runs of 2026-09-30). LLMs: Gemma2-2B, LLaMA-3.2-1B, SmolLM2-1.7B. LoRA r=8,
+GraphSAGE, GNN seed 42, LoRA seeds 42-45. 5 inits x 4 seeds = 20 members,
+EXCEPT Cora + LLaMA (16 members, ORTHOGONAL still has no seed-tagged caches).
+
+13.0 Two things to know before reading the numbers
+
+  (1) CiteSeer + LLaMA has two FAILED members.
+      ORTHOGONAL-42 = 18.50% and ORTHOGONAL-44 = 28.21% test accuracy
+      (the other 18 members: 76.7-85.6%). Their LLM embeddings are already
+      broken (within-ORTHOGONAL 1-CKA = 0.84, max 0.99), so the LoRA
+      training collapsed; it is not a GNN problem. Every "init effect" on
+      CiteSeer + LLaMA (ratio 1.14-1.35x, PERMANOVA init R2 0.33-0.44,
+      ensemble gain +7 pp, Spearman 0.84) is inflated by these two runs.
+      Do NOT report CiteSeer + LLaMA as it is. Retrain ORTHOGONAL seeds 42
+      and 44 (or drop ORTHOGONAL from this pool) and rerun.
+      Below, CiteSeer + LLaMA numbers are marked (!).
+
+  (2) Cora + LLaMA adapters and LLM embeddings are the same as in the
+      semi-supervised run (sections 4-8). The adapter/cache files are
+      shared by both splits (historical "_semi_supervised" name). So the
+      adapter-level and LLM-embedding-level numbers for Cora + LLaMA are
+      identical to sections 4 and 7; only the GNN-level numbers change.
+      For the other pools, the adapters were trained per dataset (numbers
+      differ slightly between Cora and CiteSeer for the same LLM).
+
+13.1 Member accuracy (mean of the 20 members, fixed GNN seed)
+
+                    Cora     CiteSeer
+  Gemma2-2B         90.65    82.01
+  LLaMA-3.2-1B      90.98    75.72 (!)  (81.54 without the 2 failed runs)
+  SmolLM2-1.7B      89.29    81.54
+
+  CiteSeer is about 8-9 pp harder. That leaves more room for views to
+  differ and for the ensemble to fix errors.
+
+13.2 Experiment 1 - seed-only vs init-only (seed_vs_init)
+
+  Ratio = init-only / seed-only (> 1 means the init moves the
+  representation MORE than the seed). T1 = permutation p for "init adds
+  diversity on top of seed". * = one-sided Mann-Whitney p < 0.05.
+
+  LLM embedding (1-CKA)     ratio            T1 p      PERMANOVA R2 init / seed
+    Cora     Gemma          1.20x* (p=.012)  .0005     0.48* / 0.22 (n.s.)
+    Cora     LLaMA          0.93x            .0005     0.35* / 0.43*
+    Cora     SmolLM         0.97x            .0005     0.37* / 0.32*
+    CiteSeer Gemma          1.09x  (p=.062)  .0005     0.35* / 0.24*
+    CiteSeer LLaMA (!)      1.14x            .0005     0.33* / 0.15 (n.s.)
+    CiteSeer SmolLM         0.83x            .0005     0.29 (p=.054) / 0.45*
+
+  GNN embedding (1-CKA)
+    Cora     Gemma          1.01x            .0005     0.33* / 0.31*
+    Cora     LLaMA          0.94x            .0005     0.32* / 0.40*
+    Cora     SmolLM         0.97x            .11 n.s.  0.31 n.s. / 0.31 n.s.
+    CiteSeer Gemma          1.08x            .0005     0.41* / 0.29*
+    CiteSeer LLaMA (!)      1.35x            .034      0.44 (p=.07) / 0.11 n.s.
+    CiteSeer SmolLM         0.84x            .0005     0.28 n.s. / 0.47*
+
+  GNN predictions (disagreement on test nodes)
+    Cora     Gemma          0.99x            .001      0.31* / 0.29*
+    Cora     LLaMA          0.83x            .010      0.22 n.s. / 0.44*
+    Cora     SmolLM         0.90x            .53 n.s.  0.17 n.s. / 0.28*
+    CiteSeer Gemma          0.99x            .0005     0.31* / 0.28*
+    CiteSeer LLaMA (!)      1.15x            .0035     0.39* / 0.13 n.s.
+    CiteSeer SmolLM         0.92x            .001      0.27 n.s. / 0.34*
+
+  Reading
+  + T1 (init adds diversity) holds on CiteSeer for 3/3 LLMs at every level.
+    On Cora it FAILS for SmolLM at GNN-embedding and prediction level
+    (p = 0.11 and 0.53): there, the init adds nothing beyond seed noise to
+    the predictions.
+  + Gemma2-2B is the best LLM for the claim on both datasets: init R2 >
+    seed R2 at all three levels on both Cora and CiteSeer, and on Cora the
+    LLM-embedding ratio is significantly > 1 (1.20x, p = 0.012), the only
+    significant "init > seed" result in Experiment 1.
+  - The ratio still drops to ~0.99x at the prediction level for Gemma on
+    both datasets. The GNN still makes the views more alike (same as in
+    section 7).
+  - SmolLM2 behaves like Cora semi-supervised LLaMA: seed > init everywhere.
+
+13.3 Experiment 2 - systematic errors (error_consistency)
+
+                     err-dist  init-specific     ANOVA init        ANOVA init x class
+                     ratio     persistent errs   p (eta2)          p (eta2)
+    Cora     Gemma   0.99x     27 of 44          .067 (0.08)       .006* (0.32)
+    Cora     LLaMA   0.84x     15 of 35          .74  (0.02)       .89   (0.11)
+    Cora     SmolLM  0.92x     33 of 47          .71  (0.02)       .93   (0.12)
+    CiteSeer Gemma   0.98x     63 of 111         .003* (0.16)      .35   (0.20)
+    CiteSeer LLaMA(!)1.08x     79 of 116         <1e-7* (0.35)     .81   (0.14)
+    CiteSeer SmolLM  0.93x     56 of 116         <1e-4* (0.26)     .03*  (0.29)
+
+  ("init-specific persistent errors" = nodes that are wrong in every seed
+   for at least one init but NOT for every init.)
+  Systematic rescues (A always wrong, B always right) stay rare on both
+  datasets: 0-3 nodes per pair (0-5 for CiteSeer + LLaMA, from the failed
+  ORTHOGONAL runs).
+
+  Reading
+  + On CiteSeer the init has a significant MAIN effect on per-class
+    accuracy for all 3 LLMs (after seed noise is removed as the residual).
+    So on CiteSeer the inits are reproducibly different in quality, not
+    only in noise. On Cora this is never significant.
+  + CiteSeer has 2-4x more init-specific persistent errors (56-79 vs
+    15-33): more errors that one view makes and another view does not.
+  + Init x class is significant once per dataset (Cora + Gemma, p = 0.006;
+    CiteSeer + SmolLM, p = 0.03). This is the first significant support
+    for class-specific init strengths (it was p = 0.12 in semi-supervised
+    Cora).
+  + CiteSeer has one hard class (class 5, 25-40% accuracy) where the inits
+    differ clearly: Gemma PiSSA 40.0 vs ORTHOGONAL 25.0; SmolLM Gaussian
+    38.3 vs LoftQ 25.6. This is a good concrete example for the paper's
+    class-level ensemble weights. Cora has no class like this (lowest
+    class is ~75% for every init).
+  - The error-set distance ratio is still <= 1 on both datasets (except
+    (!)): error SETS of two inits are not more different than those of two
+    seeds.
+
+13.4 Experiment 3 - complementarity (uniform averages, k = 4)
+
+                     ens acc               gain/best   Spearman(div, gain)
+                     seed-only  multi-init  (multi)    at k=4
+    Cora     Gemma   91.37      91.46       -0.36      0.17
+    Cora     LLaMA   91.74      91.61       -0.09      0.33
+    Cora     SmolLM  90.26      90.08       -0.53      0.40
+    CiteSeer Gemma   82.76      82.85       -0.61      0.16
+    CiteSeer LLaMA(!)81.60      82.68       -0.80      0.84
+    CiteSeer SmolLM  81.82      82.06       -1.24      0.15
+  Multi-init > seed-only is not significant anywhere (p = 0.18-0.57).
+
+  Gain over member mean by number of distinct inits (k = 4, 1 -> max):
+    Cora     Gemma +0.71 -> +1.07   LLaMA +0.76 -> +0.92   SmolLM +0.97 -> +0.96
+    CiteSeer Gemma +0.74 -> +0.98   LLaMA(!) +5.88 -> +7.06 SmolLM +0.27 -> +0.51
+
+  Reading
+  + Multi-init >= seed-only in 3/3 CiteSeer pools, only 1/3 Cora pools.
+    Adding more distinct inits raises the gain on CiteSeer for every LLM;
+    on Cora it is flat for SmolLM. Small effects (+0.1 to +0.3 pp), n.s.
+  - IMPORTANT, true for BOTH datasets: in the supervised setting the
+    uniform ensemble NEVER beats its best member (gain/best -0.1 to -2.1
+    pp). In semi-supervised Cora it did (+0.62 / +0.79). With many labels
+    every member is already strong, and a uniform average of a strong and
+    a weaker member falls below the strong one. So the sentence "every
+    ensemble beats its best member" must NOT be used for the supervised
+    split. DIVERGE's LEARNED ensemble head is what has to beat the best
+    member here (this makes item 4 of section 12 more important).
+  - Diversity -> gain correlation is much weaker than semi-supervised
+    Cora (rho 0.15-0.40 vs 0.75), but still positive and significant
+    everywhere.
+
+13.5 Experiment 4 - mechanism (lora_subspace)
+
+  a) Weight space: init-only distance ~0.96-1.00, seed-only ~0.59-0.64
+     (ratio 1.55-1.66x, all p < 0.02) on BOTH datasets for every LLM. The
+     mechanism result from section 7 is reproduced on 3 LLMs x 2 datasets.
+  b) Spectral position is the same for every LLM and dataset: PiSSA
+     0.96-0.995 top-r overlap; LoftQ 0.05-0.09 (5-25x random, top); Gaussian,
+     Orthogonal, EVA ~random. Std over seeds ~0.000. This is a property of
+     the init, not of the dataset.
+  c) Mantel chain (Spearman rho; n.s. = p > 0.05):
+
+     stage                       Cora: Gemma LLaMA SmolLM | CiteSeer: Gemma LLaMA(!) SmolLM
+     adapter product -> LLM emb        0.61  0.76  0.13 n.s.|          0.57  0.68    0.38
+     LLM emb -> GNN emb                0.45  0.89  0.21     |          0.59  0.65    0.67
+     GNN emb -> predictions            0.66  0.45  0.09 n.s.|          0.77  0.75    0.77
+     LLM emb -> predictions            0.26  0.43  0.06 n.s.|          0.53  0.64    0.40
+
+  Reading
+  + On CiteSeer the whole chain adapter -> embedding -> GNN -> prediction
+    is significant for ALL 3 LLMs (all p <= 0.001), and the last link is
+    strong (rho 0.75-0.77).
+  - On Cora the chain BREAKS for SmolLM (3 of 4 links n.s.), and the
+    LLM -> prediction link is weak for Gemma (0.26).
+  This is the most important difference for Comment 1: CiteSeer shows
+  that weight-space differences reach the predictions, for every LLM.
+
+13.6 Experiment 5 - k-NN neighbourhoods (knn_neighborhood)
+
+  k-NN distance ratio (init-only / seed-only), * = p < 0.05:
+                     LLM emb          GNN emb
+    Cora     Gemma   1.09x* (.012)    1.03x
+    Cora     LLaMA   1.02x            0.98x
+    Cora     SmolLM  1.01x            0.99x
+    CiteSeer Gemma   1.11x* (.005)    1.08x* (.010)
+    CiteSeer LLaMA(!)1.08x (.08)      1.02x
+    CiteSeer SmolLM  1.01x            0.99x
+
+  Correct k-NN majority in ANY of 4 views (LLM emb): inits vs seeds
+    Cora     Gemma .899 vs .888   LLaMA .879 vs .889   SmolLM .872 vs .873
+    CiteSeer Gemma .837 vs .824   LLaMA .814 vs .807   SmolLM .815 vs .814
+  (single-view level: Cora ~0.80, CiteSeer ~0.65-0.72)
+
+  Reading
+  + CiteSeer + Gemma is the ONLY pool where the init changes local
+    neighbourhoods significantly more than the seed at BOTH the LLM and
+    the GNN level.
+  + On CiteSeer, combining 4 inits gives more correct neighbourhoods than
+    combining 4 seeds for 3/3 LLMs (LLM level); on Cora only 1/3.
+  + Combining views helps more on CiteSeer (+10 to +16 pp vs +7 to +9 pp
+    on Cora), because a single view is weaker there.
+
+13.7 Scoreboard: where does "init is more than seed noise" hold?
+
+  (Count of the 3 LLMs; CiteSeer + LLaMA counts only as a trend because of (!))
+
+  Test                                            Cora      CiteSeer
+  ----------------------------------------------  --------  ----------------
+  T1 init adds diversity, prediction level        2/3       3/3
+  Mantel chain complete (all links p < 0.05)      2/3       3/3
+  PERMANOVA init R2 > seed R2, LLM emb            2/3       2/3 (1 is (!))
+  PERMANOVA init R2 > seed R2, GNN emb            1/3       2/3 (1 is (!))
+  Init-only / seed-only > 1 significant           1 (Gemma  3 (Gemma LLM-kNN,
+                                                  LLM CKA,  Gemma GNN-kNN;
+                                                  Gemma     Gemma LLM CKA
+                                                  LLM-kNN)  p=.06 borderline)
+  ANOVA init main effect significant              0/3       3/3
+  ANOVA init x class significant                  1/3       1/3
+  Init-specific persistent errors                 15-33     56-79
+  Multi-init >= seed-only ensemble (k=4)          1/3       3/3 (all n.s.)
+  Uniform ensemble > best member                  0/3       0/3
+
+13.8 Which dataset to use in the paper: CITESEER
+
+  Recommendation: use CiteSeer as the main dataset for the supervised
+  diversity analysis, with Gemma2-2B as the main LLM. Put Cora (all 3
+  LLMs) and the other CiteSeer LLMs in the appendix as replication.
+
+  Why CiteSeer
+  1. Comment 1 (mechanism): the full chain adapter -> embedding -> GNN ->
+     prediction is significant for all 3 LLMs on CiteSeer. On Cora it
+     breaks for SmolLM. CiteSeer answers "the relationship is not
+     sufficiently justified" much more cleanly.
+  2. Comment 2(b) (systematic, not random): the init has a significant
+     effect on per-class accuracy on CiteSeer for all 3 LLMs, never on
+     Cora. CiteSeer also has 2-4x more init-specific persistent errors and
+     a hard class where inits clearly differ.
+  3. Comment 2(a) (vs seed noise): CiteSeer + Gemma has the most "init >
+     seed" results (k-NN at LLM and GNN level significant, LLM CKA 1.09x
+     p = 0.06, init R2 > seed R2 at all levels).
+  4. Comment 2(c) (complementary): multi-init ensembles are at least as
+     good as seed-only ensembles on CiteSeer for all LLMs (only 1/3 on
+     Cora), and more distinct inits always raise the gain.
+  5. Headroom: Cora members are already ~90% accurate and have little room
+     to differ. CiteSeer (~82%) is harder and more informative. A reviewer
+     will also find it more convincing than the smallest, easiest
+     benchmark.
+
+  What Cora still gives
+  - Cora + Gemma has the single strongest "init > seed" number in
+    Experiment 1 (LLM CKA 1.20x, p = 0.012; PERMANOVA init 0.48 vs seed
+    0.22 n.s.) and the clearest init x class interaction (p = 0.006,
+    eta2 = 0.32). Cite these as supporting results.
+  - Cora shows the result is not specific to one dataset.
+
+  What neither dataset gives (state it honestly, as in section 9)
+  - At the PREDICTION level, init-only / seed-only stays <= 1 for every
+    clean pool (0.83-0.99x). The main message does not change: init adds
+    diversity on top of seed noise and is a structured, controllable
+    source, but at the prediction level it is of the same size as seed
+    diversity.
+  - No systematic rescues (0-3 nodes per pair).
+  - Uniform ensembles do not beat the best member in the supervised split;
+    only the learned DIVERGE head can show that.
+
+13.9 To do before these supervised results go into the paper
+  1. Retrain CiteSeer + LLaMA ORTHOGONAL seeds 42 and 44 (collapsed at
+     18.5% / 28.2%), re-cache the embeddings and rerun all five
+     experiments for this pool. Check whether ORTHOGONAL with LLaMA is
+     unstable in general (lr, init scale), because the same collapse may
+     appear on other datasets.
+  2. Cache ORTHOGONAL seeds 42-45 for Cora + LLaMA (still missing, so this
+     pool has 16 members instead of 20).
+  3. Run the learned DIVERGE head on seed-only vs multi-init pools
+     (section 12, item 4). In the supervised split this is now REQUIRED:
+     uniform averages never beat the best member, so only the learned head
+     can show that the ensemble is useful.
+  4. Aggregate the Gemma2-2B CiteSeer + Cora rows into the main-text
+     table of section 10.1 (replacing the semi-supervised Cora + LLaMA
+     numbers, or next to them).
+
+
+13.10 LEAKAGE in the supervised pools (found 2026-09-30)
+  LoRA training uses SPLIT=1, so LoRA seed s is fine-tuned on the seed-s
+  60/20/20 split. Every GNN in the diversity pool is evaluated on the
+  seed-42 split (--gnn_seed 42). The seed-43/44/45 train sets cover
+  58-63% of the seed-42 test nodes (Cora 542, CiteSeer 638 test nodes).
+  So members with LoRA seed 43-45 were fine-tuned on text+labels of most
+  of the test nodes. The evidence is visible in every supervised pool:
+  mean member accuracy by LoRA seed (42 / 43 / 44 / 45)
+    CiteSeer Gemma   79.87 / 82.29 / 83.23 / 82.67
+    CiteSeer LLaMA   78.96 / 82.60 / 82.01 / 82.16
+    CiteSeer SmolLM  79.40 / 82.20 / 82.41 / 82.16
+    Cora     Gemma   89.41 / 91.11 / 91.66 / 90.44
+    Cora     LLaMA   89.20 / 91.75 / 91.47 / 91.51
+    Cora     SmolLM  87.71 / 90.37 / 89.63 / 89.45
+  (the semi-supervised CiteSeer pools show no such seed-42 dip.)
+  What it affects
+  - Unaffected: adapter weight-space distances and spectral positions
+    (Exp 4a/4b), and all init-only comparisons (same seed = same split).
+  - Changes meaning: "seed-only" pairs also differ in the fine-tuning
+    split. In the paper this is stated as a stricter seed baseline.
+  - Optimistic: absolute member / ensemble accuracies, and anything that
+    depends on test-node correctness (Exp 2, Exp 3, Exp 5c).
+  Clean fix (after the deadline): add a separate split seed to
+  train_llm/train_other_lora_init_apporaches.py, fine-tune all 20 members
+  on the seed-42 split with LoRA seeds 42-45, re-cache, rerun the five
+  experiments. The main DIVERGE results (one split per seed, used by LoRA,
+  GNN and ensemble alike) are NOT affected.
+
+13.11 What went into template.tex (section sec:initDiversity)
+  Rewritten with CiteSeer + Gemma-2-2B (supervised, 20 members):
+  Table seed_vs_init, Table spectral (now with Orthogonal), Table mantel
+  (+ GNN emb -> pred, adapter B -> pred), new paragraph "Systematic
+  differences between initializations" (ANOVA init effect, class 5,
+  init-specific errors, k-NN), complementarity with the gain-vs-best
+  honesty sentence, Table seed_multi_ensemble, and a new figure
+  images/gemma2_2B_citeseer_gain_vs_distinct_inits.png (gain grows with
+  the number of distinct inits for every k; replaces the scatter plot,
+  which at rho = 0.16 looks like a cloud). The LaTeX header comment of
+  the section records the leakage note. Added \label{sec:trainable_vs_avg}
+  to "Performance Comparison of Trainable Ensemble Learning vs. Simple
+  Averaging".
+  Not claimed: init-only > seed-only at the prediction level (0.99x), and
+  "every ensemble beats its best member" (false in supervised).
+13.12 Own-split rerun (CiteSeer + Gemma-2-2B, --gnn_seed -1) -> used in the paper
+  Each member's GNN uses the split of its own LoRA seed; node metrics use
+  the test nodes shared by the compared members (same seed 638, different
+  seed ~124). Member accuracy: seed 42 ~80, seeds 43-45 ~76-78 (were
+  82-83 with the fixed split = the leakage).
+  Survives: adapter/spectral (unchanged), LLM CKA 1.09x (R2 init .35 /
+  seed .24), LLM k-NN 1.11x p=.005, Mantel adapter->LLM .57, LLM->GNN
+  .53, GNN->pred .29 (p=.010), T1 init effect at every stage (p<=.011),
+  oracle gain 2.9-3.1 pp, error-set T1 p=.022, multi-init uniform
+  ensemble +0.59 pp over mean, k-NN any-of-4-inits 67.8 -> 78.2%.
+  Gone: ANOVA init effect (p=.61), class-5 story, LLM->pred Mantel (.09
+  n.s.), GNN-level init > seed (GNN emb 0.68x, seed R2 .59), gain vs
+  number of distinct inits (flat), diversity-gain correlation (~0).
+  Not computable: seed-only ensembles of 4 seeds, error persistence,
+  rescues, any-of-4-seeds (only 4 test nodes shared by all 4 splits).
+  template.tex sec:initDiversity was rewritten with these numbers only;
+  table seed_multi_ensemble and figure div_gain were removed.

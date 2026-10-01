@@ -42,6 +42,10 @@ set PEFT_TYPE=lora
 REM SPLIT=1 = supervised embeddings/split (paper setting), 0 = semi-supervised
 set SPLIT=1
 set APPROACHES=pissa,orthogonal,gaussian,loftq,eva
+REM LoRA seeds of the adapters / embedding caches (space-separated; one run per seed).
+REM Must match the seed-tagged caches (..._pool-mean_seed<seed>_semi_supervised.pt);
+REM without it the dataset config seed is used (e.g. cora = 40), which has no cache.
+set LORA_SEEDS=42
 REM GNN seeds (one GNN per view per seed) and fusion seeds (val fit/select split + head init)
 set GNN_SEEDS=42,43,44,45
 set FUSE_SEEDS=0,1,2
@@ -81,20 +85,20 @@ REM Which experiments to run (1 = on, 0 = off)
 set RUN_EXP1=1
 set RUN_EXP2=1
 set RUN_EXP3=1
-set RUN_EXP4=1
+set RUN_EXP4=0
 set RUN_EXP5=1
 set RUN_EXP6=1
 set RUN_EXP7=1
-set RUN_EXP8=1
+set RUN_EXP8=0
 set RUN_EXP9=1
 
 set PYTHONIOENCODING=utf-8
 
 REM Datasets
-set DATASETS=cora 
+set DATASETS=cora citeseer
 
 REM LLMs (must match configs/llm_configs/<name>.json and local_models/<name>)
-set LLM_NAMES=llama_3.2_1B
+set LLM_NAMES=llama_3.2_1B smollm2_1.7B gemma2_2B
 
 set EVAL_SETS=
 if "%RUN_TEST%"=="1" set EVAL_SETS=!EVAL_SETS! test
@@ -124,15 +128,15 @@ set HISTORY_FILE=%STATUS_DIR%\ensemble_exp_run_history.csv
 set LAST_OK_FILE=%STATUS_DIR%\ENSEMBLE_EXP_LAST_COMPLETED.txt
 set FAILED_FILE=%STATUS_DIR%\ENSEMBLE_EXP_FAILED_RUNS.txt
 
-REM A history file from before the eval_set column was added: keep it aside, start a new one
+REM A history file from before the lora_seed column was added: keep it aside, start a new one
 if exist "%HISTORY_FILE%" (
-    findstr /c:",eval_set," "%HISTORY_FILE%" >nul || (
+    findstr /c:",lora_seed," "%HISTORY_FILE%" >nul || (
         move /y "%HISTORY_FILE%" "%STATUS_DIR%\ensemble_exp_run_history_old.csv" >nul
         echo [info] old run history moved to %STATUS_DIR%\ensemble_exp_run_history_old.csv
     )
 )
 if not exist "%HISTORY_FILE%" (
-    echo timestamp,status,experiment,dataset,llm_name,peft_type,split,gnn_seeds,fuse_seeds,protocol,tune,eval_set,exit_code> "%HISTORY_FILE%"
+    echo timestamp,status,experiment,dataset,llm_name,lora_seed,peft_type,split,gnn_seeds,fuse_seeds,protocol,tune,eval_set,exit_code> "%HISTORY_FILE%"
 )
 
 echo ==========================================
@@ -147,10 +151,11 @@ echo.
 
 for %%d in (%DATASETS%) do (
     for %%m in (%LLM_NAMES%) do (
+    for %%s in (%LORA_SEEDS%) do (
         for %%e in (%EXPERIMENTS%) do (
         for %%v in (%EVAL_SETS%) do (
             set "EXP_ARGS=!ARGS_%%e!"
-            set "RUN_ID=experiment=%%e | dataset=%%d | llm=%%m | peft=%PEFT_TYPE% | split=%SPLIT% | protocol=%PROTOCOL% | tune=%TUNE% | eval_set=%%v"
+            set "RUN_ID=experiment=%%e | dataset=%%d | llm=%%m | lora_seed=%%s | peft=%PEFT_TYPE% | split=%SPLIT% | protocol=%PROTOCOL% | tune=%TUNE% | eval_set=%%v"
             set "TS=!DATE! !TIME!"
 
             echo ==========================================
@@ -164,25 +169,26 @@ for %%d in (%DATASETS%) do (
                 echo experiment=%%e
                 echo dataset=%%d
                 echo llm_name=%%m
+                echo lora_seed=%%s
                 echo eval_set=%%v
-                echo command=python -m experiments.ensemble_experiments.%%e --dataset_name %%d --llm_name %%m --peft_type %PEFT_TYPE% --approaches %APPROACHES% --split %SPLIT% --gnn_seeds %GNN_SEEDS% --fuse_seeds %FUSE_SEEDS% --protocol %PROTOCOL% --fit_frac %FIT_FRAC% --tune %TUNE% --epochs %EPOCHS% --eval_set %%v --out_dir %OUT_DIR% %EXTRA_ARGS% !EXP_ARGS!
+                echo command=python -m experiments.ensemble_experiments.%%e --dataset_name %%d --llm_name %%m --peft_type %PEFT_TYPE% --lora_seed %%s --approaches %APPROACHES% --split %SPLIT% --gnn_seeds %GNN_SEEDS% --fuse_seeds %FUSE_SEEDS% --protocol %PROTOCOL% --fit_frac %FIT_FRAC% --tune %TUNE% --epochs %EPOCHS% --eval_set %%v --out_dir %OUT_DIR% %EXTRA_ARGS% !EXP_ARGS!
             ) > "%CURRENT_FILE%"
 
             REM per-experiment args come last so they override the shared seeds (argparse keeps the last value)
-            python -m experiments.ensemble_experiments.%%e --dataset_name "%%d" --llm_name "%%m" --peft_type "%PEFT_TYPE%" --approaches "%APPROACHES%" --split %SPLIT% --gnn_seeds "%GNN_SEEDS%" --fuse_seeds "%FUSE_SEEDS%" --protocol %PROTOCOL% --fit_frac %FIT_FRAC% --tune %TUNE% --epochs %EPOCHS% --eval_set %%v --out_dir "%OUT_DIR%" %EXTRA_ARGS% !EXP_ARGS!
+            python -m experiments.ensemble_experiments.%%e --dataset_name "%%d" --llm_name "%%m" --peft_type "%PEFT_TYPE%" --lora_seed %%s --approaches "%APPROACHES%" --split %SPLIT% --gnn_seeds "%GNN_SEEDS%" --fuse_seeds "%FUSE_SEEDS%" --protocol %PROTOCOL% --fit_frac %FIT_FRAC% --tune %TUNE% --epochs %EPOCHS% --eval_set %%v --out_dir "%OUT_DIR%" %EXTRA_ARGS% !EXP_ARGS!
             set EXIT_CODE=!ERRORLEVEL!
             set "TS_END=!DATE! !TIME!"
 
             if !EXIT_CODE! NEQ 0 (
                 echo ERROR: !RUN_ID!  exit_code=!EXIT_CODE!
                 REM redirect first: "...,0>> file" would be parsed as a redirect of handle 0
-                >> "%HISTORY_FILE%" echo !TS_END!,FAILED,%%e,%%d,%%m,%PEFT_TYPE%,%SPLIT%,"%GNN_SEEDS%","%FUSE_SEEDS%",%PROTOCOL%,%TUNE%,%%v,!EXIT_CODE!
+                >> "%HISTORY_FILE%" echo !TS_END!,FAILED,%%e,%%d,%%m,%%s,%PEFT_TYPE%,%SPLIT%,"%GNN_SEEDS%","%FUSE_SEEDS%",%PROTOCOL%,%TUNE%,%%v,!EXIT_CODE!
                 >> "%FAILED_FILE%" echo !TS_END! FAILED !RUN_ID! exit=!EXIT_CODE!
                 echo Continuing to next run despite failure...
                 echo.
             ) else (
                 echo OK: !RUN_ID!
-                >> "%HISTORY_FILE%" echo !TS_END!,OK,%%e,%%d,%%m,%PEFT_TYPE%,%SPLIT%,"%GNN_SEEDS%","%FUSE_SEEDS%",%PROTOCOL%,%TUNE%,%%v,0
+                >> "%HISTORY_FILE%" echo !TS_END!,OK,%%e,%%d,%%m,%%s,%PEFT_TYPE%,%SPLIT%,"%GNN_SEEDS%","%FUSE_SEEDS%",%PROTOCOL%,%TUNE%,%%v,0
                 (
                     echo status=COMPLETED
                     echo started=!TS!
@@ -190,6 +196,7 @@ for %%d in (%DATASETS%) do (
                     echo experiment=%%e
                     echo dataset=%%d
                     echo llm_name=%%m
+                echo lora_seed=%%s
                     echo eval_set=%%v
                     echo exit_code=0
                 ) > "%LAST_OK_FILE%"
@@ -197,6 +204,7 @@ for %%d in (%DATASETS%) do (
             )
         )
         )
+    )
     )
 )
 

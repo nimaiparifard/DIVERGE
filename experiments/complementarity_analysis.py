@@ -23,6 +23,12 @@ ensemble weights are learned and nothing is fitted on test nodes.
      mean pairwise disagreement vs gain over the mean member, Spearman
      correlation, and the average gain grouped by number of distinct inits.
 
+Own-split mode (--gnn_seed -1): every pair / ensemble / subset is evaluated only on
+the nodes that are test nodes for all of its members (so no member was fine-tuned
+on them). Ensembles and subsets with fewer than --min_eval_nodes such nodes are
+skipped; in practice this drops groups that span many seeds (e.g. seed-only
+ensembles of 4 seeds share only ~0.2% of the nodes).
+
 Outputs (under --out_dir, default results/diversity/complementarity/):
   complementarity_summary.csv     one row per run
   complementarity_ensembles.csv   one row per seed-only / multi-init ensemble
@@ -39,31 +45,33 @@ from scipy.stats import spearmanr, mannwhitneyu
 
 from experiments.diversity_common import (
     add_common_args, pool_from_args, parse_list, within_between_test, save_pool_heatmap, save_matrix_csv,
-    run_info, append_rows, TextReport,
+    run_info, append_rows, TextReport, common_mask,
 )
 
 
-def pairwise_complementarity(correct, preds):
-    """Pairwise matrices on test nodes (rows of `correct`/`preds` = members)."""
+def pairwise_complementarity(correct, preds, masks):
+    """
+    Pairwise matrices; `correct`/`preds` are [M, n] over all nodes and `masks` [M, n]
+    the test nodes of each member. A pair (i, j) is evaluated on masks[i] & masks[j].
+    """
     M = correct.shape[0]
-    c = correct.astype(np.float64)
-    n11 = c @ c.T                       # both right
-    n00 = (1 - c) @ (1 - c).T           # both wrong
-    n10 = c @ (1 - c).T                 # i right, j wrong
-    n01 = n10.T
-    n = correct.shape[1]
-    denom = n11 * n00 + n01 * n10
-    Q = np.where(denom > 0, (n11 * n00 - n01 * n10) / np.where(denom > 0, denom, 1), 1.0)
-    acc = c.mean(axis=1)
-    oracle = 1 - n00 / n
-    disagree = np.stack([(preds[i:i + 1] != preds).mean(axis=1) for i in range(M)])
-    return {
-        'double_fault': n00 / n,
-        'oracle_acc': oracle,
-        'oracle_gain': oracle - np.maximum(acc[:, None], acc[None, :]),
-        'q_statistic': Q,
-        'disagreement': disagree,
-    }
+    out = {k: np.zeros((M, M)) for k in ('double_fault', 'oracle_acc', 'oracle_gain', 'q_statistic',
+                                         'disagreement')}
+    for i in range(M):
+        for j in range(M):
+            m = masks[i] & masks[j]
+            ci, cj = correct[i, m], correct[j, m]
+            n = max(int(m.sum()), 1)
+            n11, n00 = (ci & cj).sum(), (~ci & ~cj).sum()
+            n10, n01 = (ci & ~cj).sum(), (~ci & cj).sum()
+            denom = n11 * n00 + n01 * n10
+            oracle = 1 - n00 / n
+            out['double_fault'][i, j] = n00 / n
+            out['oracle_acc'][i, j] = oracle
+            out['oracle_gain'][i, j] = oracle - max(ci.mean(), cj.mean())
+            out['q_statistic'][i, j] = (n11 * n00 - n01 * n10) / denom if denom > 0 else 1.0
+            out['disagreement'][i, j] = (preds[i, m] != preds[j, m]).mean()
+    return out
 
 
 def ensemble_stats(probs, y_onehot, y, members):
@@ -86,8 +94,13 @@ def ensemble_stats(probs, y_onehot, y, members):
     }
 
 
-def subset_sweep(probs, y, acc, disagree, inits, k, max_subsets, rng, chunk=512):
-    """Diversity vs gain over k-subsets of the pool."""
+def subset_sweep(probs, y, masks, seeds, inits, k, max_subsets, min_nodes, rng, chunk=512):
+    """
+    Diversity vs gain over k-subsets of the pool. `probs` [M, n, C] and `y` [n] over
+    all nodes; each subset is evaluated on the nodes that are test nodes for all of its
+    members (shared by every subset with the same set of seeds). Subsets with fewer
+    than `min_nodes` such nodes are dropped.
+    """
     M = probs.shape[0]
     total = math.comb(M, k)
     if total <= max_subsets:
@@ -97,19 +110,39 @@ def subset_sweep(probs, y, acc, disagree, inits, k, max_subsets, rng, chunk=512)
         while len(seen) < max_subsets:
             seen.add(tuple(sorted(rng.choice(M, size=k, replace=False))))
         subsets = np.array(sorted(seen))
-    ens_acc = []
-    for s in range(0, len(subsets), chunk):
-        idx = torch.as_tensor(subsets[s:s + chunk])
-        p_bar = probs[idx].mean(dim=1)                   # [B, n, C]
-        ens_acc.append((p_bar.argmax(dim=2) == y[None]).float().mean(dim=1).numpy() * 100)
-    ens_acc = np.concatenate(ens_acc)
+    groups = {}
+    for r, s in enumerate(subsets):
+        groups.setdefault(frozenset(int(x) for x in seeds[s]), []).append(r)
+    keep, ens_acc, div, mean_acc, best_acc = [], [], [], [], []
     iu = np.triu_indices(k, 1)
-    div = np.array([disagree[np.ix_(s, s)][iu].mean() for s in subsets])
-    mean_acc = acc[subsets].mean(axis=1)
-    best_acc = acc[subsets].max(axis=1)
+    for rows in groups.values():
+        m = common_mask(masks, subsets[rows[0]])
+        if int(m.sum()) < min_nodes:
+            continue
+        pm, ym = probs[:, m], y[m]
+        pred = pm.argmax(dim=2)                          # [M, n_m]
+        acc = (pred == ym[None]).float().mean(dim=1).numpy() * 100
+        sub = subsets[rows]
+        for s in range(0, len(sub), chunk):
+            idx = torch.as_tensor(sub[s:s + chunk])
+            p_bar = pm[idx].mean(dim=1)                  # [B, n_m, C]
+            ens_acc.append((p_bar.argmax(dim=2) == ym[None]).float().mean(dim=1).numpy() * 100)
+        for s in sub:
+            ps = pred[torch.as_tensor(s)]
+            d = (ps[:, None] != ps[None, :]).float().mean(dim=2).numpy()
+            div.append(d[iu].mean())
+        mean_acc.append(acc[sub].mean(axis=1))
+        best_acc.append(acc[sub].max(axis=1))
+        keep.extend(rows)
+    if not keep:
+        return None
+    n_dropped = len(subsets) - len(keep)
+    subsets = subsets[keep]
+    ens_acc, mean_acc, best_acc = np.concatenate(ens_acc), np.concatenate(mean_acc), np.concatenate(best_acc)
     n_inits = np.array([len(set(inits[s])) for s in subsets])
-    return {'subsets': subsets, 'diversity': div, 'ens_acc': ens_acc, 'gain_vs_mean': ens_acc - mean_acc,
-            'gain_vs_best': ens_acc - best_acc, 'n_inits': n_inits, 'sampled': total > max_subsets, 'total': total}
+    return {'subsets': subsets, 'diversity': np.array(div), 'ens_acc': ens_acc, 'gain_vs_mean': ens_acc - mean_acc,
+            'gain_vs_best': ens_acc - best_acc, 'n_inits': n_inits, 'sampled': total > max_subsets, 'total': total,
+            'n_dropped': n_dropped}
 
 
 def plot_div_vs_gain(res, k, save_path, pool):
@@ -144,18 +177,18 @@ def main(args):
     rng = np.random.default_rng(0)
 
     gnn = pool.load_gnn_pool(retrain=args.retrain_gnn)
-    test = gnn['test_mask']
-    y = gnn['y'][test]
-    probs = gnn['probs'][:, test]                        # [M, n_test, C]
-    preds = gnn['preds'][:, test].numpy()
-    correct = preds == y.numpy()[None]
-    acc = correct.mean(axis=1) * 100
-    y_onehot = torch.nn.functional.one_hot(y, probs.shape[2]).float()
+    masks = gnn['test_masks']                            # [M, n] own test nodes
+    y_all = gnn['y']
+    probs_all = gnn['probs']                             # [M, n, C]
+    preds_all = gnn['preds'].numpy()
+    correct_all = preds_all == y_all.numpy()[None]
+    min_nodes = args.min_eval_nodes if pool.own_split else 1
 
     # a) pairwise complementarity
-    pw = pairwise_complementarity(correct, preds)
-    report.section('a) Pairwise complementarity (test nodes)')
-    summary = dict(info, n_test_nodes=int(test.sum()))
+    pw = pairwise_complementarity(correct_all, preds_all, masks.numpy())
+    report.section('a) Pairwise complementarity (' + ('shared test nodes of each pair' if pool.own_split
+                                                        else 'test nodes') + ')')
+    summary = dict(info, n_test_nodes=int(masks[0].sum()))
     # orientation for the test: larger = more diverse / complementary
     oriented = {'double_fault_complement': 1 - pw['double_fault'], 'oracle_gain': pw['oracle_gain'],
                 'q_distance': (1 - pw['q_statistic']) / 2}
@@ -195,8 +228,29 @@ def main(args):
         report.line(f"{'family':<20}{'n':>4}{'size':>6}{'ens acc':>10}{'gain/mean':>11}{'gain/best':>11}"
                     f"{'avg err':>10}{'ambiguity':>11}{'ens err':>10}")
         fam_acc = {}
-        for fam, member_lists in families.items():
-            stats = [ensemble_stats(probs, y_onehot, y, torch.as_tensor(m)) for m in member_lists]
+        n_cls = probs_all.shape[2]
+
+        def eval_ensemble(members):
+            m = common_mask(masks, members)
+            if int(m.sum()) < min_nodes:
+                return None
+            y = y_all[m]
+            st = ensemble_stats(probs_all[:, m], torch.nn.functional.one_hot(y, n_cls).float(), y,
+                                torch.as_tensor(members))
+            st['n_eval_nodes'] = int(m.sum())
+            return st
+
+        for fam, member_lists in list(families.items()):
+            evaluated = [(m, eval_ensemble(m)) for m in member_lists]
+            if pool.own_split:
+                n_skip = sum(st is None for _, st in evaluated)
+                if n_skip:
+                    report.line(f'  {fam}: {n_skip}/{len(evaluated)} ensembles skipped (< {min_nodes} shared test nodes)')
+            evaluated = [(m, st) for m, st in evaluated if st is not None]
+            if not evaluated:
+                continue
+            member_lists = [m for m, _ in evaluated]
+            stats = [st for _, st in evaluated]
             for m, st in zip(member_lists, stats):
                 ens_rows.append(dict(info, family=fam, size=len(m), members='|'.join(pool.labels[i] for i in m),
                                      n_distinct_inits=len(set(pool.inits[m])), **st))
@@ -208,9 +262,13 @@ def main(args):
             summary.update({f'{fam}_{key}': avg[key] for key in ('ens_acc', 'gain_vs_mean', 'gain_vs_best',
                                                                     'ambiguity', 'avg_member_sq_err', 'ens_sq_err')})
             summary[f'{fam}_n'] = len(stats)
-        p = mannwhitneyu(fam_acc['multi_init_matched'], fam_acc['seed_only_matched'], alternative='greater').pvalue
-        summary['matched_multi_init_vs_seed_only_mwu_p'] = p
-        report.line(f'Multi-init > seed-only (matched size, Mann-Whitney one-sided): p={p:.4g}')
+        if 'multi_init_matched' in fam_acc and 'seed_only_matched' in fam_acc:
+            p = mannwhitneyu(fam_acc['multi_init_matched'], fam_acc['seed_only_matched'],
+                             alternative='greater').pvalue
+            summary['matched_multi_init_vs_seed_only_mwu_p'] = p
+            report.line(f'Multi-init > seed-only (matched size, Mann-Whitney one-sided): p={p:.4g}')
+        else:
+            report.line('Multi-init vs seed-only test skipped: one family has no evaluable ensemble')
         report.line('(ensemble error = avg member error - ambiguity; higher ambiguity at equal member error = '
                     'more useful diversity)')
     else:
@@ -222,10 +280,14 @@ def main(args):
     for k in parse_list(args.subset_sizes, int):
         if k < 2 or k > len(pool):
             continue
-        res = subset_sweep(probs, y, acc, pw['disagreement'], pool.inits, k, args.max_subsets, rng)
+        res = subset_sweep(probs_all, y_all, masks, pool.seeds, pool.inits, k, args.max_subsets, min_nodes, rng)
+        if res is None or len(res['subsets']) < 3:
+            report.line(f'k={k}: skipped (no subset with >= {min_nodes} shared test nodes)')
+            continue
         rho, p = spearmanr(res['diversity'], res['gain_vs_mean'])
-        report.line(f"k={k}: {len(res['subsets'])} subsets{' (sampled of ' + str(res['total']) + ')' if res['sampled'] else ''} "
-                    f"| Spearman(diversity, gain/mean) = {rho:.3f} (p={p:.3g})")
+        dropped = f", {res['n_dropped']} dropped (< {min_nodes} shared test nodes)" if res['n_dropped'] else ''
+        report.line(f"k={k}: {len(res['subsets'])} subsets{' (sampled of ' + str(res['total']) + ')' if res['sampled'] else ''}"
+                    f"{dropped} | Spearman(diversity, gain/mean) = {rho:.3f} (p={p:.3g})")
         for n in sorted(set(res['n_inits'])):
             m = res['n_inits'] == n
             report.line(f"    {n} distinct init(s): n={m.sum():>6}  diversity {res['diversity'][m].mean() * 100:6.2f}%  "

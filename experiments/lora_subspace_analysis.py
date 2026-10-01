@@ -55,6 +55,9 @@ from train_llm.peft_model import get_model_path
 
 
 def adapter_dir(pool, member):
+    # Pool members carry their adapter dir (it depends on --split_seed / --init_seed).
+    if 'adapter' in member:
+        return member['adapter']
     return os.path.join('artifacts', f"{pool.model_name}_{pool.dataset_name}_seqcls_{pool.peft_type}"
                                      f"_semi_supervised_init_type_{member['init']}_seed{member['seed']}")
 
@@ -220,7 +223,7 @@ def main(args):
     llm = cached_matrix(pool, 'llm_cka_dist', lambda: cka_distance_matrix(pool.load_llm_embeddings()))
     gnn_cka = cached_matrix(pool, 'gnn_cka_dist', lambda: cka_distance_matrix(gnn['emb']),
                             recompute=args.retrain_gnn)
-    pred = disagreement_matrix(gnn['preds'], gnn['test_mask'])
+    pred = disagreement_matrix(gnn['preds'], gnn['test_masks'])
     sub = np.ix_(keep, keep)
     stages = {'adapter_A_subspace': D['adapter_A_subspace'], 'adapter_B_subspace': D['adapter_B_subspace'],
               'adapter_product': D['adapter_product'], 'llm_embedding_cka': llm[sub],

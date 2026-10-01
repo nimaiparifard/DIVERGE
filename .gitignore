@@ -216,3 +216,24 @@ checkpoint-*/
 wandb/
 mlruns/
 runs/
+
+# Embeddings / cached arrays / serialized objects (heavy, regenerable)
+embeddings/
+*_embeddings/
+cache/**/*.pt
+*.npy
+*.npz
+*.pkl
+*.pickle
+*.h5
+*.hdf5
+*.parquet
+*.feather
+*.arrow
+*.joblib
+*.onnx
+*.gguf
+
+# Keep the small reproducibility seed splits
+!seed_snapshot/
+!seed_snapshot/**

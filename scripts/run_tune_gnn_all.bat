@@ -24,7 +24,7 @@ set DATASETS=cora
 
 REM LLMs (must have cached embeddings under artifacts/cache)
 set LLM_NAMES=llama_3.2_1B
-#set LLM_NAMES=llama_3.2_1B smollm2_1.7B gemma2_2B
+REM set LLM_NAMES=llama_3.2_1B smollm2_1.7B gemma2_2B
 
 REM Seeds (must match the seeds the LoRA adapters / embedding caches were made with)
 set SEEDS=42
@@ -36,18 +36,18 @@ REM Embedding cache to tune on
 set INIT_APPROACH=eva
 
 REM Search settings (see python -m gnns.tune_gnn_hyperparameter --help)
-#set SEARCH=grid
-#set RUNG0_EPOCHS=0
-#set TOP_K=512
-#set N_EVAL_SEEDS=3
-#set N_TRIALS=512
-REM Search settings (see python -m gnns.tune_gnn_hyperparameter --help)
-set SEARCH=grid
-set N_TRIALS=60
-set RUNG0_EPOCHS=100
-set TOP_K=64
-set N_EVAL_SEEDS=5
+REM Efficient full grid (512 configs) via successive halving:
+REM   rung 0 : all 512 configs, 1 seed, RUNG0_EPOCHS epochs (early_stop = epochs/5),
+REM            runs pruned once they fall below PRUNE_RATIO * best so far
+REM   final  : TOP_K best configs x N_EVAL_SEEDS seeds at the full budget (200 epochs)
+REM   => ~512 short runs + 48 full runs instead of 512 x 3 full runs
+set SEARCH=random
+set N_TRIALS=512
+set RUNG0_EPOCHS=50
+set TOP_K=16
+set N_EVAL_SEEDS=3
 set PRUNE_RATIO=0.9
+REM Exhaustive (slow) grid instead: RUNG0_EPOCHS=0, TOP_K=512, PRUNE_RATIO=0
 
 REM Set to 1 to re-tune combinations that already have a tuned file
 set RETUNE=1
@@ -75,7 +75,7 @@ for %%d in (%DATASETS%) do (
                 echo ==========================================
                 echo START: dataset=%%d ^| llm=%%m ^| seed=%%s ^| gnn=%%g ^| init=%INIT_APPROACH%
                 echo ==========================================
-                python -m gnns.tune_gnn_hyperparameter --dataset_name %%d --llm_name %%m --seed %%s --gnn_model_name %%g --re_split %RE_SPLIT% --init_weight_approach %INIT_APPROACH% --search %SEARCH% --n_trials %N_TRIALS% --rung0_epochs %RUNG0_EPOCHS% --top_k %TOP_K% --n_eval_seeds %N_EVAL_SEEDS% %SKIP_FLAG%
+                python -m gnns.tune_gnn_hyperparameter --dataset_name %%d --llm_name %%m --seed %%s --gnn_model_name %%g --re_split %RE_SPLIT% --init_weight_approach %INIT_APPROACH% --search %SEARCH% --n_trials %N_TRIALS% --rung0_epochs %RUNG0_EPOCHS% --top_k %TOP_K% --n_eval_seeds %N_EVAL_SEEDS% --prune_ratio %PRUNE_RATIO% %SKIP_FLAG%
                 set EXIT_CODE=!ERRORLEVEL!
                 set "TS_END=!DATE! !TIME!"
                 if !EXIT_CODE! NEQ 0 (

@@ -16,7 +16,7 @@ from datetime import datetime
 
 from config import setup_finetuning_cfg
 from dataset.data_utils import get_init_dataset_for_gnn, get_embedding_from_data
-from gnns.gnn_mtrainer import gnn_train_and_report, append_gnn_result_csv
+from gnns.gnn_mtrainer import gnn_train_and_report, append_gnn_result_csv, SUPPORTED_GNN_MODELS, DEFAULT_GNN_MODEL
 from ensemble.ensemble_gnns_learning import tune_ensemble_hyperparameter, ENSEMBLE_WEIGHT_APPROACHES
 from report.reporter import ReportResults
 from train_llm.efficiency import ResourceMonitor
@@ -68,7 +68,7 @@ def run_ensembles(dataset_name, models, embeddings, ensemble_approaches, reporte
 
 def main(dataset_name, llm_name='llama_3.2_1B', peft_type='lora', seed=None, supervised=True,
          approaches=None, ensemble_approaches='learnable', reporter_index=0,
-         csv_path='results/diverge/diverge_no_edge_editing_results.csv'):
+         csv_path='results/diverge/diverge_no_edge_editing_results.csv', gnn_model_name=None):
     """
     Run the DIVERGE pipeline (no edge editing) for one (dataset, llm, seed) combination.
 
@@ -86,8 +86,11 @@ def main(dataset_name, llm_name='llama_3.2_1B', peft_type='lora', seed=None, sup
               trained once; every ensemble approach is evaluated on the same models and
               gets its own CSV row (sharing run_id).
         csv_path: where to append the complete-info result row ("" / None disables it).
+        gnn_model_name: GNN encoder for every per-approach GNN (one of SUPPORTED_GNN_MODELS);
+              None keeps the encoder from the tuned hyperparameter JSON (SAGE by default).
     """
     approaches = approaches or APPROACHES
+    gnn_tag = gnn_model_name or DEFAULT_GNN_MODEL
     ensemble_approaches = parse_ensemble_approaches(ensemble_approaches)
     cfg = setup_finetuning_cfg(dataset_name, llm_name, peft_type)
     if seed is not None:
@@ -96,13 +99,13 @@ def main(dataset_name, llm_name='llama_3.2_1B', peft_type='lora', seed=None, sup
 
     print("=" * 80)
     print(f"DIVERGE | dataset={dataset_name} llm={llm_name} peft={peft_type} "
-          f"seed={resolved_seed} supervised={supervised} approaches={approaches} "
+          f"seed={resolved_seed} supervised={supervised} gnn={gnn_tag} approaches={approaches} "
           f"ensemble_approaches={ensemble_approaches}")
     print("=" * 80)
 
     split_tag = "supervised" if supervised else "semi_supervised"
-    run_id = f"{dataset_name}_{llm_name}_{split_tag}_seed{resolved_seed}_{datetime.now().strftime('%Y%m%d-%H%M%S')}"
-    reporter = ReportResults(cfg, save_dir=f"results/train_info/{dataset_name}_diverge_{split_tag}_seed{resolved_seed}",
+    run_id = f"{dataset_name}_{llm_name}_{gnn_tag}_{split_tag}_seed{resolved_seed}_{datetime.now().strftime('%Y%m%d-%H%M%S')}"
+    reporter = ReportResults(cfg, save_dir=f"results/train_info/{dataset_name}_diverge_{llm_name}_{gnn_tag}_{split_tag}_seed{resolved_seed}",
                               index_run=reporter_index)
     reporter.report("DIVERGE Run", f"run_id: {run_id}\ndataset: {dataset_name}\nllm: {llm_name}\npeft: {peft_type}\n"
                                    f"seed: {resolved_seed}\nsplit: {split_tag}\napproaches: {', '.join(approaches)}\n"
@@ -118,7 +121,7 @@ def main(dataset_name, llm_name='llama_3.2_1B', peft_type='lora', seed=None, sup
     # 2) Train one GNN per approach (each call also appends its own row to
     #    results/gnn_training/gnn_training_results.csv, see gnn_train_and_report)
     gnn_kwargs = dict(does_print_training_process=False, reporter=reporter, supervised=supervised,
-                       seed=resolved_seed, llm_name=llm_name, peft_type=peft_type)
+                       seed=resolved_seed, llm_name=llm_name, peft_type=peft_type, gnn_model_name=gnn_model_name)
     results, models = {}, {}
     for name in approaches:
         results[name], models[name] = gnn_train_and_report(dataset_name, emb[name], title=TITLES[name], **gnn_kwargs)
@@ -174,6 +177,7 @@ def main(dataset_name, llm_name='llama_3.2_1B', peft_type='lora', seed=None, sup
             "peft_type": peft_type,
             "seed": resolved_seed,
             "supervised": supervised,
+            "gnn_model_name": gnn_tag,
             "approaches": ",".join(approaches),
             "total_run_time_sec": run_cost["time_sec"],
             "total_run_peak_vram_mb": run_cost["peak_vram_mb"],
@@ -231,6 +235,8 @@ if __name__ == "__main__":
                          help=f"'all' or comma-separated subset of {ENSEMBLE_WEIGHT_APPROACHES}")
     parser.add_argument('--reporter_index', type=int, default=0)
     parser.add_argument('--csv_path', type=str, default='results/diverge/diverge_no_edge_editing_results.csv')
+    parser.add_argument('--gnn_model_name', type=str, default=None, choices=SUPPORTED_GNN_MODELS,
+                         help='GNN encoder for every per-approach GNN (default: from the tuned hyperparameter JSON)')
     args = parser.parse_args()
 
     main(
@@ -243,4 +249,5 @@ if __name__ == "__main__":
         ensemble_approaches=args.ensemble_approaches,
         reporter_index=args.reporter_index,
         csv_path=args.csv_path,
+        gnn_model_name=args.gnn_model_name,
     )

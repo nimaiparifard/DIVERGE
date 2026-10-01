@@ -34,12 +34,22 @@ cd /d "%SCRIPT_DIR%.."
 
 set PEFT_TYPE=lora
 REM SPLIT=0 = semi-supervised seed-tagged caches (what run_cache_embedding_all_datasets.bat writes)
-set SPLIT=0
+set SPLIT=1
 REM LoRA seeds forming the pool (comma-separated, must match the trained/cached adapters)
 set SEEDS=42,43,44,45
 set APPROACHES=pissa,orthogonal,gaussian,loftq,eva
-REM Fixed GNN seed shared by every pool member (isolates the LoRA seed)
+REM Leakage-free setup (default): every member's LoRA was fine-tuned on split SPLIT_SEED
+REM (trained with --split_seed, e.g. by scripts/run_q2_experiment.bat) and every GNN is
+REM trained and tested on the same split (GNN_SEED = SPLIT_SEED), so no member has seen a
+REM test label. INIT_SEED: the --init_seed the members were trained with (empty = none).
+REM Old members (LoRA seed s fine-tuned on split s): set SPLIT_SEED= and GNN_SEED=-1
+REM (own split), or add --allow_leakage to EXTRA_ARGS to reproduce the old leaky reports.
+set SPLIT_SEED=42
+set INIT_SEED=0
 set GNN_SEED=42
+set LORA_ARGS=
+if not "%SPLIT_SEED%"=="" set LORA_ARGS=--split_seed %SPLIT_SEED%
+if not "%SPLIT_SEED%"=="" if not "%INIT_SEED%"=="" set LORA_ARGS=!LORA_ARGS! --init_seed %INIT_SEED%
 set N_PERM=2000
 set OUT_DIR=results\diversity
 REM Extra flags for every experiment, e.g. "--gnn_model_name GCN" or "--retrain_gnn"
@@ -55,10 +65,10 @@ set RUN_KNN=1
 set PYTHONIOENCODING=utf-8
 
 REM Datasets
-set DATASETS=cora 
+set DATASETS=cora
 
 REM LLMs (must match configs/llm_configs/<name>.json and local_models/<name>)
-set LLM_NAMES=llama_3.2_1B
+set LLM_NAMES=llama_3.2_1B smollm2_1.7B gemma2_2B
 
 set EXPERIMENTS=
 if "%RUN_SEED_VS_INIT%"=="1" set EXPERIMENTS=!EXPERIMENTS! seed_vs_init_diversity
@@ -106,10 +116,10 @@ for %%d in (%DATASETS%) do (
                 echo dataset=%%d
                 echo llm_name=%%m
                 echo seeds=%SEEDS%
-                echo command=python -m experiments.%%e --dataset_name %%d --llm_name %%m --peft_type %PEFT_TYPE% --seeds %SEEDS% --approaches %APPROACHES% --split %SPLIT% --gnn_seed %GNN_SEED% --n_perm %N_PERM% --out_dir %OUT_DIR% %EXTRA_ARGS%
+                echo command=python -m experiments.%%e --dataset_name %%d --llm_name %%m --peft_type %PEFT_TYPE% --seeds %SEEDS% --approaches %APPROACHES% --split %SPLIT% --gnn_seed %GNN_SEED% %LORA_ARGS% --n_perm %N_PERM% --out_dir %OUT_DIR% %EXTRA_ARGS%
             ) > "%CURRENT_FILE%"
 
-            python -m experiments.%%e --dataset_name "%%d" --llm_name "%%m" --peft_type "%PEFT_TYPE%" --seeds "%SEEDS%" --approaches "%APPROACHES%" --split %SPLIT% --gnn_seed %GNN_SEED% --n_perm %N_PERM% --out_dir "%OUT_DIR%" %EXTRA_ARGS%
+            python -m experiments.%%e --dataset_name "%%d" --llm_name "%%m" --peft_type "%PEFT_TYPE%" --seeds "%SEEDS%" --approaches "%APPROACHES%" --split %SPLIT% --gnn_seed %GNN_SEED% %LORA_ARGS% --n_perm %N_PERM% --out_dir "%OUT_DIR%" %EXTRA_ARGS%
             set EXIT_CODE=!ERRORLEVEL!
             set "TS_END=!DATE! !TIME!"
 

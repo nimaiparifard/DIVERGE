@@ -10,7 +10,7 @@ All five experiments work on the same *pool* of models for one (dataset, llm):
 one member per (LoRA-init approach, LoRA seed), e.g. 5 inits x 4 seeds = 20.
 
 - LLM embeddings are loaded strictly from the seed-tagged cache
-  (<llm>_<dataset>_seqcls_<peft>_init-<init>_pool-mean_seed<seed>[_semi_supervised].pt).
+  (<llm>_<dataset>_seqcls_<peft>_init-<init>_pool-mean_seed<seed>_semi_supervised.pt, for both splits).
   Unlike dataset.data_utils.get_init_dataset_for_gnn there is NO fallback to
   seed-less caches: a fallback would silently put the same embedding under
   several seeds and fake zero seed variance. Missing members are skipped and
@@ -20,6 +20,19 @@ one member per (LoRA-init approach, LoRA seed), e.g. 5 inits x 4 seeds = 20.
   LoRA seed. Its test/val predictions, class probabilities and penultimate
   (before-logits) node embeddings are cached under
   results/diversity/gnn_pool/ and reused by every experiment.
+- --gnn_seed -1 ("own split"): every member's GNN is trained and tested on the
+  split of its OWN LoRA seed. With --split 1 the LoRA of seed s was fine-tuned on
+  the seed-s split, so a fixed GNN split would test seed-t members (t != s) on
+  nodes their LoRA was fine-tuned on. In own-split mode every node-level
+  comparison uses only nodes that are test nodes of ALL compared members
+  (pairs: test_i & test_j; groups: AND over the group), so no member has seen
+  the labels of the nodes it is evaluated on. Group analyses whose common test
+  set is smaller than --min_eval_nodes are skipped and reported as such.
+- Leakage-free fixed split (--split_seed T --gnn_seed T): read members whose LoRA was
+  fine-tuned on split T for every LoRA seed (trained with --split_seed T, optionally
+  --init_seed), so every member is evaluated on the same, never-seen test nodes. The
+  original members (LoRA seed s fine-tuned on split s) tested on one fixed split leak
+  test labels; check_no_leakage refuses that combination unless --allow_leakage.
 - Diversity matrices are always expressed as *distances* (larger = more
   diverse): 1 - CKA, prediction disagreement, 1 - subspace overlap, 1 - Jaccard.
 """
@@ -35,6 +48,7 @@ from dataset.data_utils import get_cached_dir
 from gnns.gnn_mtrainer import set_mgnn_cfg, GNNTrainer, append_gnn_result_csv
 from experiments.cka import APPROACHES, TITLES
 from experiments.cka_for_gnn_embeddings import extract_gnn_penultimate_embedding
+from adapter_dir import lora_run_tag
 
 DEFAULT_SEEDS = [42, 43, 44, 45]
 DEFAULT_OUT_DIR = 'results/diversity'
@@ -50,9 +64,25 @@ def add_common_args(parser):
     parser.add_argument('--approaches', type=str, default=','.join(APPROACHES),
                         help=f"Comma-separated subset of {APPROACHES}")
     parser.add_argument('--split', type=int, default=0,
-                        help='0 = semi-supervised seed-tagged caches (default), 1 = supervised seed-tagged caches')
+                        help='GNN split: 0 = semi-supervised (default), 1 = supervised; both read the seed-tagged _semi_supervised caches')
     parser.add_argument('--gnn_seed', type=int, default=42,
-                        help='Fixed GNN seed/split shared by every pool member (isolates the LoRA seed)')
+                        help='Fixed GNN seed/split shared by every pool member (isolates the LoRA seed). '
+                             '-1 = own split: each member uses the split of its own LoRA seed (no leakage when '
+                             'the LoRA was fine-tuned with --split 1)')
+    parser.add_argument('--split_seed', type=int, default=None,
+                        help='Read members whose LoRA was fine-tuned on this split for every LoRA seed '
+                             '(trained with --split_seed; ..._seed<s>_split<t>_... caches). Use it with '
+                             '--gnn_seed equal to it: then no member has seen a test label. Default: the '
+                             'original members, fine-tuned on the split of their own LoRA seed')
+    parser.add_argument('--init_seed', type=int, default=None,
+                        help='With --split_seed: read members trained with this --init_seed (same LoRA init '
+                             'draw for every seed; ..._seed<s>_split<t>_init<i>_...)')
+    parser.add_argument('--allow_leakage', action='store_true',
+                        help='Supervised split only: run even if a member was fine-tuned on a different split '
+                             'than the GNN split (its LoRA has seen labels of GNN test nodes). Only for '
+                             'reproducing the old reports')
+    parser.add_argument('--min_eval_nodes', type=int, default=30,
+                        help='Own-split mode: skip group analyses whose common test set is smaller than this')
     parser.add_argument('--gnn_model_name', type=str, default=None,
                         help='GNN encoder (default: the one in the tuned hyperparameter JSON)')
     parser.add_argument('--retrain_gnn', action='store_true', help='Ignore the cached GNN pool and retrain')
@@ -66,22 +96,37 @@ def parse_list(text, cast=str):
 
 
 # ----------------------------------------------------------------------------- pool
-def embedding_cache_path(cache_dir, llm_name, dataset_name, peft_type, init, seed, supervised):
-    suffix = '' if supervised else '_semi_supervised'
+def embedding_cache_path(cache_dir, llm_name, dataset_name, peft_type, init, seed, supervised,
+                         split_seed=None, init_seed=None):
+    # The seed-tagged semi-supervised cache serves both splits (same as
+    # dataset.data_utils.get_init_dataset_for_gnn); `supervised` only affects the GNN split.
     return os.path.join(cache_dir, f'{llm_name}_{dataset_name}_seqcls_{peft_type}_init-{init}_pool-mean'
-                                   f'_seed{seed}{suffix}.pt')
+                                   f'{lora_run_tag(seed, split_seed, init_seed)}_semi_supervised.pt')
+
+
+def adapter_path(llm_name, dataset_name, peft_type, init, seed, split_seed=None, init_seed=None):
+    return os.path.join('artifacts', f'{llm_name}_{dataset_name}_seqcls_{peft_type}_semi_supervised_init_type_{init}'
+                                     f'{lora_run_tag(seed, split_seed, init_seed)}')
 
 
 class Pool:
     """Members of one (dataset, llm) pool, ordered by init (APPROACHES order) then seed."""
 
     def __init__(self, dataset_name, llm_name, peft_type, approaches, seeds, supervised, gnn_seed,
-                 gnn_model_name=None, out_dir=DEFAULT_OUT_DIR):
+                 gnn_model_name=None, out_dir=DEFAULT_OUT_DIR, split_seed=None, init_seed=None,
+                 allow_leakage=False):
         self.dataset_name, self.llm_name, self.peft_type = dataset_name, llm_name, peft_type
         self.supervised, self.gnn_seed, self.out_dir = supervised, gnn_seed, out_dir
+        self.own_split = gnn_seed is not None and gnn_seed < 0
+        if init_seed is not None and split_seed is None:
+            raise ValueError('--init_seed needs --split_seed (the members were trained with both)')
+        self.split_seed, self.init_seed = split_seed, init_seed
+        check_no_leakage(seeds, split_seed, gnn_seed, supervised, allow_leakage)
+        self.gnn_model_name_arg = gnn_model_name
         self.cfg = setup_finetuning_cfg(dataset_name, llm_name, peft_type)
         self.model_name = self.cfg.llm.model_name
-        self.gnn_cfg = set_mgnn_cfg(dataset_name, supervised=supervised, seed=gnn_seed, llm_name=llm_name,
+        self.gnn_cfg = set_mgnn_cfg(dataset_name, supervised=supervised,
+                                    seed=seeds[0] if self.own_split else gnn_seed, llm_name=llm_name,
                                     gnn_model_name=gnn_model_name)
         self.gnn_name = self.gnn_cfg.gnn_model_name
 
@@ -91,8 +136,10 @@ class Pool:
         for init in approaches:
             for seed in seeds:
                 path = embedding_cache_path(cache_dir, self.model_name, dataset_name, peft_type, init, seed,
-                                            supervised)
-                m = {'init': init, 'seed': seed, 'label': f'{TITLES[init]}-{seed}', 'path': path}
+                                            supervised, split_seed, init_seed)
+                m = {'init': init, 'seed': seed, 'label': f'{TITLES[init]}-{seed}', 'path': path,
+                     'adapter': adapter_path(self.model_name, dataset_name, peft_type, init, seed,
+                                             split_seed, init_seed)}
                 (self.members if os.path.exists(path) else self.missing).append(m)
         if len(self.members) < 2:
             raise FileNotFoundError(
@@ -105,14 +152,20 @@ class Pool:
     @property
     def tag(self):
         split = 'sup' if self.supervised else 'semi'
-        return f'{self.dataset_name}_{self.model_name}_{self.peft_type}_{split}_{self.gnn_name}_gnnseed{self.gnn_seed}'
+        gs = 'own' if self.own_split else self.gnn_seed
+        # Fixed-split pools get their own outputs (GNN pool, matrices, reports) next to the old ones.
+        ft = '' if self.split_seed is None else f'_ftsplit{self.split_seed}'
+        ft += '' if self.init_seed is None else f'_init{self.init_seed}'
+        return f'{self.dataset_name}_{self.model_name}_{self.peft_type}_{split}{ft}_{self.gnn_name}_gnnseed{gs}'
 
     def __len__(self):
         return len(self.members)
 
     def describe(self):
         lines = [f"Pool: {len(self.members)} members ({len(set(self.inits))} inits x "
-                 f"{len(set(self.seeds))} seeds), GNN={self.gnn_name} fixed gnn_seed={self.gnn_seed}"]
+                 f"{len(set(self.seeds))} seeds), GNN={self.gnn_name} " +
+                 ("own split per member (GNN seed = LoRA seed; node metrics on shared test nodes)"
+                  if self.own_split else f"fixed gnn_seed={self.gnn_seed}")]
         for init in dict.fromkeys(self.inits):
             lines.append(f"  {TITLES[init]}: seeds {sorted(int(s) for s in self.seeds[self.inits == init])}")
         if self.missing:
@@ -140,11 +193,20 @@ class Pool:
     def gnn_pool_dir(self):
         return os.path.join(self.out_dir, 'gnn_pool', self.tag)
 
+    def member_gnn_cfg(self, i):
+        if not self.own_split:
+            return self.gnn_cfg
+        return set_mgnn_cfg(self.dataset_name, supervised=self.supervised, seed=int(self.members[i]['seed']),
+                            llm_name=self.llm_name, gnn_model_name=self.gnn_model_name_arg or self.gnn_name)
+
     def load_gnn_pool(self, retrain=False, verbose=True):
         """
         Returns dict with
           probs [M, n, C] float32, preds [M, n] long, emb list of [n, h] float32,
-          y [n], train/val/test masks [n] bool, test_acc/val_acc [M] (percent).
+          y [n], train/val/test masks [n] bool, test_acc/val_acc [M] (percent),
+          test_masks [M, n] bool: each member's own test nodes (all equal to test_mask
+          for a fixed GNN split). In own-split mode test_mask is the AND over members
+          (nodes that are test nodes for every member).
         """
         pool_dir = self.gnn_pool_dir()
         os.makedirs(pool_dir, exist_ok=True)
@@ -160,7 +222,7 @@ class Pool:
             if verbose:
                 print(f"\n--- [GNN pool] training {self.gnn_name} on {m['label']} ({i + 1}/{len(self)}) ---")
             emb = self.load_llm_embedding(i)
-            trainer = GNNTrainer(self.gnn_cfg, emb, verbose=verbose)
+            trainer = GNNTrainer(self.member_gnn_cfg(i), emb, verbose=verbose)
             results, _, _ = trainer.train()
             with torch.no_grad():
                 trainer.model.eval()
@@ -171,6 +233,7 @@ class Pool:
                 'emb': penult.cpu().half(),
                 'test_acc': float(results['test_acc']),
                 'val_acc': float(results['val_acc']),
+                'test_mask': trainer.data.test_mask.detach().cpu().bool(),
             }
             torch.save(rec, path)
             records.append(rec)
@@ -185,7 +248,7 @@ class Pool:
                 torch.cuda.empty_cache()
 
         probs = torch.stack([r['probs'] for r in records])
-        return {
+        out = {
             'probs': probs,
             'preds': probs.argmax(dim=2),
             'emb': [r['emb'].float() for r in records],
@@ -193,13 +256,53 @@ class Pool:
             'val_acc': np.array([r['val_acc'] for r in records]),
             **meta,
         }
+        if self.own_split:
+            if any('test_mask' not in r for r in records):
+                raise RuntimeError(f'GNN pool in {pool_dir} has no per-member test masks; rerun with --retrain_gnn')
+            out['test_masks'] = torch.stack([r['test_mask'] for r in records])
+            out['test_mask'] = out['test_masks'].all(dim=0)
+        else:
+            out['test_masks'] = out['test_mask'][None].expand(len(records), -1).clone()
+        return out
+
+
+def check_no_leakage(seeds, split_seed, gnn_seed, supervised, allow_leakage=False):
+    """
+    Supervised split: refuse a pool in which a member's LoRA was fine-tuned on a different 60/20/20
+    split than the one its GNN is tested on. Such a LoRA has seen the text and labels of ~60% of the
+    GNN test nodes (seed-43..45 members tested on the seed-42 split were 2-3 pp too accurate).
+      fine-tuning split of a member = split_seed if given, else its own LoRA seed
+      GNN split                     = gnn_seed, or the member's own LoRA seed if gnn_seed < 0
+    """
+    if not supervised or allow_leakage:
+        return
+    own_split = gnn_seed is not None and gnn_seed < 0
+    if own_split and split_seed is not None:
+        raise ValueError('--gnn_seed -1 (own split) contradicts --split_seed: with --split_seed every member '
+                         f'was fine-tuned on split {split_seed}, so use --gnn_seed {split_seed}.')
+    if own_split:
+        return
+    leaking = [s for s in seeds if (split_seed if split_seed is not None else s) != gnn_seed]
+    if leaking:
+        raise ValueError(
+            f'Test-label leakage: LoRA seeds {leaking} were fine-tuned on split '
+            f"{split_seed if split_seed is not None else 'of their own seed'}, but the GNN is tested on split "
+            f'{gnn_seed}. Train the members with --split_seed {gnn_seed} and pass --split_seed {gnn_seed} '
+            f'(clean), or use --gnn_seed -1 (own split, fewer shared test nodes), or --allow_leakage to '
+            f'reproduce the old reports.')
 
 
 def pool_from_args(args):
     return Pool(args.dataset_name, args.llm_name, args.peft_type,
                 approaches=parse_list(args.approaches), seeds=parse_list(args.seeds, int),
                 supervised=args.split == 1, gnn_seed=args.gnn_seed, gnn_model_name=args.gnn_model_name,
-                out_dir=args.out_dir)
+                out_dir=args.out_dir, split_seed=getattr(args, 'split_seed', None),
+                init_seed=getattr(args, 'init_seed', None), allow_leakage=getattr(args, 'allow_leakage', False))
+
+
+def common_mask(test_masks, members):
+    """Nodes that are test nodes for every member in `members` ([n] bool)."""
+    return test_masks[list(members)].all(dim=0)
 
 
 # ----------------------------------------------------------------------------- similarity matrices
@@ -242,13 +345,29 @@ def cka_distance_matrix(mats, device=None):
 
 
 def disagreement_matrix(preds, mask):
-    """[M, M] fraction of masked nodes where two members predict different labels."""
-    p = preds[:, mask]
-    M = p.shape[0]
+    """
+    [M, M] fraction of masked nodes where two members predict different labels.
+    `mask` is [n] (one node set for all pairs) or [M, n] (per-member test nodes;
+    each pair is compared on the nodes in both members' test sets).
+    """
+    M = preds.shape[0]
     d = np.zeros((M, M))
+    if mask.dim() == 1:
+        p = preds[:, mask]
+        for i in range(M):
+            d[i] = (p[i:i + 1] != p).float().mean(dim=1).numpy()
+        return d
     for i in range(M):
-        d[i] = (p[i:i + 1] != p).float().mean(dim=1).numpy()
+        for j in range(i + 1, M):
+            m = mask[i] & mask[j]
+            d[i, j] = d[j, i] = (preds[i, m] != preds[j, m]).float().mean().item() if m.any() else float('nan')
     return d
+
+
+def pair_node_counts(test_masks):
+    """[M, M] number of shared test nodes per pair (for reporting)."""
+    t = test_masks.float()
+    return (t @ t.T).long().numpy()
 
 
 def cached_matrix(pool, name, fn, recompute=False):
@@ -437,7 +556,7 @@ def run_info(pool):
         'peft_type': pool.peft_type,
         'supervised': pool.supervised,
         'gnn_model_name': pool.gnn_name,
-        'gnn_seed': pool.gnn_seed,
+        'gnn_seed': 'own' if pool.own_split else pool.gnn_seed,
         'n_members': len(pool),
         'inits': ','.join(TITLES[i] for i in dict.fromkeys(pool.inits)),
         'seeds': ','.join(str(s) for s in sorted(set(int(s) for s in pool.seeds))),

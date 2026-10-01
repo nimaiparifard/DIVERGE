@@ -67,7 +67,7 @@ WHICH SCRIPT (Linux = sh_scripts/*.sh, Windows = scripts/*.bat)
 ------------------------------------------------------------------------------
  3. RUN EVERYTHING, GPU NEVER IDLE  (one line, chained)
 ------------------------------------------------------------------------------
-   export DATASETS="citeseer pubmed wikics" LLM_NAMES="llama_3.2_1B smollm2_1.7B gemma2_2B" SEEDS="42 43 44 45"
+   export DATASETS="wikics reddit" LLM_NAMES="llama_3.2_1B smollm2_1.7B gemma2_2B" SEEDS="42 43 44 45"
 
    bash sh_scripts/run_lora_init_parallel.sh ; \
    BATCH_SIZE=16 bash sh_scripts/run_cache_embedding_parallel.sh ; \
